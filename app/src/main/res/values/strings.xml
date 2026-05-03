@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Sudoku</string>
+    <string name="app_name_full">Sudoku – Classic Puzzle Game</string>
+    <string name="lbl_puzzle">Classic Puzzle Game</string>
+</resources>

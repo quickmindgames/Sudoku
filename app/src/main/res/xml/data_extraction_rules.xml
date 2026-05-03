@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Data extraction rules for Android 12+ (API 31+).
+    Exclude all game data from both cloud backup and device transfer
+    so a fresh install always starts clean.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- All DataStore preference files (game state, streak, score, theme) -->
+        <exclude domain="file" path="datastore/"/>
+        <!-- Room statistics database -->
+        <exclude domain="database" path="sudoku_database"/>
+    </cloud-backup>
+    <device-transfer>
+        <!-- All DataStore preference files -->
+        <exclude domain="file" path="datastore/"/>
+        <!-- Room statistics database -->
+        <exclude domain="database" path="sudoku_database"/>
+    </device-transfer>
+</data-extraction-rules>

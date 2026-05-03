@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Backup rules for Android < 12 (API < 31).
+    Exclude all game data so a fresh install always starts clean.
+-->
+<full-backup-content>
+    <!-- All DataStore preference files (game state, streak, score, theme) -->
+    <exclude domain="file" path="datastore/"/>
+    <!-- Room statistics database -->
+    <exclude domain="database" path="sudoku_database"/>
+</full-backup-content>

@@ -1,0 +1,51 @@
+package com.gamestudio.sudo.domain.util
+
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import java.util.Stack
+
+/**
+ * Undo/Redo Manager
+ * Manages undo and redo operations for game state
+ */
+val undoStack = Stack<List<List<Int>>>()
+val redoStack = Stack<List<List<Int>>>()
+
+/**
+ * Save current grid state to undo stack
+ * Clears redo stack when new move is made
+ */
+fun saveUndoState(grid: SnapshotStateList<SnapshotStateList<Int>>) {
+    undoStack.push(grid.map { it.toList() })
+    redoStack.clear()
+}
+
+/**
+ * Undo last action
+ */
+fun undo(grid: SnapshotStateList<SnapshotStateList<Int>>) {
+    if (undoStack.isNotEmpty()) {
+        redoStack.push(grid.map { it.toList() })
+        val last = undoStack.pop()
+        for (r in 0..8) for (c in 0..8) grid[r][c] = last[r][c]
+    }
+}
+
+/**
+ * Redo last undone action
+ */
+fun redo(grid: SnapshotStateList<SnapshotStateList<Int>>) {
+    if (redoStack.isNotEmpty()) {
+        undoStack.push(grid.map { it.toList() })
+        val next = redoStack.pop()
+        for (r in 0..8) for (c in 0..8) grid[r][c] = next[r][c]
+    }
+}
+
+/**
+ * Clear all undo/redo history
+ */
+fun clearUndoRedoHistory() {
+    undoStack.clear()
+    redoStack.clear()
+}
+

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "364553598701",
+    "project_id": "quickmind-games",
+    "storage_bucket": "quickmind-games.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:364553598701:android:5b750c83e97bf6d5c27ee4",
+        "android_client_info": {
+          "package_name": "com.quickmindgames.sudoku"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD4tjJdcAAa-OYKvS4-SSutyfDpMfE4Akw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
