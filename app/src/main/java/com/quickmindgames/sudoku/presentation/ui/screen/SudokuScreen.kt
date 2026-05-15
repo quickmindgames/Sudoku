@@ -167,7 +167,6 @@ fun SudokuScreen(
     }
 
     LaunchedEffect(mode, difficulty) {
-        Log.d("SudokuScreen", "SudokuScreen: mode=$mode")
         if (mode == "new") {
             // Generate new puzzle
             val diff = difficulty ?: Difficulty.Breeze
@@ -433,7 +432,7 @@ fun SudokuScreen(
                 IconButton(
                     onClick = { onExit() },
                     modifier = Modifier
-                        .size(24.dp)
+                        .size(32.dp)
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,

@@ -27,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.gamestudio.sudo.utils.MultipleEventsCutter
 import com.quickmindgames.sudoku.R
 import com.quickmindgames.sudoku.utils.shareStreak
 
@@ -43,8 +44,7 @@ fun StreakSummaryCard(
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val appName = stringResource(R.string.app_name)
-
+    val cutter = MultipleEventsCutter.rememberMultipleEventsCutter()
     val statusText = when {
         hasActiveToday -> "Streak in progress..."
         completedToday -> "Completed today ✓"
@@ -74,17 +74,7 @@ fun StreakSummaryCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Flame + streak count badge
-            Box(
-                modifier = Modifier
-                    .size(58.dp)
-                    .background(
-                        MaterialTheme.colorScheme.primaryContainer,
-                        RoundedCornerShape(16.dp)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = "🔥", fontSize = 22.sp)
-            }
+            Text(text = "🔥", fontSize = 32.sp)
 
             Spacer(Modifier.width(10.dp))
 
@@ -115,7 +105,7 @@ fun StreakSummaryCard(
             if (streakCount > 0) {
                 IconButton(
                     onClick = {
-                        context.shareStreak(streakCount, appName)
+                        cutter.processEvent { context.shareStreak(streakCount) }
                     },
                     modifier = Modifier
                         .size(40.dp)

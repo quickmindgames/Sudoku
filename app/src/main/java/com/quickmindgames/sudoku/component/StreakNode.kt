@@ -1,9 +1,5 @@
 package com.quickmindgames.sudoku.component
 
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,10 +13,8 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -56,6 +50,7 @@ fun StreakNode(
                 shadowElevation = 12.dp
             )
         }
+
         isActive -> {
             // Active: Amber/Orange gradient with glow
             NodeColor3D(
@@ -65,6 +60,7 @@ fun StreakNode(
                 shadowElevation = 14.dp
             )
         }
+
         isPlayable -> {
             // Playable: Secondary gradient
             val secondary = MaterialTheme.colorScheme.secondary
@@ -75,6 +71,7 @@ fun StreakNode(
                 shadowElevation = 8.dp
             )
         }
+
         else -> {
             // Locked: Gray gradient
             val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
@@ -125,9 +122,9 @@ fun StreakNode(
                 onClick = if (isPlayable || isActive) {
                     { onClick() }
                 } else if (isLocked) {
-                    { onLockedClick() }
+                    { }
                 } else {
-                    {}
+                    { onLockedClick() }
                 }
             ) {
                 Box(

@@ -6,9 +6,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.gamestudio.sudo.MainSudokuApp
 import com.gamestudio.sudo.SudokuScreen
 import com.gamestudio.sudo.component.Difficulty
+import com.quickmindgames.sudoku.presentation.ui.MainSudokuApp
 
 /**
  * App Navigation Setup

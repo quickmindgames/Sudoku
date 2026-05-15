@@ -29,11 +29,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.gamestudio.sudo.utils.MultipleEventsCutter
 import com.quickmindgames.sudoku.R
 import com.quickmindgames.sudoku.component.StreakPath
 import com.quickmindgames.sudoku.data.state.StreakState
@@ -86,7 +88,18 @@ fun StreakScreen(
     val hasActiveToday = streakState.activeDate == today
             && streakState.activeGame?.hasStarted() == true
     val completedToday = streakState.lastCompletedDate == today
-
+    val cutter = MultipleEventsCutter.rememberMultipleEventsCutter()
+    val statusText = when {
+        hasActiveToday -> "Streak in progress..."
+        completedToday -> "Completed today ✓"
+        streakCount > 0 -> "Play today to keep it alive!"
+        else -> "Start your first streak!"
+    }
+    val statusColor = when {
+        hasActiveToday -> Color(0xFFFF6F00)
+        completedToday -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -124,9 +137,10 @@ fun StreakScreen(
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = "Keep it alive!",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            text = statusText,
+                            fontSize = 13.sp,
+                            color = statusColor,
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
@@ -146,7 +160,7 @@ fun StreakScreen(
                                     indication = null,
                                     interactionSource = remember { MutableInteractionSource() }
                                 ) {
-                                    context.shareStreak(streakCount, appName)
+                                    cutter.processEvent { context.shareStreak(streakCount) }
                                 } else Modifier
                             ),
                         contentAlignment = Alignment.Center
@@ -174,7 +188,7 @@ fun StreakScreen(
                                     CircleShape
                                 )
                                 .clickable {
-                                    context.shareStreak(streakCount, appName)
+                                    cutter.processEvent { context.shareStreak(streakCount) }
                                 },
                             contentAlignment = Alignment.Center
                         ) {

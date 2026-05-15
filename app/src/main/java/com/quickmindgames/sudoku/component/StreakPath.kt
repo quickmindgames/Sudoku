@@ -47,7 +47,6 @@ fun StreakPath(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
         ) {
             BoxWithConstraints {
                 val nodeSpacing = 85.dp
@@ -214,16 +213,13 @@ fun StreakPath(
                                         isPlayable = isPlayable,
                                         onClick = { onStart(dayNumber) },
                                         onLockedClick = {
-                                            val message = if (isNextButCompletedToday) {
-                                                "Come back tomorrow to continue your streak!"
-                                            } else {
-                                                "Complete the earlier streaks first to unlock this!"
+                                            if (isNextButCompletedToday) {
+                                                Toast.makeText(
+                                                    context,
+                                                    "Come back tomorrow to keep your streak alive!",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
                                             }
-                                            Toast.makeText(
-                                                context,
-                                                message,
-                                                Toast.LENGTH_SHORT
-                                            ).show()
                                         }
                                     )
                                 }

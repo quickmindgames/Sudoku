@@ -1,5 +1,6 @@
 package com.quickmindgames.sudoku.presentation.ui.screen
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -60,6 +61,11 @@ fun StatisticsScreen(
     val coroutineScope = rememberCoroutineScope()
     val lastLoggedTabIndex = remember { mutableIntStateOf(-1) }
 
+    // Intercept system back button and forward it to the same callback
+    BackHandler {
+        onBackClick()
+    }
+
     // Refresh statistics when screen is focused
     LaunchedEffect(Unit) {
         viewModel.refreshStatistics()
@@ -107,11 +113,7 @@ fun StatisticsScreen(
                 IconButton(
                     onClick = { onBackClick() },
                     modifier = Modifier
-                        .size(40.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            shape = RoundedCornerShape(12.dp)
-                        )
+                        .size(32.dp)
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
