@@ -41,6 +41,8 @@ jobs:
 
       - name: Build Signed Release App Bundle
         run: ./gradlew bundleRelease
+        env:
+          BUILD_NUMBER: ${{ github.run_number }} # Passes the unique incrementing execution number
 
       - name: Upload App Bundle Artifact
         uses: actions/upload-artifact@v4
