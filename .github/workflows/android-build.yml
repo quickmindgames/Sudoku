@@ -32,4 +32,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: signed-release-apk
-          path: app/release/*.apk
+          path: app/build/outputs/apk/release/*.apk
