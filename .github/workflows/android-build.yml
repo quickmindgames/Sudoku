@@ -1,4 +1,4 @@
-name: Build Signed APK
+name: Build and Deploy Signed AAB
 
 on:
   push:
@@ -8,7 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    outputs:
+      version_name: ${{ steps.get_version.outputs.VERSION_NAME }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -25,11 +26,63 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew
 
-      - name: Build Signed Release APK
-        run: ./gradlew assembleRelease
+      # Extract version name from build.gradle
+      - name: Extract Version Name
+        id: get_version
+        run: |
+          # Works for both Groovy (build.gradle) and Kotlin DSL (build.gradle.kts)
+          VERSION_NAME=$(grep "versionName" app/build.gradle* | awk -F '"' '{print $2}' | sed 's/text //g' | tr -d '[:space:]')
+          if [ -z "$VERSION_NAME" ]; then
+            # Fallback for single quotes if double quotes aren't used
+            VERSION_NAME=$(grep "versionName" app/build.gradle* | awk -F "'" '{print $2}' | tr -d '[:space:]')
+          fi
+          echo "Extracted Version: $VERSION_NAME"
+          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_OUTPUT
 
-      - name: Upload APK Artifact
+      - name: Build Signed Release App Bundle
+        run: ./gradlew bundleRelease
+
+      - name: Upload App Bundle Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: signed-release-apk
-          path: app/build/outputs/apk/release/*.apk
+          name: signed-release-aab
+          path: app/build/outputs/bundle/release/*.aab
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required for creating repository tags/releases
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Download the AAB instead of APK
+      - name: Download AAB Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-release-aab
+          path: release-artifacts
+
+      # Task 1: Create GitHub Release and Tag
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.build.outputs.version_name }}
+          name: Release v${{ needs.build.outputs.version_name }}
+          draft: false
+          prerelease: false
+          files: release-artifacts/*.aab
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Task 2: Publish AAB to Google Play Store
+      - name: Upload to Google Play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
+          packageName: com.quickmindgames.sudoku # TODO: Replace with your actual Package ID
+          releaseFiles: release-artifacts/*.aab
+          track: internal # Options: internal, alpha, beta, production
+          status: completed
