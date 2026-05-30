@@ -1,6 +1,5 @@
 package com.quickmindgames.sudoku.presentation.ui.screen
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -312,7 +311,7 @@ fun HomeScreen(
 
             Text(
                 text = stringResource(R.string.lbl_puzzle),
-                fontSize = 14.sp,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                 modifier = Modifier.padding(top = 4.dp)
@@ -333,7 +332,7 @@ fun HomeScreen(
                 Text(
                     text = if (totalScore == 0) "No score yet — play a game!"
                     else "Total Score: ${"%,d".format(totalScore)}",
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (totalScore == 0)
                         MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)

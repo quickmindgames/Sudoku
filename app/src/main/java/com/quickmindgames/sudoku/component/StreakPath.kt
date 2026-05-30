@@ -206,7 +206,6 @@ fun StreakPath(
 
                                     StreakNode(
                                         dayNumber = dayNumber,
-                                        nodesPerRow = nodesPerRowCalculated,
                                         isCompleted = isCompleted,
                                         isActive = isActive,
                                         isLocked = isLocked,

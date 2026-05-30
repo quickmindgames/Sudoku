@@ -1,4 +1,4 @@
-package com.gamestudio.sudo.utils
+package com.quickmindgames.sudoku.utils
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember

@@ -30,7 +30,6 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun StreakNode(
     dayNumber: Int,
-    nodesPerRow: Int,
     isCompleted: Boolean,
     isActive: Boolean,
     isLocked: Boolean,

@@ -1,7 +1,6 @@
 package com.quickmindgames.sudoku.presentation.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -17,7 +16,6 @@ import com.quickmindgames.sudoku.presentation.ui.screen.SudokuScreen
 @Composable
 fun AppNav() {
     val rootNavController = rememberNavController()
-    val context = LocalContext.current
 
     NavHost(
         navController = rootNavController,

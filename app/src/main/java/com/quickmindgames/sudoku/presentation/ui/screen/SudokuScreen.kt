@@ -1,6 +1,5 @@
 package com.quickmindgames.sudoku.presentation.ui.screen
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,10 +22,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -148,7 +147,6 @@ fun SudokuScreen(
 
     var isNotesMode by remember { mutableStateOf(false) }
     var availableHints by remember(mode, difficulty) { mutableIntStateOf(1) }
-    var hintHighlightCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
 
     LaunchedEffect(shakeCells) {
         delay(300)
@@ -199,7 +197,6 @@ fun SudokuScreen(
             for (r in 0..8) for (c in 0..8) scoredCells[r][c] = false
 
             availableHints = RemoteConfigManager.getHintsForDifficulty(diff.name.lowercase())
-            hintHighlightCell = null
 
             // Log new game started event
             val savedGameDifficulty =
@@ -230,7 +227,6 @@ fun SudokuScreen(
                     selectedCell = state.selectedCell
                     isNotesMode = state.isNotesMode // Restore notes mode
                     availableHints = state.availableHints
-                    hintHighlightCell = null
                     gameOver = false
                     gameWon = false
                     isRunning = true
@@ -576,7 +572,7 @@ fun SudokuScreen(
                     modifier = Modifier
                         .matchParentSize()
                         .background(
-                            color = MaterialTheme.colorScheme.background.copy(alpha = 0.93f),
+                            color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.98f),
                         )
                         .clickable { isRunning = true },
                     contentAlignment = Alignment.Center
@@ -611,7 +607,7 @@ fun SudokuScreen(
                         Spacer(Modifier.height(6.dp))
                         Text(
                             text = "Tap to resume",
-                            fontSize = 13.sp,
+                            fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -692,7 +688,6 @@ fun SudokuScreen(
                                         mode = "regular"
                                     )
                                     // Clear streak resume state for today (reset activeDate and activeGame)
-                                    val today = LocalDate.now().toString()
                                     val savedStreak = streakStateManager.getStreakState().first()
                                         ?: StreakState(0, null, null, null)
                                     streakStateManager.saveStreakState(
@@ -824,7 +819,7 @@ fun SudokuScreen(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Undo,
+                        imageVector = Icons.AutoMirrored.Filled.Undo,
                         contentDescription = "Undo",
                         modifier = Modifier.size(22.dp)
                     )
@@ -937,11 +932,9 @@ fun SudokuScreen(
                         userGrid[r][c] = cell.copy(value = solutionGrid[r][c], notes = emptySet())
                         updateNotesAfterValueChange(userGrid, r, c, solutionGrid[r][c])
                         availableHints--
-                        hintHighlightCell = r to c
                         AnalyticsUtils.logHintUsed(context, currentDifficulty.name)
                         coroutineScope.launch {
                             delay(2000)
-                            hintHighlightCell = null
                         }
                         // Check for win after hint fills a cell
                         if (!gameOver && !gameWon && isWin(userGrid, solutionGrid)) {
@@ -1088,7 +1081,8 @@ fun SudokuScreen(
                                     timerKey++
                                     correctStreak = 0
                                     lastCorrectTime = 0
-                                    availableHints = RemoteConfigManager.getHintsForDifficulty(currentDifficulty.name.lowercase())
+                                    availableHints =
+                                        RemoteConfigManager.getHintsForDifficulty(currentDifficulty.name.lowercase())
                                     for (r in 0..8) for (c in 0..8) scoredCells[r][c] = false
                                     coroutineScope.launch {
                                         if (mode != "streak") gameStateManager.clearGameState()
@@ -1320,7 +1314,8 @@ fun SudokuScreen(
                                     correctStreak = 0
                                     lastCorrectTime = 0
                                     for (r in 0..8) for (c in 0..8) scoredCells[r][c] = false
-                                    availableHints = RemoteConfigManager.getHintsForDifficulty("breeze") // reset hints to default for new game
+                                    availableHints =
+                                        RemoteConfigManager.getHintsForDifficulty("breeze") // reset hints to default for new game
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()

@@ -3,7 +3,7 @@ name: Build and Deploy Signed AAB
 on:
   push:
     branches:
-      - dev
+      - 'release_*' # Trigger on branches that start with 'release_'
 
 jobs:
   build:
@@ -84,5 +84,5 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
           packageName: com.quickmindgames.sudoku # TODO: Replace with your actual Package ID
           releaseFiles: release-artifacts/*.aab
-          tracks: internal # Options: internal, alpha, beta, production
+          tracks: alpha # Options: internal, alpha, beta, production
           status: completed
