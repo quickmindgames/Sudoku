@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Sudo"
+rootProject.name = "Sudoku"
 include(":app")
  
