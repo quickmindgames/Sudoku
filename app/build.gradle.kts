@@ -15,8 +15,8 @@ android {
         applicationId = "com.quickmindgames.sudoku"
         minSdk = 28
         targetSdk = 36
-        versionCode = 9
-        versionName = "0.1.4"
+        versionCode = 10
+        versionName = "0.1.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

@@ -3,7 +3,7 @@ name: Build and Deploy Signed AAB
 on:
   push:
     branches:
-      - 'release_*' # Trigger on branches that start with 'release_'
+      - 'Release/release_*' # Trigger on branches that start with 'release_'
 
 jobs:
   build:
