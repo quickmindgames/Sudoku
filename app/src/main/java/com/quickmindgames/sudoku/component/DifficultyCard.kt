@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
@@ -22,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,8 +39,6 @@ fun DifficultyCard(
     isLocked: Boolean = false,
     onLockedClick: () -> Unit = {}
 ) {
-    val context = LocalContext.current
-
     val (emoji, description) = when (difficulty) {
         Difficulty.Breeze -> Pair("🌤️", "Perfect for beginners")
         Difficulty.Pulse -> Pair("⚡", "Moderate challenge")
@@ -134,7 +131,7 @@ fun DifficultyCard(
                     Text(text = "🔒", fontSize = 24.sp)
                 } else {
                     Icon(
-                        imageVector = Icons.Default.ArrowForward,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = "Select ${difficulty.label}",
                         tint = accentColor,
                         modifier = Modifier.size(24.dp)

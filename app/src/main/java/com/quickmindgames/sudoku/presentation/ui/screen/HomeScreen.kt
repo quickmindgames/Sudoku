@@ -1,6 +1,7 @@
 package com.quickmindgames.sudoku.presentation.ui.screen
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
@@ -24,6 +26,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -65,7 +68,8 @@ fun HomeScreen(
     onNewGameClick: () -> Unit,
     onDifficultySelected: (Difficulty) -> Unit,
     onResume: () -> Unit,
-    onStreakClick: () -> Unit
+    onStreakClick: () -> Unit,
+    onLearningModeClick: () -> Unit
 ) {
     var showSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -411,6 +415,39 @@ fun HomeScreen(
                     Text(text = "New Game", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
             }
+
+            // ── Learning Mode button ── NEW ─────────────────────
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedButton(
+                onClick = onLearningModeClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.tertiary
+                ),
+                border = BorderStroke(
+                    1.5.dp,
+                    MaterialTheme.colorScheme.tertiary
+                )
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Help,
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.lbl_how_to_play),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+            // ── End Learning Mode button ────────────────────────
         }
     }
 }

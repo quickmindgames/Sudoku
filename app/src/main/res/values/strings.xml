@@ -2,4 +2,8 @@
     <string name="app_name">Sudoku</string>
     <string name="app_name_full">Sudoku – Classic Puzzle Game</string>
     <string name="lbl_puzzle">Classic Puzzle Game</string>
+    <string name="lbl_lets_practice">Let\'s Practice</string>
+    <string name="lbl_how_to_play">How to play?</string>
+    <string name="lbl_tutorial">Tutorial</string>
+    <string name="lbl_practice_mode">Practice Mode</string>
 </resources>

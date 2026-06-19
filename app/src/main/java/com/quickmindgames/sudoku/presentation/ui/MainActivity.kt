@@ -111,7 +111,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 
 fun MainSudokuApp(
-    onOpenPlay: (String, Difficulty?, Int?) -> Unit
+    onOpenPlay: (String, Difficulty?, Int?) -> Unit,
+    onOpenLearn: () -> Unit
 ) {
     val navController = rememberNavController()
     val screens = listOf(BottomScreen.Home, BottomScreen.Streak, BottomScreen.Settings)
@@ -126,9 +127,9 @@ fun MainSudokuApp(
                         selected = currentRoute == screen.route,
                         onClick = {
                             navController.navigate(screen.route) {
-                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                popUpTo(navController.graph.startDestinationId) { saveState = false }
                                 launchSingleTop = true
-                                restoreState = true
+                                restoreState = false
                             }
                         },
                         icon = { Icon(screen.icon, contentDescription = screen.title) },
@@ -158,7 +159,8 @@ fun MainSudokuApp(
                             launchSingleTop = true
                             restoreState = true
                         }
-                    }
+                    },
+                    onLearningModeClick = onOpenLearn
                 )
             }
             composable(BottomScreen.Streak.route) {

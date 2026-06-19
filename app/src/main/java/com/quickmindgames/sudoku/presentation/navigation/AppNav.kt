@@ -7,6 +7,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.quickmindgames.sudoku.domain.model.Difficulty
 import com.quickmindgames.sudoku.presentation.ui.MainSudokuApp
+import com.quickmindgames.sudoku.presentation.ui.screen.LessonScreen
 import com.quickmindgames.sudoku.presentation.ui.screen.SudokuScreen
 
 /**
@@ -29,6 +30,23 @@ fun AppNav() {
                     rootNavController.navigate(
                         "play/$mode/${difficulty?.name ?: "none"}/${streakDay ?: 0}"
                     )
+                },
+                onOpenLearn = {
+                    rootNavController.navigate("learn")
+                }
+            )
+        }
+
+        // LESSON SCREEN (Learning Mode lessons)
+        composable("learn") {
+            LessonScreen(
+                onLessonsComplete = {
+                    rootNavController.navigate("play/learn/Breeze/0") {
+                        popUpTo("learn") { inclusive = true }
+                    }
+                },
+                onExit = {
+                    rootNavController.popBackStack()
                 }
             )
         }
