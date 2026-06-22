@@ -211,6 +211,8 @@ fun SudokuScreen(
             lastCorrectTime = 0
             for (r in 0..8) for (c in 0..8) scoredCells[r][c] = false
             availableHints = 0 // hints disabled
+
+            AnalyticsUtils.logLearningStarted(context)
         }
         //endregion
 
@@ -1275,6 +1277,7 @@ fun SudokuScreen(
                     onExit()
                 }
             )
+            AnalyticsUtils.logLearningCompleted(context)
         } else {
             // Persist score & streak state
             LaunchedEffect(Unit) {

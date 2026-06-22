@@ -25,8 +25,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -35,6 +37,8 @@ import com.quickmindgames.sudoku.R
 import com.quickmindgames.sudoku.component.LessonCardColumn
 import com.quickmindgames.sudoku.component.LessonCardDefault
 import com.quickmindgames.sudoku.domain.model.LESSONS
+import com.quickmindgames.sudoku.utils.AnalyticsConstants
+import com.quickmindgames.sudoku.utils.AnalyticsUtils
 
 @Composable
 fun LessonScreen(
@@ -42,6 +46,16 @@ fun LessonScreen(
     onExit: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        AnalyticsUtils.logScreenView(
+            context,
+            AnalyticsConstants.LESSON,
+            AnalyticsConstants.LESSON_SCREEN
+        )
+    }
+
     Column(
         modifier = Modifier
             .background(colors.background)
