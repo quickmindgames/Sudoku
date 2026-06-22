@@ -65,6 +65,7 @@ import java.time.LocalDate
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    modifier: Modifier = Modifier,
     onNewGameClick: () -> Unit,
     onDifficultySelected: (Difficulty) -> Unit,
     onResume: () -> Unit,
@@ -284,7 +285,7 @@ fun HomeScreen(
         }
     }
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .padding(

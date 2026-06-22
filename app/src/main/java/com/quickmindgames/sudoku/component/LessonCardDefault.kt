@@ -24,7 +24,7 @@ fun LessonCardDefault(lesson: com.quickmindgames.sudoku.domain.model.LessonData,
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 16.dp),
+            .padding(horizontal = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -52,11 +52,11 @@ fun LessonCardDefault(lesson: com.quickmindgames.sudoku.domain.model.LessonData,
             textAlign = TextAlign.Center,
             letterSpacing = 0.3.sp
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(8.dp))
 
         // Visual grid representation
         VisualLessonGrid(grid = lesson.visualGrid)
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(12.dp))
 
         // Body
         Text(

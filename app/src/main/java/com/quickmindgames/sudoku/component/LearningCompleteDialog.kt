@@ -61,7 +61,7 @@ fun LearningCompleteDialog(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("🎓", fontSize = 52.sp)
+                        Text("🎉", fontSize = 52.sp)
                         Spacer(Modifier.height(10.dp))
                         Text(
                             text = "Excellent Work!",

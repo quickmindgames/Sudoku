@@ -28,7 +28,7 @@ fun LessonCardColumn(lesson: LessonData, stepNumber: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 16.dp),
+            .padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.Top
     ) {
@@ -58,9 +58,9 @@ fun LessonCardColumn(lesson: LessonData, stepNumber: Int) {
                         color = colors.primary.copy(alpha = 0.1f),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
                     )
-                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
             )
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(8.dp))
 
             Text(
                 text = lesson.title,

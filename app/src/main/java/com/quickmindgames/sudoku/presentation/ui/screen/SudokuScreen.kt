@@ -106,7 +106,8 @@ fun SudokuScreen(
     mode: String,
     difficulty: Difficulty?,
     streakDay: Int = 0,
-    onExit: () -> Unit
+    onExit: () -> Unit,
+    onStartNormalGame: () -> Unit = onExit
 ) {
     val context = LocalContext.current
     val gameStateManager = remember { GameStateManager.getInstance(context) }
@@ -1267,7 +1268,7 @@ fun SudokuScreen(
             LearningCompleteDialog(
                 onTryNormalMode = {
                     gameWon = false
-                    onExit() // Pop back to home — user can tap New Game
+                    onStartNormalGame() // Pop back to home — user can tap New Game
                 },
                 onBackToHome = {
                     gameWon = false

@@ -1,14 +1,7 @@
 package com.quickmindgames.sudoku.presentation.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import com.quickmindgames.sudoku.domain.model.Difficulty
 import com.quickmindgames.sudoku.presentation.ui.MainSudokuApp
-import com.quickmindgames.sudoku.presentation.ui.screen.LessonScreen
-import com.quickmindgames.sudoku.presentation.ui.screen.SudokuScreen
 
 /**
  * App Navigation Setup
@@ -16,68 +9,5 @@ import com.quickmindgames.sudoku.presentation.ui.screen.SudokuScreen
  */
 @Composable
 fun AppNav() {
-    val rootNavController = rememberNavController()
-
-    NavHost(
-        navController = rootNavController,
-        startDestination = "main"
-    ) {
-
-        // MAIN SCREEN (contains bottom tabs)
-        composable("main") {
-            MainSudokuApp(
-                onOpenPlay = { mode, difficulty, streakDay ->
-                    rootNavController.navigate(
-                        "play/$mode/${difficulty?.name ?: "none"}/${streakDay ?: 0}"
-                    )
-                },
-                onOpenLearn = {
-                    rootNavController.navigate("learn")
-                }
-            )
-        }
-
-        // LESSON SCREEN (Learning Mode lessons)
-        composable("learn") {
-            LessonScreen(
-                onLessonsComplete = {
-                    rootNavController.navigate("play/learn/Breeze/0") {
-                        popUpTo("learn") { inclusive = true }
-                    }
-                },
-                onExit = {
-                    rootNavController.popBackStack()
-                }
-            )
-        }
-
-        // PLAY SCREEN (outside bottom tabs)
-        composable(
-            route = "play/{mode}/{difficulty}/{streakDay}",
-            arguments = listOf(
-                navArgument("mode") { defaultValue = "new" },
-                navArgument("difficulty") { defaultValue = "none" },
-                navArgument("streakDay") { defaultValue = "0" }
-            )
-        ) { entry ->
-
-            val mode = entry.arguments?.getString("mode") ?: "new"
-            val diffStr = entry.arguments?.getString("difficulty") ?: "none"
-            val streakDay = entry.arguments?.getString("streakDay")?.toIntOrNull() ?: 0
-            val difficulty = diffStr
-                .takeIf { it != "none" }
-                ?.let { s ->
-                    Difficulty.entries.firstOrNull {
-                        it.name.equals(s, ignoreCase = true)
-                    }
-                }
-
-            SudokuScreen(
-                mode = mode,
-                difficulty = difficulty,
-                streakDay = streakDay,
-                onExit = { rootNavController.popBackStack() }
-            )
-        }
-    }
+    MainSudokuApp()
 }
