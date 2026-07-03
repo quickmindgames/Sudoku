@@ -39,6 +39,9 @@ fun SudokuGridLevel(
     selectedCell: Pair<Int, Int>?,
     onCellClick: (Int, Int) -> Unit
 ) {
+
+    val colors = MaterialTheme.colorScheme
+
     SudokuBoardContainer(
         modifier = Modifier
             .fillMaxWidth()
@@ -54,7 +57,6 @@ fun SudokuGridLevel(
                 val col = index % 9
                 val cell = grid[row][col]
                 val value = cell.value
-                val notes = cell.notes
                 val original = originalGrid[row][col]
                 val isSelected = selectedCell == row to col
                 val selectedValue = selectedCell?.let { grid[it.first][it.second].value }
@@ -63,10 +65,10 @@ fun SudokuGridLevel(
                 val isWrong = wrongCells.contains(row to col)
                 val shouldShake = shakeCells.contains(row to col)
                 val animatedBgColor = when {
-                    isSelected -> MaterialTheme.colorScheme.surfaceVariant
-                    isSameNumber -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f)
-                    original != 0 -> MaterialTheme.colorScheme.surfaceVariant
-                    else -> MaterialTheme.colorScheme.surface
+                    isSelected -> colors.surfaceVariant
+                    isSameNumber -> colors.secondary.copy(alpha = 0.18f)
+                    original != 0 -> colors.surfaceVariant
+                    else -> colors.surface
                 }
                 Box(
                     modifier = Modifier
@@ -103,7 +105,7 @@ fun SudokuGridLevel(
                                                 fontWeight = FontWeight.Medium,
                                                 letterSpacing = 0.sp,
                                                 lineHeight = 12.sp,
-                                                color = MaterialTheme.colorScheme.onSurface,
+                                                color = colors.onSurface,
                                                 modifier = Modifier.padding(0.dp)
                                             )
                                         }
@@ -126,7 +128,7 @@ fun SudokuGridLevel(
                                                 fontWeight = FontWeight.Medium,
                                                 letterSpacing = 0.sp,
                                                 lineHeight = 12.sp,
-                                                color = MaterialTheme.colorScheme.onSurface,
+                                                color = colors.onSurface,
                                                 modifier = Modifier.padding(0.dp)
                                             )
                                         }
@@ -154,7 +156,7 @@ fun SudokuGridLevel(
                                                 fontWeight = FontWeight.Medium,
                                                 letterSpacing = 0.sp,
                                                 lineHeight = 12.sp,
-                                                color = MaterialTheme.colorScheme.onSurface,
+                                                color = colors.onSurface,
                                                 modifier = Modifier.padding(0.dp)
                                             )
                                         }
@@ -177,7 +179,7 @@ fun SudokuGridLevel(
                                                 fontWeight = FontWeight.Medium,
                                                 letterSpacing = 0.sp,
                                                 lineHeight = 12.sp,
-                                                color = MaterialTheme.colorScheme.onSurface,
+                                                color = colors.onSurface,
                                                 modifier = Modifier.padding(0.dp)
                                             )
                                         }
@@ -188,15 +190,15 @@ fun SudokuGridLevel(
                     } else {
                         Text(
                             text = if (value == 0) "" else value.toString(),
-                            fontSize = 22.sp,
+                            fontSize = 26.sp,
                             fontWeight = when {
                                 isWrong -> FontWeight.Bold
                                 else -> FontWeight.Medium
                             },
                             color = when {
-                                original != 0 -> MaterialTheme.colorScheme.onSurface
-                                isWrong -> MaterialTheme.colorScheme.error
-                                else -> MaterialTheme.colorScheme.primary
+                                original != 0 -> colors.onSurface
+                                isWrong -> colors.error
+                                else -> colors.primary
                             },
                             modifier = Modifier.shakeEffect(shouldShake)
                         )

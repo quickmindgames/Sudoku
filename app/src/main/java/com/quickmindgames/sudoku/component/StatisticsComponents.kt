@@ -32,6 +32,7 @@ import com.quickmindgames.sudoku.domain.model.AllStatistics
 import com.quickmindgames.sudoku.domain.model.DifficultyStatistics
 import com.quickmindgames.sudoku.domain.model.GameStatistics
 import com.quickmindgames.sudoku.domain.model.StreakStatistics
+import java.util.Locale
 
 /**
  * Data class for win ratio-based feedback with title, caption, and emoji
@@ -570,6 +571,6 @@ fun StatisticRow(
 fun formatTime(seconds: Int): String {
     val minutes = seconds / 60
     val secs = seconds % 60
-    return String.format("%02d:%02d", minutes, secs)
+    return String.format(Locale.getDefault(), "%02d:%02d", minutes, secs)
 }
 

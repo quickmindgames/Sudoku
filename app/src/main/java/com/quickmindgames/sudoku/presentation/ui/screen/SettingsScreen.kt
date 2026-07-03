@@ -54,7 +54,7 @@ import kotlinx.coroutines.launch
  *
  */
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val themePreferences = remember { ThemePreferences.getInstance(context) }
     val coroutineScope = rememberCoroutineScope()
@@ -80,12 +80,13 @@ fun SettingsScreen() {
         val statisticsViewModel =
             remember { StatisticsViewModel(context) }
         StatisticsScreen(
+            modifier = modifier,
             viewModel = statisticsViewModel,
             onBackClick = { showStatistics = false }
         )
     } else {
         Column(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {

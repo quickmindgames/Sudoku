@@ -48,6 +48,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun StatisticsScreen(
+    modifier: Modifier = Modifier,
     viewModel: StatisticsViewModel,
     onBackClick: () -> Unit = {}
 ) {
@@ -88,7 +89,7 @@ fun StatisticsScreen(
     }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {

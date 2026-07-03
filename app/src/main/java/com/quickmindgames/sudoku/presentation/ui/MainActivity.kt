@@ -10,6 +10,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -25,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
@@ -33,14 +39,17 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.quickmindgames.sudoku.data.preferences.ThemePreferences
 import com.quickmindgames.sudoku.data.repository.StatisticsRepository
 import com.quickmindgames.sudoku.domain.model.Difficulty
 import com.quickmindgames.sudoku.presentation.navigation.AppNav
 import com.quickmindgames.sudoku.presentation.navigation.BottomScreen
 import com.quickmindgames.sudoku.presentation.ui.screen.HomeScreen
+import com.quickmindgames.sudoku.presentation.ui.screen.LessonScreen
 import com.quickmindgames.sudoku.presentation.ui.screen.SettingsScreen
 import com.quickmindgames.sudoku.presentation.ui.screen.StreakScreen
+import com.quickmindgames.sudoku.presentation.ui.screen.SudokuScreen
 import com.quickmindgames.sudoku.presentation.ui.theme.SudoTheme
 import com.quickmindgames.sudoku.utils.AnalyticsUtils
 import com.quickmindgames.sudoku.utils.RemoteConfigManager
@@ -109,48 +118,66 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-
-fun MainSudokuApp(
-    onOpenPlay: (String, Difficulty?, Int?) -> Unit
-) {
+fun MainSudokuApp() {
     val navController = rememberNavController()
     val screens = listOf(BottomScreen.Home, BottomScreen.Streak, BottomScreen.Settings)
+    val bottomBarRoutes = remember(screens) { screens.map { it.route } }
+    val currentRoute = currentRoute(navController)
 
+    // Determine if the bottom bar should be shown based on the current route
+    val showBottomBar = currentRoute in bottomBarRoutes
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                val currentRoute = currentRoute(navController)
-                screens.forEach { screen ->
-                    NavigationBarItem(
-                        selected = currentRoute == screen.route,
-                        onClick = {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = { Icon(screen.icon, contentDescription = screen.title) },
-                        label = { Text(screen.title) }
-                    )
+            AnimatedVisibility(
+                visible = showBottomBar, enter = fadeIn(tween(150)), exit = fadeOut(
+                    tween(150)
+                )
+            ) {
+                NavigationBar {
+                    screens.forEach { screen ->
+                        NavigationBarItem(
+                            selected = currentRoute == screen.route,
+                            onClick = {
+                                if (currentRoute != screen.route) {
+                                    navController.navigate(screen.route) {
+                                        popUpTo(navController.graph.startDestinationId) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            },
+                            icon = { Icon(screen.icon, contentDescription = screen.title) },
+                            label = { Text(screen.title) }
+                        )
+                    }
                 }
             }
         }
     ) { padding ->
+
+        var stableBottom by remember { mutableStateOf(0.dp) }
+        val currentBottom = padding.calculateBottomPadding()
+        if (currentBottom > stableBottom) stableBottom = currentBottom
+
+        val tabPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = stableBottom)
+
         NavHost(
             navController = navController,
-            startDestination = BottomScreen.Home.route,
-            modifier = Modifier.padding(padding)
+            startDestination = BottomScreen.Home.route
         ) {
+            // ── HOME TAB ────────────────────────────────────────
             composable(BottomScreen.Home.route) {
                 HomeScreen(
+                    modifier = Modifier.padding(tabPadding),
                     onNewGameClick = { /* optional analytics, etc. */ },
                     onDifficultySelected = { difficulty: Difficulty ->
-                        onOpenPlay("new", difficulty, null)
+                        navController.navigate("play/new/${difficulty.name}/0")
                     },
                     onResume = {
-                        onOpenPlay("resume", null, null)
+                        navController.navigate("play/resume/none/0")
                     },
                     onStreakClick = {
                         navController.navigate(BottomScreen.Streak.route) {
@@ -158,21 +185,81 @@ fun MainSudokuApp(
                             launchSingleTop = true
                             restoreState = true
                         }
+                    },
+                    onLearningModeClick = {
+                        navController.navigate("learn")
                     }
                 )
             }
+
+            // ── STREAK TAB ──────────────────────────────────────
             composable(BottomScreen.Streak.route) {
                 StreakScreen(
+                    modifier = Modifier.padding(tabPadding),
                     onOpenStreak = { dayNumber ->
-                        onOpenPlay(
-                            "streak",
-                            Difficulty.Breeze,
-                            dayNumber
+                        navController.navigate(
+                            "play/streak/${Difficulty.Breeze.name}/$dayNumber"
                         )
                     }
                 )
             }
-            composable(BottomScreen.Settings.route) { SettingsScreen() }
+
+            // ── SETTINGS TAB ────────────────────────────────────
+            composable(BottomScreen.Settings.route) {
+                SettingsScreen(
+                    modifier = Modifier.padding(
+                        tabPadding
+                    )
+                )
+            }
+
+            // ── LESSON SCREEN (Learning Mode) ───────────────────
+            composable("learn") {
+                LessonScreen(
+                    onLessonsComplete = {
+                        navController.navigate("play/learn/${Difficulty.Breeze.name}/0") {
+                            popUpTo("learn") { inclusive = true }
+                        }
+                    },
+                    onExit = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            // ── PLAY SCREEN (Sudoku) ────────────────────────────
+            composable(
+                route = "play/{mode}/{difficulty}/{streakDay}",
+                arguments = listOf(
+                    navArgument("mode") { defaultValue = "new" },
+                    navArgument("difficulty") { defaultValue = "none" },
+                    navArgument("streakDay") { defaultValue = "0" }
+                )
+            ) { entry ->
+                val mode = entry.arguments?.getString("mode") ?: "new"
+                val diffStr = entry.arguments?.getString("difficulty") ?: "none"
+                val streakDay = entry.arguments?.getString("streakDay")?.toIntOrNull() ?: 0
+                val difficulty = diffStr
+                    .takeIf { it != "none" }
+                    ?.let { s ->
+                        Difficulty.entries.firstOrNull {
+                            it.name.equals(s, ignoreCase = true)
+                        }
+                    }
+
+                SudokuScreen(
+                    mode = mode,
+                    difficulty = difficulty,
+                    streakDay = streakDay,
+                    onExit = { navController.popBackStack() },
+                    onStartNormalGame = {
+                        navController.navigate("play/new/${Difficulty.Breeze.name}/0") {
+                            popUpTo(BottomScreen.Home.route)
+                            launchSingleTop = true
+                        }
+                    }
+                )
+            }
         }
     }
 }
