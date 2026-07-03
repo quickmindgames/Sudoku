@@ -80,7 +80,7 @@ fun LearningCompleteDialog(
 
                 // ── Encouragement text ─────────────────────────
                 Text(
-                    text = "You're ready for a real challenge.\nTry a normal game mode!",
+                    text = "You've got the skills.\nLet's jump into a real game! \uD83D\uDE80",
                     fontSize = 15.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -103,10 +103,10 @@ fun LearningCompleteDialog(
                             .height(50.dp),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF00897B)
+                            containerColor = MaterialTheme.colorScheme.primary
                         )
                     ) {
-                        Text("Try Normal Mode", fontWeight = FontWeight.SemiBold)
+                        Text("Start Game", fontWeight = FontWeight.SemiBold)
                     }
 
                     FilledTonalButton(
