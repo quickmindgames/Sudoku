@@ -5,6 +5,14 @@ import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings
 import kotlinx.coroutines.tasks.await
 
 object RemoteConfigManager {
+
+    /**
+     * Remote Config keys and default values for clues and hints per difficulty level.
+     * These can be updated remotely via Firebase Console without requiring an app update.
+     * ✅ Code defaults (hardcoded fallbacks): 46–51, 32–37, 26–31, 22–26 with 1 hint each
+     * ✅ Firebase Remote Config (production values): 44–50 with 3 hints, 34–38 with 2 hints, 26–32 with 1 hint, 22–26 with 1 hint
+     */
+
     private const val DEFAULT_BREEZE_MIN_CLUES = 46L
     private const val DEFAULT_BREEZE_MAX_CLUES = 51L
     const val KEY_BREEZE_MIN_CLUES = "breeze_min_clues"
@@ -36,7 +44,7 @@ object RemoteConfigManager {
      */
     fun init() {
         val configSettings = FirebaseRemoteConfigSettings.Builder()
-            .setMinimumFetchIntervalInSeconds(60) // Fetch new values at most once per hour
+            .setMinimumFetchIntervalInSeconds(86400) // Fetch new values at most once per day
             .build()
         val remoteConfig = FirebaseRemoteConfig.getInstance()
         remoteConfig.setConfigSettingsAsync(configSettings)

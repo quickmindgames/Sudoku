@@ -13,17 +13,20 @@ object AnalyticsConstants {
     const val STREAK_SCREEN = "StreakScreen"
     const val SUDOKU_GAME = "Sudoku Game"
     const val SUDOKU_SCREEN = "SudokuScreen"
+    const val LESSON = "Lesson"
+    const val LESSON_SCREEN = "LessonScreen"
     //endregion
 
     //region Feature events
     const val NEW_GAME = "new_game"
-    const val NEW_STREAK_GAME = "new_streak_game"
+    const val STREAK_GAME = "streak_game"
     const val DIFFICULTY = "difficulty"
     const val SAVED_GAME = "saved_game"
     const val RESUME_GAME = "resume_game"
     const val STREAK_COUNT = "streak_count"
+    const val STREAK_COMPLETED = "streak_completed"
+    const val STREAK_STARTED = "streak_started"
     const val STREAK_COUNT_SHARE = "streak_count_share"
-    const val STREAK_GAME_COMPLETED = "streak_game_completed"
     const val GAME_RESULT = "game_result"
     const val RESULT = "result"
     const val WIN = "win"
@@ -49,6 +52,8 @@ object AnalyticsConstants {
     const val IS_STREAK = "is_streak"
     const val HINT_COUNT = "hints_used"
     const val STATISTICS_EVENT = "statistics"
+    const val LESSON_STARTED = "lesson_started"
+    const val LESSON_COMPLETED = "lesson_completed"
     //endregion
 
 }

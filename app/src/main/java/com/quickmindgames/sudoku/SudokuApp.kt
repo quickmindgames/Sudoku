@@ -2,6 +2,7 @@ package com.quickmindgames.sudoku
 
 import android.app.Application
 import com.google.firebase.FirebaseApp
+import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.quickmindgames.sudoku.utils.RemoteConfigManager
 
@@ -16,7 +17,7 @@ class SudokuApp : Application() {
         super.onCreate()
         FirebaseApp.initializeApp(this)
         if (BuildConfig.DEBUG) {
-            //FirebaseAnalytics.getInstance(this).setAnalyticsCollectionEnabled(false)
+            FirebaseAnalytics.getInstance(this).setAnalyticsCollectionEnabled(false)
             FirebaseCrashlytics.getInstance().isCrashlyticsCollectionEnabled = false
         }
         RemoteConfigManager.init()

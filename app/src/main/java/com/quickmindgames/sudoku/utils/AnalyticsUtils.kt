@@ -56,27 +56,57 @@ object AnalyticsUtils {
     }
 
     /**
-     * Logs a "new_streak_game" event to Firebase Analytics when a new streak game is started.
+     * Logs a "streak_game_started" event to Firebase Analytics.
      *
      * @param context The context from which the event is logged.
      */
     fun logStreakGameStarted(context: Context) {
         val firebaseAnalytics = FirebaseAnalytics.getInstance(context)
-        firebaseAnalytics.logEvent(AnalyticsConstants.NEW_STREAK_GAME, null)
+        val bundle = Bundle().apply {
+            putBoolean(AnalyticsConstants.STREAK_STARTED, true)
+        }
+        firebaseAnalytics.logEvent(AnalyticsConstants.STREAK_GAME, bundle)
     }
 
     /**
-     * Logs a "streak_game_completed" event to Firebase Analytics with the current streak count.
+     * Logs a "streak_game_completed" event to Firebase Analytics with the specified streak count.
      *
      * @param context The context from which the event is logged.
-     * @param streakCount The current streak count when the streak game was completed.
+     * @param streakCount The current streak count when the game was completed.
      */
     fun logStreakGameCompleted(context: Context, streakCount: Int) {
         val firebaseAnalytics = FirebaseAnalytics.getInstance(context)
         val bundle = Bundle().apply {
             putInt(AnalyticsConstants.STREAK_COUNT, streakCount)
+            putBoolean(AnalyticsConstants.STREAK_COMPLETED, true)
         }
-        firebaseAnalytics.logEvent(AnalyticsConstants.STREAK_GAME_COMPLETED, bundle)
+        firebaseAnalytics.logEvent(AnalyticsConstants.STREAK_GAME, bundle)
+    }
+
+    /**
+     * Logs a "learning_mode" event to Firebase Analytics when a lesson is started.
+     *
+     * @param context The context from which the event is logged.
+     */
+    fun logLearningStarted(context: Context) {
+        val firebaseAnalytics = FirebaseAnalytics.getInstance(context)
+        val bundle = Bundle().apply {
+            putBoolean(AnalyticsConstants.LESSON_STARTED, true)
+        }
+        firebaseAnalytics.logEvent("learning_mode", bundle)
+    }
+
+    /**
+     * Logs a "learning_mode" event to Firebase Analytics when a lesson is completed.
+     *
+     * @param context The context from which the event is logged.
+     */
+    fun logLearningCompleted(context: Context) {
+        val firebaseAnalytics = FirebaseAnalytics.getInstance(context)
+        val bundle = Bundle().apply {
+            putBoolean(AnalyticsConstants.LESSON_COMPLETED, true)
+        }
+        firebaseAnalytics.logEvent("learning_mode", bundle)
     }
 
     /**
@@ -237,4 +267,6 @@ object AnalyticsUtils {
         }
         firebaseAnalytics.logEvent(AnalyticsConstants.STATISTICS_EVENT, params)
     }
+
+
 }

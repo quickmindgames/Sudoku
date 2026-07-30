@@ -18,7 +18,7 @@ fun SudokuGridCanvas(modifier: Modifier = Modifier) {
         val cellSize = size.width / 9f
         // Draw minor grid lines
         for (i in 1 until 9) {
-            val stroke = if (i % 3 == 0) 3f else 1.2f
+            val stroke = if (i % 3 == 0) 3f else 1f
             // Vertical
             drawLine(
                 color = Color.Gray,
@@ -39,7 +39,7 @@ fun SudokuGridCanvas(modifier: Modifier = Modifier) {
             color = Color.Black,
             topLeft = Offset.Zero,
             size = size,
-            style = Stroke(width = 4f)
+            style = Stroke(width = 3f)
         )
     }
 }
