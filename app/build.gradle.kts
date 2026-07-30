@@ -1,15 +1,15 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.googleservices)
     alias(libs.plugins.firebase.crashlytics)
+    alias(libs.plugins.sonarqube)
 }
 
 android {
     namespace = "com.quickmindgames.sudoku"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.quickmindgames.sudoku"
@@ -48,6 +48,20 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+    sonarqube {
+        properties {
+            property("sonar.projectKey", "QMG_Sudoku")
+            property("sonar.projectName", "QMG_Sudoku")
+            property("sonar.host.url", "http://localhost:9000")
+            property("sonar.token", "sqp_ddd475b0a749cedebd2516f23400cc8d3927fcfb")
+            property("sonar.language", "kotlin")
+            property("sonar.sourceEncoding", "UTF-8")
+            property("sonar.android.resourceFiles.skip", "true")
+        }
+    }
+    tasks.matching { it.name == "sonarResolver" }.configureEach {
+        dependsOn(tasks.matching { it.name.contains("generate") && it.name.contains("ResValues") })
     }
 }
 
