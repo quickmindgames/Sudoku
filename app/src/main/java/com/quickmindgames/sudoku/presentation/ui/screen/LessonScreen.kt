@@ -77,7 +77,7 @@ fun LessonScreen(
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Exit",
-                    tint = colors.onSurfaceVariant
+                    tint = colors.primary
                 )
             }
             Spacer(Modifier.width(8.dp))
