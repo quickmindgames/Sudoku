@@ -1,6 +1,9 @@
 package com.quickmindgames.sudoku.presentation.ui.screen
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -54,12 +57,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.quickmindgames.sudoku.R
+import com.quickmindgames.sudoku.component.LearningCompleteDialog
 import com.quickmindgames.sudoku.component.NumberPad
 import com.quickmindgames.sudoku.component.SudokuGridLevel
 import com.quickmindgames.sudoku.data.score.TotalScoreManager
@@ -86,6 +93,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  *
@@ -99,7 +107,7 @@ fun SudokuScreen(
     difficulty: Difficulty?,
     streakDay: Int = 0,
     onExit: () -> Unit,
-    modifier: Modifier = Modifier
+    onStartNormalGame: () -> Unit = onExit
 ) {
     val context = LocalContext.current
     val gameStateManager = remember { GameStateManager.getInstance(context) }
@@ -148,23 +156,67 @@ fun SudokuScreen(
     var isNotesMode by remember { mutableStateOf(false) }
     var availableHints by remember(mode, difficulty) { mutableIntStateOf(1) }
 
+    val isLearningMode = mode == "learn"
+    var learningHint by remember { mutableStateOf<String?>(null) }
+    val colors = MaterialTheme.colorScheme
+
     LaunchedEffect(shakeCells) {
-        delay(300)
+        delay(300.milliseconds)
         shakeCells = emptySet()
+    }
+
+    LaunchedEffect(learningHint) {
+        if (learningHint != null) {
+            delay(2500.milliseconds)
+            learningHint = null
+        }
     }
 
     LaunchedEffect(timerKey) {
         while (true) {
-            if (isRunning) {
-                delay(1000)
+            // Only advance the timer for normal modes — do not increment during learning/practice
+            if (isRunning && !isLearningMode) {
+                delay(1000.milliseconds)
                 if (isRunning) timeSeconds++
             } else {
-                delay(100) // poll until resumed
+                delay(100.milliseconds) // poll until resumed or learning mode ends
             }
         }
     }
 
     LaunchedEffect(mode, difficulty) {
+
+        //region Learn Mode
+        if (mode == "learn") {
+            val diff = Difficulty.Breeze
+            currentDifficulty = diff
+
+            userGrid.clear()
+            originalGrid.forEach { row ->
+                userGrid.add(row.map { CellData(it) }.toMutableStateList())
+            }
+
+            clearUndoRedoHistory()
+            wrongCells = emptySet()
+            mistakes = 0
+            score = 0
+            timeSeconds = 0
+            gameOver = false
+            gameWon = false
+            selectedCell = null
+            shakeCells = emptySet()
+            isRunning = true
+            timerKey++
+            correctStreak = 0
+            lastCorrectTime = 0
+            for (r in 0..8) for (c in 0..8) scoredCells[r][c] = false
+            availableHints = 0 // hints disabled
+
+            AnalyticsUtils.logLearningStarted(context)
+        }
+        //endregion
+
+        //region New Game
         if (mode == "new") {
             // Generate new puzzle
             val diff = difficulty ?: Difficulty.Breeze
@@ -203,7 +255,9 @@ fun SudokuScreen(
                 gameStateManager.getSavedGameState().first()?.difficulty // if any
             AnalyticsUtils.logNewGameStarted(context, diff.name, savedGameDifficulty?.name)
         }
+        //endregion
 
+        //region Resume Game
         if (mode == "resume") {
             // Restore from DataStore
             gameStateManager.getSavedGameState().collect { savedState ->
@@ -234,7 +288,9 @@ fun SudokuScreen(
                 }
             }
         }
+        //endregion
 
+        //region Streak Mode
         if (mode == "streak") {
             val today = LocalDate.now().toString()
             val savedStreak = streakStateManager.getStreakState().first()
@@ -314,6 +370,7 @@ fun SudokuScreen(
                 )
             }
         }
+        //endregion
     }
 
     // Clear saved game when starting a new game
@@ -334,7 +391,7 @@ fun SudokuScreen(
         availableHints
     ) {
         // Only save if game has started (timer ticked at least once) and is not over/won
-        if (!gameOver && !gameWon) {
+        if (!gameOver && !gameWon && !isLearningMode) {
             val currentState = GameState(
                 difficulty = currentDifficulty,
                 originalGrid = originalGrid,
@@ -400,7 +457,7 @@ fun SudokuScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(colors.background)
             .padding(
                 top = 12.dp
             )
@@ -433,121 +490,126 @@ fun SudokuScreen(
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = colors.primary
                     )
                 }
 
                 Spacer(Modifier.width(12.dp))
 
                 Text(
-                    text = if (mode == "streak" && streakDay > 0) "${ordinalSuffix(streakDay)} Streak"
+                    text = if (isLearningMode) stringResource(R.string.lbl_practice_mode)
+                    else if (mode == "streak" && streakDay > 0) "${ordinalSuffix(streakDay)} Streak"
                     else if (mode == "streak") "Streak"
                     else currentDifficulty.label,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = colors.primary
                 )
             }
 
             Spacer(Modifier.width(8.dp))
 
-            // Score Card
-            Card(
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = "⭐", fontSize = 16.sp)
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = "$score",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+            // Scorecard
+            if (!isLearningMode) {
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = colors.primaryContainer
                     )
-                }
-            }
-        }
-
-        // Mistakes (left) + Play/Pause Icon + Timer (right)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 4.dp)
-        ) {
-            // Mistakes anchored to the left
-            Row(
-                modifier = Modifier.align(Alignment.CenterStart),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Mistakes: ",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Medium
-                )
-                repeat(3) { index ->
-                    Spacer(Modifier.width(6.dp))
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .background(
-                                color = if (index < mistakes)
-                                    MaterialTheme.colorScheme.errorContainer
-                                else
-                                    MaterialTheme.colorScheme.surfaceVariant,
-                                shape = RoundedCornerShape(8.dp)
-                            ),
-                        contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Text(text = "⭐", fontSize = 16.sp)
+                        Spacer(Modifier.width(4.dp))
                         Text(
-                            text = "✕",
+                            text = "$score",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (index < mistakes)
-                                MaterialTheme.colorScheme.error
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            color = colors.onPrimaryContainer
                         )
                     }
                 }
             }
+        }
 
-            // Play/Pause icon and Timer anchored to the right
-            Row(
-                modifier = Modifier.align(Alignment.CenterEnd),
-                verticalAlignment = Alignment.CenterVertically
+        if (!isLearningMode) {
+            // Mistakes (left) + Play/Pause Icon + Timer (right)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 4.dp)
             ) {
-                Text(
-                    text = formatTime(timeSeconds),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.width(6.dp))
-                IconButton(
-                    onClick = { isRunning = !isRunning },
-                    enabled = !gameOver && !gameWon,
-                    modifier = Modifier
-                        .background(
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        .size(32.dp)
+                // Mistakes anchored to the left
+                Row(
+                    modifier = Modifier.align(Alignment.CenterStart),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isRunning) "Pause" else "Resume",
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    Text(
+                        text = "Mistakes: ",
+                        fontSize = 14.sp,
+                        color = colors.onSurface,
+                        fontWeight = FontWeight.Medium
                     )
+                    repeat(3) { index ->
+                        Spacer(Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .background(
+                                    color = if (index < mistakes)
+                                        colors.errorContainer
+                                    else
+                                        colors.surfaceVariant,
+                                    shape = RoundedCornerShape(8.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "✕",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (index < mistakes)
+                                    colors.error
+                                else
+                                    colors.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
                 }
 
+                // Play/Pause icon and Timer anchored to the right
+                Row(
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = formatTime(timeSeconds),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.onSurfaceVariant
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    IconButton(
+                        onClick = { isRunning = !isRunning },
+                        enabled = !gameOver && !gameWon,
+                        modifier = Modifier
+                            .background(
+                                color = colors.primaryContainer,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = if (isRunning) "Pause" else "Resume",
+                            modifier = Modifier.size(18.dp),
+                            tint = colors.onPrimaryContainer
+                        )
+                    }
+
+                }
             }
         }
 
@@ -572,7 +634,7 @@ fun SudokuScreen(
                     modifier = Modifier
                         .matchParentSize()
                         .background(
-                            color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.98f),
+                            color = colors.surfaceContainerLow.copy(alpha = 0.98f),
                         )
                         .clickable { isRunning = true },
                     contentAlignment = Alignment.Center
@@ -585,7 +647,7 @@ fun SudokuScreen(
                             modifier = Modifier
                                 .size(72.dp)
                                 .background(
-                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    color = colors.primaryContainer,
                                     shape = CircleShape
                                 ),
                             contentAlignment = Alignment.Center
@@ -593,7 +655,7 @@ fun SudokuScreen(
                             Icon(
                                 imageVector = Icons.Default.PlayArrow,
                                 contentDescription = "Resume",
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = colors.primary,
                                 modifier = Modifier.size(40.dp)
                             )
                         }
@@ -602,13 +664,13 @@ fun SudokuScreen(
                             text = "Game Paused",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
+                            color = colors.onBackground
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(
                             text = "Tap to resume",
                             fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = colors.onSurfaceVariant
                         )
                     }
                 }
@@ -643,110 +705,156 @@ fun SudokuScreen(
                         }
                     }
                 } else {
-                    // If notes exist, replace notes with value
-                    if (userGrid[r][c].notes.isNotEmpty()) {
-                        saveUndoState(userGrid)
-                        userGrid[r][c] = userGrid[r][c].copy(value = number, notes = emptySet())
-                        updateNotesAfterValueChange(userGrid, r, c, number)
+                    // Do nothing if cell already has the correct number
+                    val cellCurrentValue = userGrid[r][c].value
+                    if (cellCurrentValue != 0 && cellCurrentValue == solutionGrid[r][c]) {
+                        return@NumberPad  // Cell is locked (already correct)
+                    }
+                    val isCorrect = number == solutionGrid[r][c]
+
+                    if (!isLearningMode || isCorrect) {
+                        // If notes exist, replace notes with value
+                        if (userGrid[r][c].notes.isNotEmpty()) {
+                            saveUndoState(userGrid)
+                            userGrid[r][c] = userGrid[r][c].copy(value = number, notes = emptySet())
+                            updateNotesAfterValueChange(userGrid, r, c, number)
+                        } else {
+                            saveUndoState(userGrid)
+                            // Fill cell value and clear notes
+                            userGrid[r][c] = userGrid[r][c].copy(value = number)
+                            updateNotesAfterValueChange(userGrid, r, c, number)
+                        }
                     } else {
+                        // In learning mode and number is wrong: don't place it, just save undo state for sound
                         saveUndoState(userGrid)
-                        // Fill cell value and clear notes
-                        userGrid[r][c] = userGrid[r][c].copy(value = number)
-                        updateNotesAfterValueChange(userGrid, r, c, number)
                     }
 
-                    if (number != solutionGrid[r][c]) {
-                        mistakes++
-                        wrongCells = wrongCells + (r to c)
-                        shakeCells = shakeCells + (r to c)
-                        // Break correct streak on mistake
-                        correctStreak = 0
+                    if (!isCorrect) {
+                        if (isLearningMode) {
+                            // ── Learning mode: show explanation, don't count mistake ──
+                            //wrongCells = wrongCells + (r to c)
+                            shakeCells = shakeCells + (r to c)
 
-                        if (mistakes >= 3) {
-                            gameOver = true
-                            isRunning = false
-                            coroutineScope.launch {
-                                gameStateManager.clearGameState()
-                                if (mode == "streak") {
-                                    GameCompletionRecorder.recordStreakGameCompletion(
-                                        context = context,
-                                        scope = this,
-                                        streakDay = streakDay,
-                                        isWon = false,
-                                        score = score,
-                                        timeSeconds = timeSeconds
-                                    )
-                                    // Also record as a regular game for overall stats
-                                    GameCompletionRecorder.recordGameCompletion(
-                                        context = context,
-                                        scope = this,
-                                        difficulty = "streak",
-                                        isWon = false,
-                                        mistakes = mistakes,
-                                        score = score,
-                                        timeSeconds = timeSeconds,
-                                        mode = "regular"
-                                    )
-                                    // Clear streak resume state for today (reset activeDate and activeGame)
-                                    val savedStreak = streakStateManager.getStreakState().first()
-                                        ?: StreakState(0, null, null, null)
-                                    streakStateManager.saveStreakState(
-                                        savedStreak.copy(activeDate = null, activeGame = null)
-                                    )
-                                } else {
-                                    GameCompletionRecorder.recordGameCompletion(
-                                        context = context,
-                                        scope = this,
-                                        difficulty = currentDifficulty.name,
-                                        isWon = false,
-                                        mistakes = mistakes,
-                                        score = score,
-                                        timeSeconds = timeSeconds,
-                                        mode = "regular"
-                                    )
+                            // Determine WHY the number is wrong
+                            val rowConflict = (0 until 9).any { col ->
+                                col != c && userGrid[r][col].value == number
+                            }
+                            val colConflict = (0 until 9).any { row ->
+                                row != r && userGrid[row][c].value == number
+                            }
+                            val boxRowStart = (r / 3) * 3
+                            val boxColStart = (c / 3) * 3
+                            val boxConflict = (boxRowStart until boxRowStart + 3).any { br ->
+                                (boxColStart until boxColStart + 3).any { bc ->
+                                    (br != r || bc != c) && userGrid[br][bc].value == number
+                                }
+                            }
+
+                            learningHint = when {
+                                rowConflict -> "Number already exists in this row"
+                                colConflict -> "Number already exists in this column"
+                                boxConflict -> "Number already exists in this 3×3 box"
+                                else -> "That's not the correct number for this cell"
+                            }
+                            // Do NOT increment mistakes
+                            // Do NOT trigger gameOver
+                        } else {
+                            mistakes++
+                            wrongCells = wrongCells + (r to c)
+                            shakeCells = shakeCells + (r to c)
+                            // Break correct streak on mistake
+                            correctStreak = 0
+
+                            if (mistakes >= 3) {
+                                gameOver = true
+                                isRunning = false
+                                coroutineScope.launch {
+                                    gameStateManager.clearGameState()
+                                    if (mode == "streak") {
+                                        GameCompletionRecorder.recordStreakGameCompletion(
+                                            context = context,
+                                            scope = this,
+                                            streakDay = streakDay,
+                                            isWon = false,
+                                            score = score,
+                                            timeSeconds = timeSeconds
+                                        )
+                                        // Also record as a regular game for overall stats
+                                        GameCompletionRecorder.recordGameCompletion(
+                                            context = context,
+                                            scope = this,
+                                            difficulty = "streak",
+                                            isWon = false,
+                                            mistakes = mistakes,
+                                            score = score,
+                                            timeSeconds = timeSeconds,
+                                            mode = "regular"
+                                        )
+                                        // Clear streak resume state for today (reset activeDate and activeGame)
+                                        val savedStreak =
+                                            streakStateManager.getStreakState().first()
+                                                ?: StreakState(0, null, null, null)
+                                        streakStateManager.saveStreakState(
+                                            savedStreak.copy(activeDate = null, activeGame = null)
+                                        )
+                                    } else {
+                                        GameCompletionRecorder.recordGameCompletion(
+                                            context = context,
+                                            scope = this,
+                                            difficulty = currentDifficulty.name,
+                                            isWon = false,
+                                            mistakes = mistakes,
+                                            score = score,
+                                            timeSeconds = timeSeconds,
+                                            mode = "regular"
+                                        )
+                                    }
                                 }
                             }
                         }
+
                     } else {
                         wrongCells = wrongCells - (r to c)
 
-                        if (!scoredCells[r][c]) {
-                            // 1. Base points by difficulty
-                            val basePoints = when (currentDifficulty) {
-                                Difficulty.Breeze -> 1
-                                Difficulty.Pulse -> 2
-                                Difficulty.Rage -> 3
-                                Difficulty.Elite -> 4
+                        if (!isLearningMode) {
+                            if (!scoredCells[r][c]) {
+                                // 1. Base points by difficulty
+                                val basePoints = when (currentDifficulty) {
+                                    Difficulty.Breeze -> 1
+                                    Difficulty.Pulse -> 2
+                                    Difficulty.Rage -> 3
+                                    Difficulty.Elite -> 4
+                                }
+
+                                // 2. Speed bonus — seconds since last correct cell
+                                val secondsSinceLast = timeSeconds - lastCorrectTime
+                                val speedMultiplier = when {
+                                    secondsSinceLast <= 5 -> 2.0f   // Lightning fast  → ×2
+                                    secondsSinceLast <= 10 -> 1.5f   // Fast            → ×1.5
+                                    secondsSinceLast <= 20 -> 1.25f  // Good pace       → ×1.25
+                                    else -> 1.0f   // No bonus
+                                }
+
+                                // 3. Streak multiplier — consecutive correct cells
+                                correctStreak++
+                                val streakMultiplier = when {
+                                    correctStreak >= 5 -> 2.0f   // On fire!  → ×2
+                                    correctStreak >= 3 -> 1.5f   // Streak    → ×1.5
+                                    else -> 1.0f
+                                }
+
+                                // 4. Mistake penalty — each mistake reduces points by 10%
+                                val mistakePenalty = 1f - (mistakes * 0.10f)
+
+                                val earned =
+                                    (basePoints * speedMultiplier * streakMultiplier * mistakePenalty)
+                                        .toInt()
+                                        .coerceAtLeast(1)
+
+                                score += earned
+                                scoredCells[r][c] = true
+                                lastCorrectTime = timeSeconds
                             }
-
-                            // 2. Speed bonus — seconds since last correct cell
-                            val secondsSinceLast = timeSeconds - lastCorrectTime
-                            val speedMultiplier = when {
-                                secondsSinceLast <= 5 -> 2.0f   // Lightning fast  → ×2
-                                secondsSinceLast <= 10 -> 1.5f   // Fast            → ×1.5
-                                secondsSinceLast <= 20 -> 1.25f  // Good pace       → ×1.25
-                                else -> 1.0f   // No bonus
-                            }
-
-                            // 3. Streak multiplier — consecutive correct cells
-                            correctStreak++
-                            val streakMultiplier = when {
-                                correctStreak >= 5 -> 2.0f   // On fire!  → ×2
-                                correctStreak >= 3 -> 1.5f   // Streak    → ×1.5
-                                else -> 1.0f
-                            }
-
-                            // 4. Mistake penalty — each mistake reduces points by 10%
-                            val mistakePenalty = 1f - (mistakes * 0.10f)
-
-                            val earned =
-                                (basePoints * speedMultiplier * streakMultiplier * mistakePenalty)
-                                    .toInt()
-                                    .coerceAtLeast(1)
-
-                            score += earned
-                            scoredCells[r][c] = true
-                            lastCorrectTime = timeSeconds
                         }
                     }
 
@@ -754,206 +862,22 @@ fun SudokuScreen(
                         gameWon = true
                         isRunning = false
 
-                        // Record the game completion
-                        if (mode == "streak") {
-                            GameCompletionRecorder.recordStreakGameCompletion(
-                                context = context,
-                                scope = coroutineScope,
-                                streakDay = streakDay, // ensure streakDay is available in scope
-                                isWon = true,
-                                score = score,
-                                timeSeconds = timeSeconds
-                            )
-                            // Also record as a regular game for overall stats
-                            GameCompletionRecorder.recordGameCompletion(
-                                context = context,
-                                scope = coroutineScope,
-                                difficulty = "streak", // or use "Breeze" if you want to count as easy
-                                isWon = true,
-                                mistakes = mistakes,
-                                score = score,
-                                timeSeconds = timeSeconds,
-                                mode = "regular"
-                            )
-                        } else {
-                            GameCompletionRecorder.recordGameCompletion(
-                                context = context,
-                                scope = coroutineScope,
-                                difficulty = currentDifficulty.name,
-                                isWon = true,
-                                mistakes = mistakes,
-                                score = score,
-                                timeSeconds = timeSeconds,
-                                mode = "regular"
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Undo Button
-            FilledTonalButton(
-                onClick = {
-                    undo(userGrid)
-                    wrongCells = recomputeWrongCells(userGrid, solutionGrid)
-                    AnalyticsUtils.logUndoUsed(context)
-                },
-                enabled = undoStack.isNotEmpty() && isRunning && !gameOver && !gameWon,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(64.dp),
-                shape = RoundedCornerShape(14.dp),
-                contentPadding = PaddingValues(4.dp)
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Undo,
-                        contentDescription = "Undo",
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = "Undo",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-
-            // Erase Button
-            FilledTonalButton(
-                onClick = {
-                    selectedCell?.let { (r, c) ->
-                        if (originalGrid[r][c] == 0) {
-                            saveUndoState(userGrid)
-                            // If notes exist, erase notes
-                            if (userGrid[r][c].notes.isNotEmpty()) {
-                                userGrid[r][c] = userGrid[r][c].copy(notes = emptySet())
-                            } else {
-                                // If value is wrong, erase value
-                                userGrid[r][c] = userGrid[r][c].copy(value = 0)
-                                wrongCells = wrongCells - (r to c)
-                            }
-                        }
-                    }
-                    AnalyticsUtils.logEraseUsed(context)
-                },
-                enabled = isRunning && selectedCell != null && selectedCell?.let { (r, c) ->
-                    (wrongCells.contains(r to c) || userGrid[r][c].notes.isNotEmpty())
-                } == true && !gameOver && !gameWon,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(64.dp),
-                shape = RoundedCornerShape(14.dp),
-                contentPadding = PaddingValues(4.dp)
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Clear,
-                        contentDescription = "Erase",
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = "Erase",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-
-            // Notes Toggle Button
-            FilledTonalButton(
-                onClick = {
-                    isNotesMode = !isNotesMode
-                    AnalyticsUtils.logNotesToggled(context, isNotesMode)
-                },
-                enabled = isRunning && !gameOver && !gameWon,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(64.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = if (isNotesMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = if (isNotesMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondaryContainer
-                ),
-                contentPadding = PaddingValues(4.dp)
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "📝",
-                        fontSize = 16.sp
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = if (isNotesMode) "Notes" else "Notes",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-
-            // Hint Button
-            FilledTonalButton(
-                onClick = {
-                    if (!isRunning || gameOver || gameWon || availableHints == 0) return@FilledTonalButton
-                    if (selectedCell == null) {
-                        Toast.makeText(
-                            context,
-                            "Please select a cell for which you want to use a hint.",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        return@FilledTonalButton
-                    }
-                    val (r, c) = selectedCell!!
-                    val cell = userGrid[r][c]
-                    val isWrong = cell.value != 0 && cell.value != solutionGrid[r][c]
-                    val isEditable = cell.value == 0 || isWrong
-                    if (isEditable) {
-                        saveUndoState(userGrid)
-                        userGrid[r][c] = cell.copy(value = solutionGrid[r][c], notes = emptySet())
-                        updateNotesAfterValueChange(userGrid, r, c, solutionGrid[r][c])
-                        availableHints--
-                        AnalyticsUtils.logHintUsed(context, currentDifficulty.name)
-                        coroutineScope.launch {
-                            delay(2000)
-                        }
-                        // Check for win after hint fills a cell
-                        if (!gameOver && !gameWon && isWin(userGrid, solutionGrid)) {
-                            gameWon = true
-                            isRunning = false
+                        if (!isLearningMode) {
                             // Record the game completion
                             if (mode == "streak") {
                                 GameCompletionRecorder.recordStreakGameCompletion(
                                     context = context,
                                     scope = coroutineScope,
-                                    streakDay = streakDay,
+                                    streakDay = streakDay, // ensure streakDay is available in scope
                                     isWon = true,
                                     score = score,
                                     timeSeconds = timeSeconds
                                 )
+                                // Also record as a regular game for overall stats
                                 GameCompletionRecorder.recordGameCompletion(
                                     context = context,
                                     scope = coroutineScope,
-                                    difficulty = "streak",
+                                    difficulty = "streak", // or use "Breeze" if you want to count as easy
                                     isWon = true,
                                     mistakes = mistakes,
                                     score = score,
@@ -974,33 +898,257 @@ fun SudokuScreen(
                             }
                         }
                     }
-                },
-                enabled = isRunning && !gameOver && !gameWon && availableHints > 0,
+                }
+            }
+        }
+
+        if (!isLearningMode) {
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .height(64.dp),
-                shape = RoundedCornerShape(14.dp),
-                contentPadding = PaddingValues(4.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                //region Undo Button
+                FilledTonalButton(
+                    onClick = {
+                        undo(userGrid)
+                        wrongCells = recomputeWrongCells(userGrid, solutionGrid)
+                        AnalyticsUtils.logUndoUsed(context)
+                    },
+                    enabled = undoStack.isNotEmpty() && isRunning && !gameOver && !gameWon,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(64.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    contentPadding = PaddingValues(4.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Undo,
+                            contentDescription = "Undo",
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = "Undo",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+                //endregion
+
+                //region Erase Button
+                FilledTonalButton(
+                    onClick = {
+                        selectedCell?.let { (r, c) ->
+                            if (originalGrid[r][c] == 0) {
+                                saveUndoState(userGrid)
+                                // If notes exist, erase notes
+                                if (userGrid[r][c].notes.isNotEmpty()) {
+                                    userGrid[r][c] = userGrid[r][c].copy(notes = emptySet())
+                                } else {
+                                    // If value is wrong, erase value
+                                    userGrid[r][c] = userGrid[r][c].copy(value = 0)
+                                    wrongCells = wrongCells - (r to c)
+                                }
+                            }
+                        }
+                        AnalyticsUtils.logEraseUsed(context)
+                    },
+                    enabled = isRunning && selectedCell != null && selectedCell?.let { (r, c) ->
+                        (wrongCells.contains(r to c) || userGrid[r][c].notes.isNotEmpty())
+                    } == true && !gameOver && !gameWon,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(64.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    contentPadding = PaddingValues(4.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = "Erase",
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = "Erase",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+                //endregion
+
+                //region Notes Toggle Button
+                FilledTonalButton(
+                    onClick = {
+                        isNotesMode = !isNotesMode
+                        AnalyticsUtils.logNotesToggled(context, isNotesMode)
+                    },
+                    enabled = isRunning && !gameOver && !gameWon,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(64.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = if (isNotesMode) colors.primary else colors.secondaryContainer,
+                        contentColor = if (isNotesMode) colors.onPrimary else colors.onSecondaryContainer
+                    ),
+                    contentPadding = PaddingValues(4.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "📝",
+                            fontSize = 16.sp
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = if (isNotesMode) "Notes" else "Notes",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+                //endregion
+
+                //region Hint Button
+                FilledTonalButton(
+                    onClick = {
+                        if (!isRunning || gameOver || gameWon || availableHints == 0) return@FilledTonalButton
+                        if (selectedCell == null) {
+                            Toast.makeText(
+                                context,
+                                "Please select a cell for which you want to use a hint.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            return@FilledTonalButton
+                        }
+                        val (r, c) = selectedCell!!
+                        val cell = userGrid[r][c]
+                        val isWrong = cell.value != 0 && cell.value != solutionGrid[r][c]
+                        val isEditable = cell.value == 0 || isWrong
+                        if (isEditable) {
+                            saveUndoState(userGrid)
+                            userGrid[r][c] =
+                                cell.copy(value = solutionGrid[r][c], notes = emptySet())
+                            updateNotesAfterValueChange(userGrid, r, c, solutionGrid[r][c])
+                            availableHints--
+                            AnalyticsUtils.logHintUsed(context, currentDifficulty.name)
+                            coroutineScope.launch {
+                                delay(2000.milliseconds)
+                            }
+                            // Check for win after hint fills a cell
+                            if (!gameOver && !gameWon && isWin(userGrid, solutionGrid)) {
+                                gameWon = true
+                                isRunning = false
+                                // Record the game completion
+                                if (mode == "streak") {
+                                    GameCompletionRecorder.recordStreakGameCompletion(
+                                        context = context,
+                                        scope = coroutineScope,
+                                        streakDay = streakDay,
+                                        isWon = true,
+                                        score = score,
+                                        timeSeconds = timeSeconds
+                                    )
+                                    GameCompletionRecorder.recordGameCompletion(
+                                        context = context,
+                                        scope = coroutineScope,
+                                        difficulty = "streak",
+                                        isWon = true,
+                                        mistakes = mistakes,
+                                        score = score,
+                                        timeSeconds = timeSeconds,
+                                        mode = "regular"
+                                    )
+                                } else {
+                                    GameCompletionRecorder.recordGameCompletion(
+                                        context = context,
+                                        scope = coroutineScope,
+                                        difficulty = currentDifficulty.name,
+                                        isWon = true,
+                                        mistakes = mistakes,
+                                        score = score,
+                                        timeSeconds = timeSeconds,
+                                        mode = "regular"
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    enabled = isRunning && !gameOver && !gameWon && availableHints > 0,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(64.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    contentPadding = PaddingValues(4.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "💡",
+                            fontSize = 16.sp
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = "Hint ($availableHints)",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+                //endregion
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        AnimatedVisibility(
+            visible = learningHint != null,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            learningHint?.let { hint ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 8.dp)
+                        .background(
+                            color = colors.errorContainer,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "💡",
-                        fontSize = 16.sp
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = "Hint ($availableHints)",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold
+                        text = hint,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.onErrorContainer,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
         }
 
-        if (gameOver) {
+        if (gameOver && !isLearningMode) {
             LaunchedEffect(Unit) {
                 AnalyticsUtils.logGameResult(
                     context,
@@ -1017,7 +1165,7 @@ fun SudokuScreen(
             BasicAlertDialog(onDismissRequest = {}) {
                 Card(
                     shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    colors = CardDefaults.cardColors(containerColor = colors.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -1117,230 +1265,246 @@ fun SudokuScreen(
     } // end Column
 
     if (gameWon) {
-        // Persist score & streak state
-        LaunchedEffect(Unit) {
-            totalScoreManager.addScore(score)
-            if (mode == "streak") {
-                val today = LocalDate.now().toString()
-                val savedStreak = streakStateManager.getStreakState().first()
-                    ?: StreakState(0, null, null, null)
-                // Increment streakCount only when this streakDay hasn't been counted yet.
-                // Using streakDay > streakCount (instead of date check) allows multiple
-                // streak days to be completed in the same calendar day during DEBUG testing,
-                // while still being correct in release (only one game per day allowed).
-                if (streakDay > savedStreak.streakCount) {
-                    streakStateManager.saveStreakState(
-                        savedStreak.copy(
-                            streakCount = savedStreak.streakCount + 1,
-                            lastCompletedDate = today,
-                            activeDate = null,
-                            activeGame = null
-                        )
-                    )
-                } else {
-                    streakStateManager.saveStreakState(
-                        savedStreak.copy(activeDate = null, activeGame = null)
-                    )
+        if (isLearningMode) {
+            // ── Learning mode: show LearningCompleteDialog ──
+            LearningCompleteDialog(
+                onTryNormalMode = {
+                    gameWon = false
+                    onStartNormalGame() // Pop back to home — user can tap New Game
+                },
+                onBackToHome = {
+                    gameWon = false
+                    onExit()
                 }
-                AnalyticsUtils.logStreakGameCompleted(context, streakDay)
-                streakStateManager.setReminderShown(false) // reset reminder shown flag for today so that reminder can be shown again tomorrow
-            } else {
-                gameStateManager.clearGameState()
-            }
-            AnalyticsUtils.logGameResult(
-                context,
-                win = true,
-                time = formatTime(timeSeconds),
-                mistakes = mistakes,
-                score = score,
-                difficulty = currentDifficulty.name,
-                isStreak = mode == "streak",
-                hintCount = 1 - availableHints  // currently only 1 hint allowed, so this will be 0 or 1
             )
-        }
-
-        BasicAlertDialog(onDismissRequest = {}) {
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-
-                    // ── Gradient header ──────────────────────────────────
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(Color(0xFF1565C0), Color(0xFF6A1B9A))
-                                ),
-                                RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+            AnalyticsUtils.logLearningCompleted(context)
+        } else {
+            // Persist score & streak state
+            LaunchedEffect(Unit) {
+                totalScoreManager.addScore(score)
+                if (mode == "streak") {
+                    val today = LocalDate.now().toString()
+                    val savedStreak = streakStateManager.getStreakState().first()
+                        ?: StreakState(0, null, null, null)
+                    // Increment streakCount only when this streakDay hasn't been counted yet.
+                    // Using streakDay > streakCount (instead of date check) allows multiple
+                    // streak days to be completed in the same calendar day during DEBUG testing,
+                    // while still being correct in release (only one game per day allowed).
+                    if (streakDay > savedStreak.streakCount) {
+                        streakStateManager.saveStreakState(
+                            savedStreak.copy(
+                                streakCount = savedStreak.streakCount + 1,
+                                lastCompletedDate = today,
+                                activeDate = null,
+                                activeGame = null
                             )
-                            .padding(vertical = 28.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("🎉", fontSize = 48.sp)
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                text = "You Win!",
-                                fontSize = 26.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Color.White
-                            )
-                            Text(
-                                text = "Puzzle solved!",
-                                fontSize = 13.sp,
-                                color = Color.White.copy(alpha = 0.8f)
-                            )
-                        }
+                        )
+                    } else {
+                        streakStateManager.saveStreakState(
+                            savedStreak.copy(activeDate = null, activeGame = null)
+                        )
                     }
+                    AnalyticsUtils.logStreakGameCompleted(context, streakDay)
+                    streakStateManager.setReminderShown(false) // reset reminder shown flag for today so that reminder can be shown again tomorrow
+                } else {
+                    gameStateManager.clearGameState()
+                }
+                AnalyticsUtils.logGameResult(
+                    context,
+                    win = true,
+                    time = formatTime(timeSeconds),
+                    mistakes = mistakes,
+                    score = score,
+                    difficulty = currentDifficulty.name,
+                    isStreak = mode == "streak",
+                    hintCount = 1 - availableHints  // currently only 1 hint allowed, so this will be 0 or 1
+                )
+            }
 
-                    // ── Stats row ────────────────────────────────────────
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 20.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        // Time
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Box(
-                                modifier = Modifier
-                                    .size(52.dp)
-                                    .background(
-                                        MaterialTheme.colorScheme.primaryContainer,
-                                        CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) { Text("⏱️", fontSize = 22.sp) }
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                text = formatTime(timeSeconds),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Time",
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        // Score
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Box(
-                                modifier = Modifier
-                                    .size(52.dp)
-                                    .background(
-                                        MaterialTheme.colorScheme.primaryContainer,
-                                        CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) { Text("⭐", fontSize = 22.sp) }
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                text = "$score",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Score",
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        // Mistakes
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Box(
-                                modifier = Modifier
-                                    .size(52.dp)
-                                    .background(
-                                        MaterialTheme.colorScheme.primaryContainer,
-                                        CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) { Text(if (mistakes == 0) "✅" else "❌", fontSize = 22.sp) }
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                text = "$mistakes",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Mistakes",
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+            BasicAlertDialog(onDismissRequest = {}) {
+                Card(
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(containerColor = colors.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
 
-                    // ── Buttons ──────────────────────────────────────────
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp)
-                            .padding(top = 12.dp, bottom = 24.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        // Next Game — only for non-streak mode
-                        if (mode != "streak") {
-                            Button(
-                                onClick = {
-                                    val (newPuzzle, newSolution) = SudokuGenerator.instance.generate(
-                                        currentDifficulty
+                        // ── Gradient header ──────────────────────────────────
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(Color(0xFF1565C0), Color(0xFF6A1B9A))
+                                    ),
+                                    RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+                                )
+                                .padding(vertical = 28.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("🎉", fontSize = 48.sp)
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    text = "You Win!",
+                                    fontSize = 26.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = "Puzzle solved!",
+                                    fontSize = 13.sp,
+                                    color = Color.White.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+
+                        // ── Stats row ────────────────────────────────────────
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 20.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            // Time
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(52.dp)
+                                        .background(
+                                            colors.primaryContainer,
+                                            CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) { Text("⏱️", fontSize = 22.sp) }
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    text = formatTime(timeSeconds),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = colors.onSurface
+                                )
+                                Text(
+                                    text = "Time",
+                                    fontSize = 11.sp,
+                                    color = colors.onSurfaceVariant
+                                )
+                            }
+                            // Score
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(52.dp)
+                                        .background(
+                                            colors.primaryContainer,
+                                            CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) { Text("⭐", fontSize = 22.sp) }
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    text = "$score",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = colors.onSurface
+                                )
+                                Text(
+                                    text = "Score",
+                                    fontSize = 11.sp,
+                                    color = colors.onSurfaceVariant
+                                )
+                            }
+                            // Mistakes
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(52.dp)
+                                        .background(
+                                            colors.primaryContainer,
+                                            CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) { Text(if (mistakes == 0) "✅" else "❌", fontSize = 22.sp) }
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    text = "$mistakes",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = colors.onSurface
+                                )
+                                Text(
+                                    text = "Mistakes",
+                                    fontSize = 11.sp,
+                                    color = colors.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        // ── Buttons ──────────────────────────────────────────
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp)
+                                .padding(top = 12.dp, bottom = 24.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            // Next Game — only for non-streak mode
+                            if (mode != "streak") {
+                                Button(
+                                    onClick = {
+                                        val (newPuzzle, newSolution) = SudokuGenerator.instance.generate(
+                                            currentDifficulty
+                                        )
+                                        originalGrid = newPuzzle.map { it.toList() }
+                                        solutionGrid = newSolution
+                                        userGrid.clear()
+                                        originalGrid.forEach { row ->
+                                            userGrid.add(row.map { CellData(it) }
+                                                .toMutableStateList())
+                                        }
+                                        clearUndoRedoHistory()
+                                        gameOver = false
+                                        wrongCells = emptySet()
+                                        mistakes = 0
+                                        score = 0
+                                        timeSeconds = 0
+                                        gameWon = false
+                                        selectedCell = null
+                                        shakeCells = emptySet()
+                                        isRunning = true
+                                        timerKey++
+                                        correctStreak = 0
+                                        lastCorrectTime = 0
+                                        for (r in 0..8) for (c in 0..8) scoredCells[r][c] = false
+                                        availableHints =
+                                            RemoteConfigManager.getHintsForDifficulty("breeze") // reset hints to default for new game
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp),
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF1565C0)
                                     )
-                                    originalGrid = newPuzzle.map { it.toList() }
-                                    solutionGrid = newSolution
-                                    userGrid.clear()
-                                    originalGrid.forEach { row ->
-                                        userGrid.add(row.map { CellData(it) }.toMutableStateList())
-                                    }
-                                    clearUndoRedoHistory()
-                                    gameOver = false
-                                    wrongCells = emptySet()
-                                    mistakes = 0
-                                    score = 0
-                                    timeSeconds = 0
+                                ) {
+                                    Text("Next Game", fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+
+                            // Done
+                            FilledTonalButton(
+                                onClick = {
                                     gameWon = false
-                                    selectedCell = null
-                                    shakeCells = emptySet()
-                                    isRunning = true
-                                    timerKey++
-                                    correctStreak = 0
-                                    lastCorrectTime = 0
-                                    for (r in 0..8) for (c in 0..8) scoredCells[r][c] = false
-                                    availableHints =
-                                        RemoteConfigManager.getHintsForDifficulty("breeze") // reset hints to default for new game
+                                    onExit()
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(50.dp),
-                                shape = RoundedCornerShape(14.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF1565C0)
-                                )
+                                shape = RoundedCornerShape(14.dp)
                             ) {
-                                Text("Next Game", fontWeight = FontWeight.SemiBold)
+                                Text("Done", fontWeight = FontWeight.SemiBold)
                             }
-                        }
-
-                        // Done
-                        FilledTonalButton(
-                            onClick = {
-                                gameWon = false
-                                onExit()
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp),
-                            shape = RoundedCornerShape(14.dp)
-                        ) {
-                            Text("Done", fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }

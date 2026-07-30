@@ -1,0 +1,44 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# CODEOWNERS — Sudoku
+#
+# Defines who must review PRs that touch specific files or directories.
+# GitHub automatically requests reviews from matching owners.
+#
+# Team:
+#   @quickmindgames      — Primary Maintainer / Reviewer
+# ──────────────────────────────────────────────────────────────────────────────
+
+# ── Default: catch-all for anything not matched below ─────────────────────────
+*                                        @quickmindgames
+
+# ── Gradle wrapper (infrastructure — changes rarely, high impact) ─────────────
+/gradlew                                 @quickmindgames
+/gradlew.bat                             @quickmindgames
+/gradle/                                 @quickmindgames
+
+# ── Root build configuration ──────────────────────────────────────────────────
+/build.gradle.kts                        @quickmindgames
+/settings.gradle.kts                     @quickmindgames
+/gradle.properties                       @quickmindgames
+
+# ── App-level build config (dependencies, signing configs, flavors) ───────────
+/app/build.gradle.kts                    @quickmindgames
+/app/proguard-rules.pro                  @quickmindgames
+
+# ── Android App Source Code ───────────────────────────────────────────────────
+/app/src/                                @quickmindgames
+
+# ── CI/CD Pipeline (GitHub Actions) ───────────────────────────────────────────
+/.github/workflows/                      @quickmindgames
+
+# ── Firebase / Google Services ────────────────────────────────────────────────
+/app/google-services.json                @quickmindgames
+
+# ── Release Signing Key ────────────────────────────────────────────────────────
+/release\ key/                           @quickmindgames
+
+# ── Plan / Documentation files ────────────────────────────────────────────────
+/*.md                                    @quickmindgames
+
+# ── This file itself ──────────────────────────────────────────────────────────
+/.github/CODEOWNERS                      @quickmindgames

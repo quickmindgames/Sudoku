@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.quickmindgames.sudoku.BuildConfig
@@ -54,7 +55,7 @@ import kotlinx.coroutines.launch
  *
  */
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val themePreferences = remember { ThemePreferences.getInstance(context) }
     val coroutineScope = rememberCoroutineScope()
@@ -80,12 +81,13 @@ fun SettingsScreen() {
         val statisticsViewModel =
             remember { StatisticsViewModel(context) }
         StatisticsScreen(
+            modifier = modifier,
             viewModel = statisticsViewModel,
             onBackClick = { showStatistics = false }
         )
     } else {
         Column(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
@@ -106,14 +108,6 @@ fun SettingsScreen() {
                     modifier = Modifier.padding(vertical = 16.dp)
                 )
 
-                Text(
-                    text = "Game",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
-                )
-
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -124,7 +118,7 @@ fun SettingsScreen() {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
+                            .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
@@ -163,14 +157,6 @@ fun SettingsScreen() {
 
                 Spacer(Modifier.height(16.dp))
 
-                Text(
-                    text = "Appearance",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
-                )
-
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
@@ -179,7 +165,7 @@ fun SettingsScreen() {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
+                            .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
@@ -225,20 +211,12 @@ fun SettingsScreen() {
 
                 Spacer(Modifier.height(16.dp))
 
-                Text(
-                    text = "About",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
-                )
-
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 modifier = Modifier
@@ -259,7 +237,7 @@ fun SettingsScreen() {
                             Column {
                                 Text(
                                     text = stringResource(R.string.app_name_full),
-                                    fontSize = 18.sp,
+                                    fontSize = 16.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )

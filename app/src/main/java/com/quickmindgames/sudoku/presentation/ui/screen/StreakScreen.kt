@@ -50,6 +50,7 @@ import java.time.LocalDate
  */
 @Composable
 fun StreakScreen(
+    modifier: Modifier = Modifier,
     onOpenStreak: (Int) -> Unit
 ) {
     val context = LocalContext.current
@@ -98,7 +99,7 @@ fun StreakScreen(
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {

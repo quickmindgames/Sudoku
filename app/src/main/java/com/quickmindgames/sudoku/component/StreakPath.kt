@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  *
@@ -85,7 +86,7 @@ fun StreakPath(
                     // One row above the active row for context; never below 0
                     val targetPx = ((activeRowIndex - 1).coerceAtLeast(0) * rowHeightPx).toInt()
                     // Wait for layout to complete before animating
-                    delay(150)
+                    delay(150.milliseconds)
                     scrollState.animateScrollTo(targetPx)
                 }
 

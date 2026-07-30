@@ -83,7 +83,7 @@ fun StreakSummaryCard(
                         1 -> "1 Day Streak"
                         else -> "$streakCount Days Streak"
                     },
-                    fontSize = 16.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )

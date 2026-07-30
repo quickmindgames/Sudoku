@@ -22,6 +22,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -48,6 +49,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun StatisticsScreen(
+    modifier: Modifier = Modifier,
     viewModel: StatisticsViewModel,
     onBackClick: () -> Unit = {}
 ) {
@@ -88,7 +90,7 @@ fun StatisticsScreen(
     }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
@@ -117,7 +119,7 @@ fun StatisticsScreen(
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
 
@@ -133,7 +135,7 @@ fun StatisticsScreen(
         }
 
         // Tab Row - synchronized with pager
-        ScrollableTabRow(
+        PrimaryScrollableTabRow(
             selectedTabIndex = pagerState.currentPage,
             modifier = Modifier
                 .fillMaxWidth()

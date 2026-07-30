@@ -80,8 +80,8 @@ class StatisticsRepository(context: Context) {
             val totalGames = values[0] as Int
             val wins = values[1] as Int
             val losses = values[2] as Int
-            val bestTime = values[3] as Int?
-            val bestScore = values[4] as Int?
+            val bestTime = values[3]
+            val bestScore = values[4]
             val flawFree = values[5] as Int
 
             val winRatio = if (totalGames > 0) (wins.toDouble() / totalGames) * 100 else 0.0
@@ -112,8 +112,8 @@ class StatisticsRepository(context: Context) {
             val totalGames = values[0] as Int
             val wins = values[1] as Int
             val losses = values[2] as Int
-            val bestTime = values[3] as Int?
-            val bestScore = values[4] as Int?
+            val bestTime = values[3]
+            val bestScore = values[4]
             val flawFree = values[5] as Int
 
             val winRatio = if (totalGames > 0) (wins.toDouble() / totalGames) * 100 else 0.0
@@ -160,9 +160,9 @@ class StatisticsRepository(context: Context) {
             val totalGames = values[0] as Int
             val wins = values[1] as Int
             val losses = values[2] as Int
-            val bestTime = values[3] as Int?
-            val bestScore = values[4] as Int?
-            val highestDay = values[5] as Int?
+            val bestTime = values[3]
+            val bestScore = values[4]
+            val highestDay = values[5]
             val consecutiveWins = values[6] as Int
 
             val winRatio = if (totalGames > 0) (wins.toDouble() / totalGames) * 100 else 0.0
