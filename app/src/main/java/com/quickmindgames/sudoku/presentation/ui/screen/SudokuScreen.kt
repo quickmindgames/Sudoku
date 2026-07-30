@@ -490,7 +490,7 @@ fun SudokuScreen(
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = colors.onSurfaceVariant
+                        tint = colors.primary
                     )
                 }
 
