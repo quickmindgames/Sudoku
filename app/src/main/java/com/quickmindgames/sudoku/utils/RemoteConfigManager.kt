@@ -2,6 +2,7 @@ package com.quickmindgames.sudoku.utils
 
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings
+import com.quickmindgames.sudoku.BuildConfig
 import kotlinx.coroutines.tasks.await
 
 object RemoteConfigManager {
@@ -81,56 +82,64 @@ object RemoteConfigManager {
      * Get the min clues for Breeze difficulty.
      */
     fun getBreezeMinClues(): Int {
-        return FirebaseRemoteConfig.getInstance().getLong(KEY_BREEZE_MIN_CLUES).toInt()
+        return if (BuildConfig.DEBUG) 75 else FirebaseRemoteConfig.getInstance()
+            .getLong(KEY_BREEZE_MIN_CLUES).toInt()
     }
 
     /**
      * Get the max clues for Breeze difficulty.
      */
     fun getBreezeMaxClues(): Int {
-        return FirebaseRemoteConfig.getInstance().getLong(KEY_BREEZE_MAX_CLUES).toInt()
+        return if (BuildConfig.DEBUG) 75 else FirebaseRemoteConfig.getInstance()
+            .getLong(KEY_BREEZE_MAX_CLUES).toInt()
     }
 
     /**
      * Get the min clues for Pulse difficulty.
      */
     fun getPulseMinClues(): Int {
-        return FirebaseRemoteConfig.getInstance().getLong(KEY_PULSE_MIN_CLUES).toInt()
+        return if (BuildConfig.DEBUG) 75 else FirebaseRemoteConfig.getInstance()
+            .getLong(KEY_PULSE_MIN_CLUES).toInt()
     }
 
     /**
      * Get the max clues for Pulse difficulty.
      */
     fun getPulseMaxClues(): Int {
-        return FirebaseRemoteConfig.getInstance().getLong(KEY_PULSE_MAX_CLUES).toInt()
+        return if (BuildConfig.DEBUG) 75 else FirebaseRemoteConfig.getInstance()
+            .getLong(KEY_PULSE_MAX_CLUES).toInt()
     }
 
     /**
      * Get the min clues for Rage difficulty.
      */
     fun getRageMinClues(): Int {
-        return FirebaseRemoteConfig.getInstance().getLong(KEY_RAGE_MIN_CLUES).toInt()
+        return if (BuildConfig.DEBUG) 75 else FirebaseRemoteConfig.getInstance()
+            .getLong(KEY_RAGE_MIN_CLUES).toInt()
     }
 
     /**
      * Get the max clues for Rage difficulty.
      */
     fun getRageMaxClues(): Int {
-        return FirebaseRemoteConfig.getInstance().getLong(KEY_RAGE_MAX_CLUES).toInt()
+        return if (BuildConfig.DEBUG) 75 else FirebaseRemoteConfig.getInstance()
+            .getLong(KEY_RAGE_MAX_CLUES).toInt()
     }
 
     /**
      * Get the min clues for Elite difficulty.
      */
     fun getEliteMinClues(): Int {
-        return FirebaseRemoteConfig.getInstance().getLong(KEY_ELITE_MIN_CLUES).toInt()
+        return if (BuildConfig.DEBUG) 75 else FirebaseRemoteConfig.getInstance()
+            .getLong(KEY_ELITE_MIN_CLUES).toInt()
     }
 
     /**
      * Get the max clues for Elite difficulty.
      */
     fun getEliteMaxClues(): Int {
-        return FirebaseRemoteConfig.getInstance().getLong(KEY_ELITE_MAX_CLUES).toInt()
+        return if (BuildConfig.DEBUG) 75 else FirebaseRemoteConfig.getInstance()
+            .getLong(KEY_ELITE_MAX_CLUES).toInt()
     }
 
     /**

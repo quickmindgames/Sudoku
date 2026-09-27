@@ -144,39 +144,39 @@ fun StreakScreen(
                 }
 
                 // Streak counter + share icon stacked
-                Box(contentAlignment = Alignment.TopEnd) {
-                    // Compact streak counter
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .background(
-                                MaterialTheme.colorScheme.primary,
-                                CircleShape
+                if (streakCount > 0) {
+                    Box(contentAlignment = Alignment.TopEnd) {
+                        // Compact streak counter
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.primary,
+                                    CircleShape
+                                )
+                                .then(
+                                    Modifier.clickable(
+                                        indication = null,
+                                        interactionSource = remember { MutableInteractionSource() }
+                                    ) {
+                                        cutter.processEvent { context.shareStreak(streakCount) }
+                                    }
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "$streakCount",
+                                fontSize = when (streakCount.toString().length) {
+                                    1, 2 -> 24.sp
+                                    3 -> 17.sp
+                                    else -> 13.sp
+                                },
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
-                            .then(
-                                if (streakCount > 0) Modifier.clickable(
-                                    indication = null,
-                                    interactionSource = remember { MutableInteractionSource() }
-                                ) {
-                                    cutter.processEvent { context.shareStreak(streakCount) }
-                                } else Modifier
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "$streakCount",
-                            fontSize = when (streakCount.toString().length) {
-                                1, 2 -> 24.sp
-                                3 -> 17.sp
-                                else -> 13.sp
-                            },
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
+                        }
 
-                    // Tiny share badge pinned to top-end of the circle
-                    if (streakCount > 0) {
+                        // Tiny share badge pinned to top-end of the circle
                         Box(
                             modifier = Modifier
                                 .offset(x = 6.dp, y = (-6).dp)

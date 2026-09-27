@@ -69,6 +69,7 @@ import com.quickmindgames.sudoku.R
 import com.quickmindgames.sudoku.component.LearningCompleteDialog
 import com.quickmindgames.sudoku.component.NumberPad
 import com.quickmindgames.sudoku.component.SudokuGridLevel
+import com.quickmindgames.sudoku.data.preferences.AppPreferences
 import com.quickmindgames.sudoku.data.score.TotalScoreManager
 import com.quickmindgames.sudoku.data.state.CellData
 import com.quickmindgames.sudoku.data.state.GameState
@@ -76,6 +77,7 @@ import com.quickmindgames.sudoku.data.state.GameStateManager
 import com.quickmindgames.sudoku.data.state.StreakState
 import com.quickmindgames.sudoku.data.state.StreakStateManager
 import com.quickmindgames.sudoku.data.util.GameCompletionRecorder
+import com.quickmindgames.sudoku.data.util.GameFeedback
 import com.quickmindgames.sudoku.domain.generator.SudokuGenerator
 import com.quickmindgames.sudoku.domain.model.Difficulty
 import com.quickmindgames.sudoku.domain.util.clearUndoRedoHistory
@@ -113,7 +115,28 @@ fun SudokuScreen(
     val gameStateManager = remember { GameStateManager.getInstance(context) }
     val streakStateManager = remember { StreakStateManager.getInstance(context) }
     val totalScoreManager = remember { TotalScoreManager.getInstance(context) }
+    val appPreferences = remember { AppPreferences.getInstance(context) }
+    val gameFeedback = remember(context) { GameFeedback(context) }
     val coroutineScope = rememberCoroutineScope()
+    var hideUsedNumbers by remember { mutableStateOf(false) }
+    var freePlayEnabled by remember { mutableStateOf(false) }
+    var soundAndVibrationEnabled by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        appPreferences.hideUsedNumbers.collect { hide ->
+            hideUsedNumbers = hide
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        appPreferences.soundAndVibration.collect { enabled ->
+            soundAndVibrationEnabled = enabled
+        }
+    }
+
+    DisposableEffect(gameFeedback) {
+        onDispose { gameFeedback.release() }
+    }
 
     // Generate puzzle and solution
     var puzzleData by remember(mode, difficulty) {
@@ -160,6 +183,17 @@ fun SudokuScreen(
     var learningHint by remember { mutableStateOf<String?>(null) }
     val colors = MaterialTheme.colorScheme
 
+    LaunchedEffect(Unit) {
+        appPreferences.freePlay.collect { enabled ->
+            freePlayEnabled = enabled
+            if (enabled) {
+                mistakes = 0
+                score = 0
+                timeSeconds = 0
+            }
+        }
+    }
+
     LaunchedEffect(shakeCells) {
         delay(300.milliseconds)
         shakeCells = emptySet()
@@ -175,9 +209,9 @@ fun SudokuScreen(
     LaunchedEffect(timerKey) {
         while (true) {
             // Only advance the timer for normal modes — do not increment during learning/practice
-            if (isRunning && !isLearningMode) {
+            if (isRunning && !isLearningMode && !freePlayEnabled) {
                 delay(1000.milliseconds)
-                if (isRunning) timeSeconds++
+                if (isRunning && !freePlayEnabled) timeSeconds++
             } else {
                 delay(100.milliseconds) // poll until resumed or learning mode ends
             }
@@ -510,7 +544,7 @@ fun SudokuScreen(
             Spacer(Modifier.width(8.dp))
 
             // Scorecard
-            if (!isLearningMode) {
+            if (!isLearningMode && !freePlayEnabled) {
                 Card(
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
@@ -541,40 +575,41 @@ fun SudokuScreen(
                     .fillMaxWidth()
                     .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 4.dp)
             ) {
-                // Mistakes anchored to the left
-                Row(
-                    modifier = Modifier.align(Alignment.CenterStart),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Mistakes: ",
-                        fontSize = 14.sp,
-                        color = colors.onSurface,
-                        fontWeight = FontWeight.Medium
-                    )
-                    repeat(3) { index ->
-                        Spacer(Modifier.width(6.dp))
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .background(
+                if (!freePlayEnabled) {
+                    Row(
+                        modifier = Modifier.align(Alignment.CenterStart),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Mistakes: ",
+                            fontSize = 14.sp,
+                            color = colors.onSurface,
+                            fontWeight = FontWeight.Medium
+                        )
+                        repeat(3) { index ->
+                            Spacer(Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .background(
+                                        color = if (index < mistakes)
+                                            colors.errorContainer
+                                        else
+                                            colors.surfaceVariant,
+                                        shape = RoundedCornerShape(8.dp)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "✕",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
                                     color = if (index < mistakes)
-                                        colors.errorContainer
+                                        colors.error
                                     else
-                                        colors.surfaceVariant,
-                                    shape = RoundedCornerShape(8.dp)
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "✕",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (index < mistakes)
-                                    colors.error
-                                else
-                                    colors.onSurfaceVariant.copy(alpha = 0.5f)
-                            )
+                                        colors.onSurfaceVariant.copy(alpha = 0.5f)
+                                )
+                            }
                         }
                     }
                 }
@@ -584,13 +619,15 @@ fun SudokuScreen(
                     modifier = Modifier.align(Alignment.CenterEnd),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = formatTime(timeSeconds),
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = colors.onSurfaceVariant
-                    )
-                    Spacer(Modifier.width(6.dp))
+                    if (!freePlayEnabled) {
+                        Text(
+                            text = formatTime(timeSeconds),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.onSurfaceVariant
+                        )
+                        Spacer(Modifier.width(6.dp))
+                    }
                     IconButton(
                         onClick = { isRunning = !isRunning },
                         enabled = !gameOver && !gameWon,
@@ -680,7 +717,9 @@ fun SudokuScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         NumberPad(
-            grid = userGrid, enabled = isRunning && !gameOver && !gameWon
+            grid = userGrid,
+            enabled = isRunning && !gameOver && !gameWon,
+            hideUsedNumbers = hideUsedNumbers
         ) { number ->
             selectedCell?.let { (r, c) ->
                 if (originalGrid[r][c] != 0 || gameOver || gameWon || !isRunning) return@NumberPad
@@ -730,6 +769,7 @@ fun SudokuScreen(
                     }
 
                     if (!isCorrect) {
+                        gameFeedback.playWrongNumber(soundAndVibrationEnabled)
                         if (isLearningMode) {
                             // ── Learning mode: show explanation, don't count mistake ──
                             //wrongCells = wrongCells + (r to c)
@@ -758,6 +798,9 @@ fun SudokuScreen(
                             }
                             // Do NOT increment mistakes
                             // Do NOT trigger gameOver
+                        } else if (freePlayEnabled) {
+                            wrongCells = wrongCells + (r to c)
+                            shakeCells = shakeCells + (r to c)
                         } else {
                             mistakes++
                             wrongCells = wrongCells + (r to c)
@@ -766,6 +809,7 @@ fun SudokuScreen(
                             correctStreak = 0
 
                             if (mistakes >= 3) {
+                                gameFeedback.playGameOver(soundAndVibrationEnabled)
                                 gameOver = true
                                 isRunning = false
                                 coroutineScope.launch {
@@ -814,9 +858,10 @@ fun SudokuScreen(
                         }
 
                     } else {
+                        gameFeedback.playCorrectNumber(soundAndVibrationEnabled)
                         wrongCells = wrongCells - (r to c)
 
-                        if (!isLearningMode) {
+                        if (!isLearningMode && !freePlayEnabled) {
                             if (!scoredCells[r][c]) {
                                 // 1. Base points by difficulty
                                 val basePoints = when (currentDifficulty) {
@@ -859,6 +904,7 @@ fun SudokuScreen(
                     }
 
                     if (isWin(userGrid, solutionGrid)) {
+                        gameFeedback.playPuzzleCompleted(soundAndVibrationEnabled)
                         gameWon = true
                         isRunning = false
 
@@ -897,6 +943,7 @@ fun SudokuScreen(
                                 )
                             }
                         }
+                    } else if (isCorrect) {
                     }
                 }
             }
@@ -1054,6 +1101,7 @@ fun SudokuScreen(
                             }
                             // Check for win after hint fills a cell
                             if (!gameOver && !gameWon && isWin(userGrid, solutionGrid)) {
+                                gameFeedback.playPuzzleCompleted(soundAndVibrationEnabled)
                                 gameWon = true
                                 isRunning = false
                                 // Record the game completion
@@ -1281,7 +1329,7 @@ fun SudokuScreen(
         } else {
             // Persist score & streak state
             LaunchedEffect(Unit) {
-                totalScoreManager.addScore(score)
+                if (!freePlayEnabled) totalScoreManager.addScore(score)
                 if (mode == "streak") {
                     val today = LocalDate.now().toString()
                     val savedStreak = streakStateManager.getStreakState().first()
@@ -1361,7 +1409,7 @@ fun SudokuScreen(
                         }
 
                         // ── Stats row ────────────────────────────────────────
-                        Row(
+                        if (!freePlayEnabled) Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 24.dp, vertical = 20.dp),
