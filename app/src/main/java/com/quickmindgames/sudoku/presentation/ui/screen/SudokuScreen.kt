@@ -189,7 +189,6 @@ fun SudokuScreen(
             if (enabled) {
                 mistakes = 0
                 score = 0
-                timeSeconds = 0
             }
         }
     }
@@ -209,9 +208,9 @@ fun SudokuScreen(
     LaunchedEffect(timerKey) {
         while (true) {
             // Only advance the timer for normal modes — do not increment during learning/practice
-            if (isRunning && !isLearningMode && !freePlayEnabled) {
+            if (isRunning && !isLearningMode) {
                 delay(1000.milliseconds)
-                if (isRunning && !freePlayEnabled) timeSeconds++
+                if (isRunning) timeSeconds++
             } else {
                 delay(100.milliseconds) // poll until resumed or learning mode ends
             }
@@ -543,8 +542,39 @@ fun SudokuScreen(
 
             Spacer(Modifier.width(8.dp))
 
-            // Scorecard
-            if (!isLearningMode && !freePlayEnabled) {
+            // Keep the timer in the scorecard position during free play.
+            if (!isLearningMode && freePlayEnabled) {
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = colors.primaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = formatTime(timeSeconds),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.onPrimaryContainer
+                        )
+                        IconButton(
+                            onClick = { isRunning = !isRunning },
+                            enabled = !gameOver && !gameWon,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = if (isRunning) "Pause" else "Resume",
+                                modifier = Modifier.size(18.dp),
+                                tint = colors.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
+            } else if (!isLearningMode) {
                 Card(
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
@@ -568,48 +598,46 @@ fun SudokuScreen(
             }
         }
 
-        if (!isLearningMode) {
+        if (!isLearningMode && !freePlayEnabled) {
             // Mistakes (left) + Play/Pause Icon + Timer (right)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 4.dp)
             ) {
-                if (!freePlayEnabled) {
-                    Row(
-                        modifier = Modifier.align(Alignment.CenterStart),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Mistakes: ",
-                            fontSize = 14.sp,
-                            color = colors.onSurface,
-                            fontWeight = FontWeight.Medium
-                        )
-                        repeat(3) { index ->
-                            Spacer(Modifier.width(6.dp))
-                            Box(
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .background(
-                                        color = if (index < mistakes)
-                                            colors.errorContainer
-                                        else
-                                            colors.surfaceVariant,
-                                        shape = RoundedCornerShape(8.dp)
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "✕",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
+                Row(
+                    modifier = Modifier.align(Alignment.CenterStart),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Mistakes: ",
+                        fontSize = 14.sp,
+                        color = colors.onSurface,
+                        fontWeight = FontWeight.Medium
+                    )
+                    repeat(3) { index ->
+                        Spacer(Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .background(
                                     color = if (index < mistakes)
-                                        colors.error
+                                        colors.errorContainer
                                     else
-                                        colors.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                            }
+                                        colors.surfaceVariant,
+                                    shape = RoundedCornerShape(8.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "✕",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (index < mistakes)
+                                    colors.error
+                                else
+                                    colors.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
                         }
                     }
                 }
@@ -619,15 +647,13 @@ fun SudokuScreen(
                     modifier = Modifier.align(Alignment.CenterEnd),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (!freePlayEnabled) {
-                        Text(
-                            text = formatTime(timeSeconds),
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = colors.onSurfaceVariant
-                        )
-                        Spacer(Modifier.width(6.dp))
-                    }
+                    Text(
+                        text = formatTime(timeSeconds),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.onSurfaceVariant
+                    )
+                    Spacer(Modifier.width(6.dp))
                     IconButton(
                         onClick = { isRunning = !isRunning },
                         enabled = !gameOver && !gameWon,
@@ -1409,7 +1435,7 @@ fun SudokuScreen(
                         }
 
                         // ── Stats row ────────────────────────────────────────
-                        if (!freePlayEnabled) Row(
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 24.dp, vertical = 20.dp),
@@ -1439,53 +1465,55 @@ fun SudokuScreen(
                                     color = colors.onSurfaceVariant
                                 )
                             }
-                            // Score
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(52.dp)
-                                        .background(
-                                            colors.primaryContainer,
-                                            CircleShape
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) { Text("⭐", fontSize = 22.sp) }
-                                Spacer(Modifier.height(6.dp))
-                                Text(
-                                    text = "$score",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp,
-                                    color = colors.onSurface
-                                )
-                                Text(
-                                    text = "Score",
-                                    fontSize = 11.sp,
-                                    color = colors.onSurfaceVariant
-                                )
-                            }
-                            // Mistakes
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(52.dp)
-                                        .background(
-                                            colors.primaryContainer,
-                                            CircleShape
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) { Text(if (mistakes == 0) "✅" else "❌", fontSize = 22.sp) }
-                                Spacer(Modifier.height(6.dp))
-                                Text(
-                                    text = "$mistakes",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp,
-                                    color = colors.onSurface
-                                )
-                                Text(
-                                    text = "Mistakes",
-                                    fontSize = 11.sp,
-                                    color = colors.onSurfaceVariant
-                                )
+                            if (!freePlayEnabled) {
+                                // Score
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(52.dp)
+                                            .background(
+                                                colors.primaryContainer,
+                                                CircleShape
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) { Text("⭐", fontSize = 22.sp) }
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        text = "$score",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp,
+                                        color = colors.onSurface
+                                    )
+                                    Text(
+                                        text = "Score",
+                                        fontSize = 11.sp,
+                                        color = colors.onSurfaceVariant
+                                    )
+                                }
+                                // Mistakes
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(52.dp)
+                                            .background(
+                                                colors.primaryContainer,
+                                                CircleShape
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) { Text(if (mistakes == 0) "✅" else "❌", fontSize = 22.sp) }
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        text = "$mistakes",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp,
+                                        color = colors.onSurface
+                                    )
+                                    Text(
+                                        text = "Mistakes",
+                                        fontSize = 11.sp,
+                                        color = colors.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
 

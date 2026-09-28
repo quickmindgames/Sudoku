@@ -29,15 +29,35 @@ class AppPreferences(private val context: Context) {
         preferences[SOUND_AND_VIBRATION_KEY] ?: true
     }
 
-    suspend fun setHideUsedNumbers(enabled: Boolean) {
+    suspend fun setHideUsedNumbers(enabled: Boolean): Boolean {
+        var disabledFreePlay = false
         context.appDataStore.edit { preferences ->
             preferences[HIDE_USED_NUMBERS_KEY] = enabled
+            if (enabled && preferences[FREE_PLAY_KEY] == true) {
+                preferences[FREE_PLAY_KEY] = false
+                disabledFreePlay = true
+            }
         }
+        return disabledFreePlay
     }
 
-    suspend fun setFreePlay(enabled: Boolean) {
+    suspend fun setFreePlay(enabled: Boolean): Boolean {
+        var disabledHideUsedNumbers = false
         context.appDataStore.edit { preferences ->
             preferences[FREE_PLAY_KEY] = enabled
+            if (enabled && preferences[HIDE_USED_NUMBERS_KEY] == true) {
+                preferences[HIDE_USED_NUMBERS_KEY] = false
+                disabledHideUsedNumbers = true
+            }
+        }
+        return disabledHideUsedNumbers
+    }
+
+    suspend fun normalizeGameplayOptions() {
+        context.appDataStore.edit { preferences ->
+            if (preferences[FREE_PLAY_KEY] == true && preferences[HIDE_USED_NUMBERS_KEY] == true) {
+                preferences[HIDE_USED_NUMBERS_KEY] = false
+            }
         }
     }
 

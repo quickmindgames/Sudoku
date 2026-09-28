@@ -1,5 +1,6 @@
 package com.quickmindgames.sudoku.presentation.ui.screen
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -48,9 +49,12 @@ import com.quickmindgames.sudoku.BuildConfig
 import com.quickmindgames.sudoku.R
 import com.quickmindgames.sudoku.data.preferences.AppPreferences
 import com.quickmindgames.sudoku.data.preferences.ThemePreferences
+import com.quickmindgames.sudoku.data.state.GameStateManager
 import com.quickmindgames.sudoku.presentation.viewmodel.StatisticsViewModel
 import com.quickmindgames.sudoku.utils.AnalyticsConstants
 import com.quickmindgames.sudoku.utils.AnalyticsUtils
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -63,12 +67,14 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val themePreferences = remember { ThemePreferences.getInstance(context) }
     val appPreferences = remember { AppPreferences.getInstance(context) }
+    val gameStateManager = remember { GameStateManager.getInstance(context) }
     val coroutineScope = rememberCoroutineScope()
     var showStatistics by remember { mutableStateOf(false) }
 
     var isDarkMode by remember { mutableStateOf(false) }
     var hideUsedNumbers by remember { mutableStateOf(false) }
     var freePlay by remember { mutableStateOf(false) }
+    var hasSavedGame by remember { mutableStateOf(false) }
     var soundAndVibration by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
@@ -78,14 +84,18 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     }
 
     LaunchedEffect(Unit) {
-        appPreferences.hideUsedNumbers.collect { hide ->
+        appPreferences.normalizeGameplayOptions()
+        combine(appPreferences.hideUsedNumbers, appPreferences.freePlay) { hide, free ->
+            hide to free
+        }.collect { (hide, free) ->
             hideUsedNumbers = hide
+            freePlay = free
         }
     }
 
     LaunchedEffect(Unit) {
-        appPreferences.freePlay.collect { enabled ->
-            freePlay = enabled
+        gameStateManager.getSavedGameState().collect { savedGame ->
+            hasSavedGame = savedGame != null
         }
     }
 
@@ -256,7 +266,25 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         checked = hideUsedNumbers,
                         onCheckedChange = { enabled ->
                             coroutineScope.launch {
-                                appPreferences.setHideUsedNumbers(enabled)
+                                if (gameStateManager.getSavedGameState().first() != null
+                                ) {
+                                    hasSavedGame = true
+                                    Toast.makeText(
+                                        context,
+                                        "Finish or start a new game before changing gameplay options.",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    return@launch
+                                }
+                                val disabledFreePlay =
+                                    appPreferences.setHideUsedNumbers(enabled)
+                                if (disabledFreePlay) {
+                                    Toast.makeText(
+                                        context,
+                                        "Free Play turned off because Hide used numbers is enabled.",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
                             }
                         },
                         colors = SwitchDefaults.colors(
@@ -306,17 +334,42 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "No Mistakes. No Timer. No Score",
+                            text = "No Mistakes. No Score",
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
                         )
+                        if (hasSavedGame) {
+                            Text(
+                                text = "Finish or start a new game before changing Free Play.",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
                     }
                     Switch(
                         checked = freePlay,
                         onCheckedChange = { enabled ->
                             coroutineScope.launch {
-                                appPreferences.setFreePlay(enabled)
+                                if (gameStateManager.getSavedGameState().first() != null) {
+                                    hasSavedGame = true
+                                    Toast.makeText(
+                                        context,
+                                        "Finish or start a new game before changing Free Play.",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    return@launch
+                                }
+                                val disabledHideUsedNumbers =
+                                    appPreferences.setFreePlay(enabled)
+                                if (disabledHideUsedNumbers) {
+                                    Toast.makeText(
+                                        context,
+                                        "Hide used numbers turned off because Free Play is enabled.",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
                             }
                         },
                         colors = SwitchDefaults.colors(
