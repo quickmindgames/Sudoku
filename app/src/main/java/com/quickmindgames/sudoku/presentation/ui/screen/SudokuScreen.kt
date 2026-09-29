@@ -62,13 +62,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.quickmindgames.sudoku.R
 import com.quickmindgames.sudoku.component.LearningCompleteDialog
 import com.quickmindgames.sudoku.component.NumberPad
@@ -123,12 +123,26 @@ fun SudokuScreen(
     val gameFeedback = remember(context) { GameFeedback(context) }
     val coroutineScope = rememberCoroutineScope()
     var hideUsedNumbers by remember { mutableStateOf(false) }
+    var highlightRegion by remember { mutableStateOf(false) }
+    var highlightSameNumbers by remember { mutableStateOf(false) }
     var freePlayEnabled by remember { mutableStateOf(false) }
     var soundAndVibrationEnabled by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         appPreferences.hideUsedNumbers.collect { hide ->
             hideUsedNumbers = hide
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        appPreferences.highlightRegion.collect { enabled ->
+            highlightRegion = enabled
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        appPreferences.highlightSameNumbers.collect { enabled ->
+            highlightSameNumbers = enabled
         }
     }
 
@@ -564,7 +578,12 @@ fun SudokuScreen(
                     )
                 ) {
                     Row(
-                        modifier = Modifier.padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+                        modifier = Modifier.padding(
+                            start = 12.dp,
+                            end = 4.dp,
+                            top = 4.dp,
+                            bottom = 4.dp
+                        ),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
@@ -699,6 +718,8 @@ fun SudokuScreen(
                 wrongCells,
                 shakeCells,
                 selectedCell,
+                highlightRegion,
+                highlightSameNumbers,
                 onCellClick = { r, c ->
                     if (isRunning) selectedCell = r to c
                 }
@@ -1226,7 +1247,7 @@ fun SudokuScreen(
                 ) {
                     Text(
                         text = hint,
-                        fontSize = 14.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.onErrorContainer,
                         textAlign = TextAlign.Center

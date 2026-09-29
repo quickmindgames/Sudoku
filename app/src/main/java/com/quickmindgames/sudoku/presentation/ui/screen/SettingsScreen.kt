@@ -19,6 +19,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.LooksOne
 import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Card
@@ -64,6 +66,7 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier) {
+    //region State and preference collection
     val context = LocalContext.current
     val themePreferences = remember { ThemePreferences.getInstance(context) }
     val appPreferences = remember { AppPreferences.getInstance(context) }
@@ -73,6 +76,8 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
 
     var isDarkMode by remember { mutableStateOf(false) }
     var hideUsedNumbers by remember { mutableStateOf(false) }
+    var highlightRegion by remember { mutableStateOf(false) }
+    var highlightSameNumbers by remember { mutableStateOf(false) }
     var freePlay by remember { mutableStateOf(false) }
     var hasSavedGame by remember { mutableStateOf(false) }
     var soundAndVibration by remember { mutableStateOf(true) }
@@ -84,12 +89,25 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     }
 
     LaunchedEffect(Unit) {
+        // Hide used numbers and Free Play are mutually exclusive preferences.
         appPreferences.normalizeGameplayOptions()
         combine(appPreferences.hideUsedNumbers, appPreferences.freePlay) { hide, free ->
             hide to free
         }.collect { (hide, free) ->
             hideUsedNumbers = hide
             freePlay = free
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        appPreferences.highlightRegion.collect { enabled ->
+            highlightRegion = enabled
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        appPreferences.highlightSameNumbers.collect { enabled ->
+            highlightSameNumbers = enabled
         }
     }
 
@@ -104,6 +122,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             soundAndVibration = enabled
         }
     }
+    //endregion
 
     LaunchedEffect(Unit) {
         AnalyticsUtils.logScreenView(
@@ -127,7 +146,6 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // ── Settings header + cards ────────────────────────────────────────
             Column(
                 modifier = Modifier
                     .padding(
@@ -144,6 +162,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     modifier = Modifier.padding(vertical = 16.dp)
                 )
 
+                // region Statistics
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -190,9 +209,11 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         )
                     }
                 }
+                //endregion
 
                 Spacer(Modifier.height(16.dp))
 
+                //region Gameplay settings
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -266,16 +287,6 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         checked = hideUsedNumbers,
                         onCheckedChange = { enabled ->
                             coroutineScope.launch {
-                                if (gameStateManager.getSavedGameState().first() != null
-                                ) {
-                                    hasSavedGame = true
-                                    Toast.makeText(
-                                        context,
-                                        "Finish or start a new game before changing gameplay options.",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    return@launch
-                                }
                                 val disabledFreePlay =
                                     appPreferences.setHideUsedNumbers(enabled)
                                 if (disabledFreePlay) {
@@ -285,6 +296,127 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }
+                            }
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    )
+                }
+
+                // These visual options are saved independently and apply to the Sudoku board.
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = RoundedCornerShape(12.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LooksOne,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp)
+                    ) {
+                        Text(
+                            text = "Highlight same numbers",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "When selecting a cell with a number, highlight the same numbers in the board",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+                    Switch(
+                        checked = highlightSameNumbers,
+                        onCheckedChange = { enabled ->
+                            coroutineScope.launch {
+                                appPreferences.setHighlightSameNumbers(enabled)
+                            }
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    )
+                }
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = RoundedCornerShape(12.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.GridView,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp)
+                    ) {
+                        Text(
+                            text = "Highlight the region",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Highlight the row, column and block",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+                    Switch(
+                        checked = highlightRegion,
+                        onCheckedChange = { enabled ->
+                            coroutineScope.launch {
+                                appPreferences.setHighlightRegion(enabled)
                             }
                         },
                         colors = SwitchDefaults.colors(
@@ -339,24 +471,18 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
                         )
-                        if (hasSavedGame) {
-                            Text(
-                                text = "Finish or start a new game before changing Free Play.",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
-                        }
                     }
                     Switch(
                         checked = freePlay,
                         onCheckedChange = { enabled ->
                             coroutineScope.launch {
-                                if (gameStateManager.getSavedGameState().first() != null) {
+                                // Prevent gameplay rules from changing during a saved game.
+                                if (gameStateManager.getSavedGameState().first() != null
+                                ) {
                                     hasSavedGame = true
                                     Toast.makeText(
                                         context,
-                                        "Finish or start a new game before changing Free Play.",
+                                        "Finish or start a new game before changing gameplay options.",
                                         Toast.LENGTH_SHORT
                                     ).show()
                                     return@launch
@@ -438,9 +564,11 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         )
                     )
                 }
+                //endregion
 
                 Spacer(Modifier.height(16.dp))
 
+                //region Appearance settings
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -505,9 +633,11 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         )
                     )
                 }
+                //endregion
 
                 Spacer(Modifier.height(12.dp))
 
+                //region App information
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = stringResource(R.string.app_name),
@@ -528,6 +658,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                     )
                 }
+                //endregion
             } // end inner Column
 
         }

@@ -14,11 +14,21 @@ private val Context.appDataStore: DataStore<Preferences> by preferencesDataStore
 class AppPreferences(private val context: Context) {
 
     private val HIDE_USED_NUMBERS_KEY = booleanPreferencesKey("hide_used_numbers")
+    private val HIGHLIGHT_REGION_KEY = booleanPreferencesKey("highlight_region")
+    private val HIGHLIGHT_SAME_NUMBERS_KEY = booleanPreferencesKey("highlight_same_numbers")
     private val FREE_PLAY_KEY = booleanPreferencesKey("free_play")
     private val SOUND_AND_VIBRATION_KEY = booleanPreferencesKey("sound_and_vibration")
 
     val hideUsedNumbers: Flow<Boolean> = context.appDataStore.data.map { preferences ->
         preferences[HIDE_USED_NUMBERS_KEY] ?: false
+    }
+
+    val highlightRegion: Flow<Boolean> = context.appDataStore.data.map { preferences ->
+        preferences[HIGHLIGHT_REGION_KEY] ?: false
+    }
+
+    val highlightSameNumbers: Flow<Boolean> = context.appDataStore.data.map { preferences ->
+        preferences[HIGHLIGHT_SAME_NUMBERS_KEY] ?: false
     }
 
     val freePlay: Flow<Boolean> = context.appDataStore.data.map { preferences ->
@@ -39,6 +49,18 @@ class AppPreferences(private val context: Context) {
             }
         }
         return disabledFreePlay
+    }
+
+    suspend fun setHighlightRegion(enabled: Boolean) {
+        context.appDataStore.edit { preferences ->
+            preferences[HIGHLIGHT_REGION_KEY] = enabled
+        }
+    }
+
+    suspend fun setHighlightSameNumbers(enabled: Boolean) {
+        context.appDataStore.edit { preferences ->
+            preferences[HIGHLIGHT_SAME_NUMBERS_KEY] = enabled
+        }
     }
 
     suspend fun setFreePlay(enabled: Boolean): Boolean {
