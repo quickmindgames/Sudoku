@@ -62,6 +62,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -163,6 +167,15 @@ fun SudokuScreen(
     var wrongCells by remember { mutableStateOf(setOf<Pair<Int, Int>>()) }
     var shakeCells by remember { mutableStateOf(setOf<Pair<Int, Int>>()) }
     var gameWon by remember { mutableStateOf(false) }
+    val confettiComposition by rememberLottieComposition(
+        LottieCompositionSpec.RawRes(R.raw.confetti)
+    )
+    val confettiProgress by animateLottieCompositionAsState(
+        composition = confettiComposition,
+        isPlaying = gameWon,
+        restartOnPlay = true,
+        iterations = 1
+    )
     var selectedCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var mistakes by remember { mutableIntStateOf(0) }
     var timeSeconds by remember { mutableIntStateOf(0) }
@@ -1408,15 +1421,20 @@ fun SudokuScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .height(180.dp)
                                 .background(
                                     Brush.horizontalGradient(
                                         listOf(Color(0xFF1565C0), Color(0xFF6A1B9A))
                                     ),
                                     RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-                                )
-                                .padding(vertical = 28.dp),
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
+                            LottieAnimation(
+                                composition = confettiComposition,
+                                progress = { confettiProgress },
+                                modifier = Modifier.fillMaxSize()
+                            )
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text("🎉", fontSize = 48.sp)
                                 Spacer(Modifier.height(8.dp))
