@@ -65,10 +65,15 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.quickmindgames.sudoku.R
 import com.quickmindgames.sudoku.component.LearningCompleteDialog
 import com.quickmindgames.sudoku.component.NumberPad
 import com.quickmindgames.sudoku.component.SudokuGridLevel
+import com.quickmindgames.sudoku.data.preferences.AppPreferences
 import com.quickmindgames.sudoku.data.score.TotalScoreManager
 import com.quickmindgames.sudoku.data.state.CellData
 import com.quickmindgames.sudoku.data.state.GameState
@@ -76,6 +81,7 @@ import com.quickmindgames.sudoku.data.state.GameStateManager
 import com.quickmindgames.sudoku.data.state.StreakState
 import com.quickmindgames.sudoku.data.state.StreakStateManager
 import com.quickmindgames.sudoku.data.util.GameCompletionRecorder
+import com.quickmindgames.sudoku.data.util.GameFeedback
 import com.quickmindgames.sudoku.domain.generator.SudokuGenerator
 import com.quickmindgames.sudoku.domain.model.Difficulty
 import com.quickmindgames.sudoku.domain.util.clearUndoRedoHistory
@@ -113,7 +119,42 @@ fun SudokuScreen(
     val gameStateManager = remember { GameStateManager.getInstance(context) }
     val streakStateManager = remember { StreakStateManager.getInstance(context) }
     val totalScoreManager = remember { TotalScoreManager.getInstance(context) }
+    val appPreferences = remember { AppPreferences.getInstance(context) }
+    val gameFeedback = remember(context) { GameFeedback(context) }
     val coroutineScope = rememberCoroutineScope()
+    var hideUsedNumbers by remember { mutableStateOf(false) }
+    var highlightRegion by remember { mutableStateOf(false) }
+    var highlightSameNumbers by remember { mutableStateOf(false) }
+    var freePlayEnabled by remember { mutableStateOf(false) }
+    var soundAndVibrationEnabled by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        appPreferences.hideUsedNumbers.collect { hide ->
+            hideUsedNumbers = hide
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        appPreferences.highlightRegion.collect { enabled ->
+            highlightRegion = enabled
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        appPreferences.highlightSameNumbers.collect { enabled ->
+            highlightSameNumbers = enabled
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        appPreferences.soundAndVibration.collect { enabled ->
+            soundAndVibrationEnabled = enabled
+        }
+    }
+
+    DisposableEffect(gameFeedback) {
+        onDispose { gameFeedback.release() }
+    }
 
     // Generate puzzle and solution
     var puzzleData by remember(mode, difficulty) {
@@ -140,6 +181,15 @@ fun SudokuScreen(
     var wrongCells by remember { mutableStateOf(setOf<Pair<Int, Int>>()) }
     var shakeCells by remember { mutableStateOf(setOf<Pair<Int, Int>>()) }
     var gameWon by remember { mutableStateOf(false) }
+    val confettiComposition by rememberLottieComposition(
+        LottieCompositionSpec.RawRes(R.raw.confetti)
+    )
+    val confettiProgress by animateLottieCompositionAsState(
+        composition = confettiComposition,
+        isPlaying = gameWon,
+        restartOnPlay = true,
+        iterations = 1
+    )
     var selectedCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var mistakes by remember { mutableIntStateOf(0) }
     var timeSeconds by remember { mutableIntStateOf(0) }
@@ -159,6 +209,16 @@ fun SudokuScreen(
     val isLearningMode = mode == "learn"
     var learningHint by remember { mutableStateOf<String?>(null) }
     val colors = MaterialTheme.colorScheme
+
+    LaunchedEffect(Unit) {
+        appPreferences.freePlay.collect { enabled ->
+            freePlayEnabled = enabled
+            if (enabled) {
+                mistakes = 0
+                score = 0
+            }
+        }
+    }
 
     LaunchedEffect(shakeCells) {
         delay(300.milliseconds)
@@ -509,8 +569,44 @@ fun SudokuScreen(
 
             Spacer(Modifier.width(8.dp))
 
-            // Scorecard
-            if (!isLearningMode) {
+            // Keep the timer in the scorecard position during free play.
+            if (!isLearningMode && freePlayEnabled) {
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = colors.primaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(
+                            start = 12.dp,
+                            end = 4.dp,
+                            top = 4.dp,
+                            bottom = 4.dp
+                        ),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = formatTime(timeSeconds),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.onPrimaryContainer
+                        )
+                        IconButton(
+                            onClick = { isRunning = !isRunning },
+                            enabled = !gameOver && !gameWon,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = if (isRunning) "Pause" else "Resume",
+                                modifier = Modifier.size(18.dp),
+                                tint = colors.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
+            } else if (!isLearningMode) {
                 Card(
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
@@ -534,14 +630,13 @@ fun SudokuScreen(
             }
         }
 
-        if (!isLearningMode) {
+        if (!isLearningMode && !freePlayEnabled) {
             // Mistakes (left) + Play/Pause Icon + Timer (right)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 4.dp)
             ) {
-                // Mistakes anchored to the left
                 Row(
                     modifier = Modifier.align(Alignment.CenterStart),
                     verticalAlignment = Alignment.CenterVertically
@@ -623,6 +718,8 @@ fun SudokuScreen(
                 wrongCells,
                 shakeCells,
                 selectedCell,
+                highlightRegion,
+                highlightSameNumbers,
                 onCellClick = { r, c ->
                     if (isRunning) selectedCell = r to c
                 }
@@ -680,7 +777,9 @@ fun SudokuScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         NumberPad(
-            grid = userGrid, enabled = isRunning && !gameOver && !gameWon
+            grid = userGrid,
+            enabled = isRunning && !gameOver && !gameWon,
+            hideUsedNumbers = hideUsedNumbers
         ) { number ->
             selectedCell?.let { (r, c) ->
                 if (originalGrid[r][c] != 0 || gameOver || gameWon || !isRunning) return@NumberPad
@@ -730,6 +829,7 @@ fun SudokuScreen(
                     }
 
                     if (!isCorrect) {
+                        gameFeedback.playWrongNumber(soundAndVibrationEnabled)
                         if (isLearningMode) {
                             // ── Learning mode: show explanation, don't count mistake ──
                             //wrongCells = wrongCells + (r to c)
@@ -758,6 +858,9 @@ fun SudokuScreen(
                             }
                             // Do NOT increment mistakes
                             // Do NOT trigger gameOver
+                        } else if (freePlayEnabled) {
+                            wrongCells = wrongCells + (r to c)
+                            shakeCells = shakeCells + (r to c)
                         } else {
                             mistakes++
                             wrongCells = wrongCells + (r to c)
@@ -766,6 +869,7 @@ fun SudokuScreen(
                             correctStreak = 0
 
                             if (mistakes >= 3) {
+                                gameFeedback.playGameOver(soundAndVibrationEnabled)
                                 gameOver = true
                                 isRunning = false
                                 coroutineScope.launch {
@@ -814,9 +918,10 @@ fun SudokuScreen(
                         }
 
                     } else {
+                        gameFeedback.playCorrectNumber(soundAndVibrationEnabled)
                         wrongCells = wrongCells - (r to c)
 
-                        if (!isLearningMode) {
+                        if (!isLearningMode && !freePlayEnabled) {
                             if (!scoredCells[r][c]) {
                                 // 1. Base points by difficulty
                                 val basePoints = when (currentDifficulty) {
@@ -859,6 +964,7 @@ fun SudokuScreen(
                     }
 
                     if (isWin(userGrid, solutionGrid)) {
+                        gameFeedback.playPuzzleCompleted(soundAndVibrationEnabled)
                         gameWon = true
                         isRunning = false
 
@@ -897,6 +1003,7 @@ fun SudokuScreen(
                                 )
                             }
                         }
+                    } else if (isCorrect) {
                     }
                 }
             }
@@ -1054,6 +1161,7 @@ fun SudokuScreen(
                             }
                             // Check for win after hint fills a cell
                             if (!gameOver && !gameWon && isWin(userGrid, solutionGrid)) {
+                                gameFeedback.playPuzzleCompleted(soundAndVibrationEnabled)
                                 gameWon = true
                                 isRunning = false
                                 // Record the game completion
@@ -1139,7 +1247,7 @@ fun SudokuScreen(
                 ) {
                     Text(
                         text = hint,
-                        fontSize = 14.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.onErrorContainer,
                         textAlign = TextAlign.Center
@@ -1281,7 +1389,7 @@ fun SudokuScreen(
         } else {
             // Persist score & streak state
             LaunchedEffect(Unit) {
-                totalScoreManager.addScore(score)
+                if (!freePlayEnabled) totalScoreManager.addScore(score)
                 if (mode == "streak") {
                     val today = LocalDate.now().toString()
                     val savedStreak = streakStateManager.getStreakState().first()
@@ -1334,15 +1442,20 @@ fun SudokuScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .height(180.dp)
                                 .background(
                                     Brush.horizontalGradient(
                                         listOf(Color(0xFF1565C0), Color(0xFF6A1B9A))
                                     ),
                                     RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-                                )
-                                .padding(vertical = 28.dp),
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
+                            LottieAnimation(
+                                composition = confettiComposition,
+                                progress = { confettiProgress },
+                                modifier = Modifier.fillMaxSize()
+                            )
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text("🎉", fontSize = 48.sp)
                                 Spacer(Modifier.height(8.dp))
@@ -1391,53 +1504,55 @@ fun SudokuScreen(
                                     color = colors.onSurfaceVariant
                                 )
                             }
-                            // Score
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(52.dp)
-                                        .background(
-                                            colors.primaryContainer,
-                                            CircleShape
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) { Text("⭐", fontSize = 22.sp) }
-                                Spacer(Modifier.height(6.dp))
-                                Text(
-                                    text = "$score",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp,
-                                    color = colors.onSurface
-                                )
-                                Text(
-                                    text = "Score",
-                                    fontSize = 11.sp,
-                                    color = colors.onSurfaceVariant
-                                )
-                            }
-                            // Mistakes
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(52.dp)
-                                        .background(
-                                            colors.primaryContainer,
-                                            CircleShape
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) { Text(if (mistakes == 0) "✅" else "❌", fontSize = 22.sp) }
-                                Spacer(Modifier.height(6.dp))
-                                Text(
-                                    text = "$mistakes",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp,
-                                    color = colors.onSurface
-                                )
-                                Text(
-                                    text = "Mistakes",
-                                    fontSize = 11.sp,
-                                    color = colors.onSurfaceVariant
-                                )
+                            if (!freePlayEnabled) {
+                                // Score
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(52.dp)
+                                            .background(
+                                                colors.primaryContainer,
+                                                CircleShape
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) { Text("⭐", fontSize = 22.sp) }
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        text = "$score",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp,
+                                        color = colors.onSurface
+                                    )
+                                    Text(
+                                        text = "Score",
+                                        fontSize = 11.sp,
+                                        color = colors.onSurfaceVariant
+                                    )
+                                }
+                                // Mistakes
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(52.dp)
+                                            .background(
+                                                colors.primaryContainer,
+                                                CircleShape
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) { Text(if (mistakes == 0) "✅" else "❌", fontSize = 22.sp) }
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        text = "$mistakes",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp,
+                                        color = colors.onSurface
+                                    )
+                                    Text(
+                                        text = "Mistakes",
+                                        fontSize = 11.sp,
+                                        color = colors.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
 

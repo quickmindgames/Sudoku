@@ -30,6 +30,7 @@ import com.quickmindgames.sudoku.data.state.CellData
 fun NumberPad(
     grid: List<List<CellData>>,
     enabled: Boolean = true,
+    hideUsedNumbers: Boolean = false,
     onNumberClick: (Int) -> Unit
 ) {
     // Count how many times each number (1–9) appears in the grid.
@@ -48,7 +49,7 @@ fun NumberPad(
                     .weight(1f)
                     .aspectRatio(1f)
             ) {
-                if (!isComplete) {
+                if (!hideUsedNumbers || !isComplete) {
                     Card(
                         modifier = Modifier
                             .fillMaxSize()

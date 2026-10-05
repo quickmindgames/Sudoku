@@ -6,10 +6,10 @@ on:
       - 'Release/release_*' # Trigger on branches that start with 'release_'
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # Required for creating repository tags/releases
+    outputs:
+      version_name: ${{ steps.get_version.outputs.VERSION_NAME }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -42,16 +42,38 @@ jobs:
       - name: Build Signed Release App Bundle
         run: ./gradlew bundleRelease
 
+      - name: Upload App Bundle Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-release-aab
+          path: app/build/outputs/bundle/release/*.aab
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required for creating repository tags/releases
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Download the AAB instead of APK
+      - name: Download AAB Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-release-aab
+          path: release-artifacts
+
       # Task 1: Create GitHub Release and Tag
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.get_version.outputs.VERSION_NAME }}
-          name: Release v${{ steps.get_version.outputs.VERSION_NAME }}
+          tag_name: v${{ needs.build.outputs.version_name }}
+          name: Release v${{ needs.build.outputs.version_name }}
           draft: false
           prerelease: false
-          files: app/build/outputs/bundle/release/*.aab
+          files: release-artifacts/*.aab
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -61,6 +83,6 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
           packageName: com.quickmindgames.sudoku # TODO: Replace with your actual Package ID
-          releaseFiles: app/build/outputs/bundle/release/*.aab
+          releaseFiles: release-artifacts/*.aab
           tracks: alpha # Options: internal, alpha, beta, production
           status: completed

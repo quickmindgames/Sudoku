@@ -14,6 +14,7 @@ room = "2.8.4"
 ksp = "2.3.9"
 workRuntimeKtx = "2.11.2"
 fragment = "1.8.9"
+lottie = "6.6.7"
 
 [libraries]
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
@@ -42,6 +43,7 @@ firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
 firebase-remote-config = { group = "com.google.firebase", name = "firebase-config", version = "23.1.0" }
 androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
+lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottie" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
