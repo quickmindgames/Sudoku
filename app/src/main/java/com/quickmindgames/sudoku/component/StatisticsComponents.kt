@@ -524,7 +524,7 @@ fun StreakStatsCard(stats: StreakStatistics) {
             StatisticRow("Best Time", stats.bestTime?.let { formatTime(it) } ?: "—")
             StatisticRow("Best Score", stats.bestScore?.toString() ?: "—")
             StatisticRow(
-                "Highest Streak Day",
+                "Highest Streak Wins",
                 stats.highestStreakDay.toString(),
                 MaterialTheme.colorScheme.tertiary
             )
