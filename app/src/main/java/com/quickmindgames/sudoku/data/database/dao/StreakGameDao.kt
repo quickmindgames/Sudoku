@@ -61,9 +61,9 @@ interface StreakGameDao {
     fun getBestStreakScore(): Flow<Int?>
 
     /**
-     * Get the highest streak day reached
+     * Get the highest streak day reached by winning a game
      */
-    @Query("SELECT MAX(streak_day) FROM streak_games")
+    @Query("SELECT MAX(streak_day) FROM streak_games WHERE is_won = 1")
     fun getHighestStreakDay(): Flow<Int?>
 
     /**
