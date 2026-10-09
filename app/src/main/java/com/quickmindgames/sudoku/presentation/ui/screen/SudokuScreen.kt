@@ -213,8 +213,8 @@ fun SudokuScreen(
 
     LaunchedEffect(Unit) {
         appPreferences.freePlay.collect { enabled ->
-            freePlayEnabled = enabled
-            if (enabled) {
+            freePlayEnabled = enabled && mode != "streak"
+            if (freePlayEnabled) {
                 mistakes = 0
                 score = 0
             }
@@ -1502,7 +1502,7 @@ fun SudokuScreen(
                                 )
                                 Text(
                                     text = "Time",
-                                    fontSize = 11.sp,
+                                    fontSize = 12.sp,
                                     color = colors.onSurfaceVariant
                                 )
                             }
@@ -1526,8 +1526,8 @@ fun SudokuScreen(
                                         color = colors.onSurface
                                     )
                                     Text(
-                                        text = "Score",
-                                        fontSize = 11.sp,
+                                        text = "Points",
+                                        fontSize = 12.sp,
                                         color = colors.onSurfaceVariant
                                     )
                                 }
@@ -1551,7 +1551,7 @@ fun SudokuScreen(
                                     )
                                     Text(
                                         text = "Mistakes",
-                                        fontSize = 11.sp,
+                                        fontSize = 12.sp,
                                         color = colors.onSurfaceVariant
                                     )
                                 }

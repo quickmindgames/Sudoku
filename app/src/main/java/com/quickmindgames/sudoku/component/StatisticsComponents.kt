@@ -377,7 +377,7 @@ fun OverallStatsCard(stats: GameStatistics) {
             Spacer(modifier = Modifier.height(12.dp))
             StatisticRow("Win Ratio", stats.winRatio, MaterialTheme.colorScheme.secondary)
             StatisticRow("Best Time", stats.bestTime?.let { formatTime(it) } ?: "—")
-            StatisticRow("Best Score", stats.bestScore?.toString() ?: "—")
+            StatisticRow("Best Points", stats.bestScore?.toString() ?: "—")
             StatisticRow(
                 "Flaw-Free Wins",
                 stats.flawFreeWins.toString(),
@@ -444,7 +444,7 @@ fun DifficultyStatsCard(stats: DifficultyStatistics) {
             Spacer(modifier = Modifier.height(12.dp))
             StatisticRow("Win Ratio", stats.winRatio, MaterialTheme.colorScheme.secondary)
             StatisticRow("Best Time", stats.bestTime?.let { formatTime(it) } ?: "—")
-            StatisticRow("Best Score", stats.bestScore?.toString() ?: "—")
+            StatisticRow("Best Points", stats.bestScore?.toString() ?: "—")
             StatisticRow(
                 "Flaw-Free Wins",
                 stats.flawFreeWins.toString(),
@@ -522,7 +522,7 @@ fun StreakStatsCard(stats: StreakStatistics) {
             Spacer(modifier = Modifier.height(12.dp))
             StatisticRow("Win Ratio", stats.winRatio, MaterialTheme.colorScheme.secondary)
             StatisticRow("Best Time", stats.bestTime?.let { formatTime(it) } ?: "—")
-            StatisticRow("Best Score", stats.bestScore?.toString() ?: "—")
+            StatisticRow("Best Points", stats.bestScore?.toString() ?: "—")
             StatisticRow(
                 "Highest Streak Wins",
                 stats.highestStreakDay.toString(),

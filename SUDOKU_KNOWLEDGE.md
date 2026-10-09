@@ -7,7 +7,7 @@ This guide is for developers who need to build, navigate, and change the Sudoku 
 | | |
 |---|---|
 | **Project** | Sudoku (`com.quickmindgames.sudoku`) |
-| **Purpose** | An offline-first Sudoku game with difficulty-based puzzles, guided lessons, daily streak challenges, settings, and local statistics. |
+| **Purpose** | An offline-first Sudoku game with difficulty-based puzzles, guided lessons, daily streak challenges, a rewards preview, settings, and local statistics. |
 | **Primary language** | Kotlin |
 | **UI** | Android with Jetpack Compose and Material 3 |
 | **Local persistence** | Preferences DataStore for active game, streak, and settings; Room for completed-game statistics |
@@ -43,7 +43,7 @@ The app is organized by responsibility rather than by a strict dependency-inject
 
 **Key files and folders:**
 
-- `app/src/main/java/com/quickmindgames/sudoku/presentation/ui/screen/` — Home, Sudoku play, lessons, streak, settings, and statistics screens.
+- `app/src/main/java/com/quickmindgames/sudoku/presentation/ui/screen/` — Home, Sudoku play, lessons, streak, rewards, settings, and statistics screens.
 - `app/src/main/java/com/quickmindgames/sudoku/component/` — Shared board, number pad, difficulty, lesson, streak, and statistics components.
 - `app/src/main/java/com/quickmindgames/sudoku/presentation/ui/theme/` — Color, typography, and Material theme.
 - `app/src/main/res/` — Strings, themes, fonts, launcher assets, sounds, animations, and backup rules.
@@ -56,10 +56,10 @@ The app is organized by responsibility rather than by a strict dependency-inject
 
 - `presentation/ui/MainActivity.kt` — Activity lifecycle, notification permission, theme collection, startup Remote Config fetch, and `MainSudokuApp`.
 - `presentation/navigation/AppNav.kt` — Thin entry composable delegating to `MainSudokuApp`.
-- `presentation/navigation/BottomScreen.kt` — Home, Streak, and Settings bottom-tab definitions.
+- `presentation/navigation/BottomScreen.kt` — Home, Streak, Rewards, and Settings bottom-tab definitions.
 - `presentation/viewmodel/StatisticsViewModel.kt` — Loads statistics from the repository and exposes `StateFlow` to the UI.
 
-Navigation is hosted by a `NavHost` in `MainActivity.kt`; routes cover the three primary tabs, learning, and play modes (`new`, `resume`, `streak`, and `learn`). Keep route arguments and navigation callbacks coordinated with the corresponding screens.
+Navigation is hosted by a `NavHost` in `MainActivity.kt`; routes cover the four primary tabs (Home, Streak, Rewards, and Settings), learning, and play modes (`new`, `resume`, `streak`, and `learn`). The Rewards tab currently presents a centered "Coming Soon" message and does not yet implement reward redemption or earning. Keep route arguments and navigation callbacks coordinated with the corresponding screens.
 
 ### Business Logic
 
@@ -147,11 +147,13 @@ The UI is Compose-first, and `SudokuScreen` coordinates most gameplay behavior d
 
 ### Preferences and interaction details
 
-`AppPreferences` persists options such as hiding used numbers, free play, highlighting, and sound/vibration. Free play and hide-used-numbers are mutually exclusive; enabling either disables the other. `SettingsScreen` prevents changing the **Free Play** option while a saved game exists, because that setting affects gameplay rules; it does not apply the same saved-game gate to the visual or sound toggles. Theme preferences are handled separately. Before changing settings behavior, review both the settings UI and its persistence implementation.
+`AppPreferences` persists options such as hiding used numbers, free play, highlighting, and sound/vibration. Free play and hide-used-numbers are mutually exclusive; enabling either disables the other. **Hide used numbers** hides a digit after all nine instances are filled. **Free Play** removes mistakes and points from regular games, but `SudokuScreen` explicitly ignores the preference in streak mode. Its Settings row has an info tooltip explaining that limitation. `SettingsScreen` prevents changing **Free Play** while a saved game exists, because that setting affects gameplay rules; visual and sound toggles are not subject to this saved-game gate. Theme preferences are handled separately. Before changing settings behavior, review both the settings UI and its persistence implementation.
+
+The UI now labels the gameplay score as **Points** (including the home total, game HUD, and statistics summaries); the underlying score model, persistence, and analytics field names remain score-oriented. Do not treat this copy change as a data-schema migration.
 
 ### Firebase behavior
 
-`SudokuApp` initializes Firebase and Remote Config defaults. Analytics and Crashlytics collection are disabled in debug builds. `MainActivity` fetches and activates Remote Config at startup. The Firebase SDKs are operational integrations; puzzle state and statistics remain local.
+`SudokuApp` initializes Firebase and Remote Config defaults. Analytics and Crashlytics collection are disabled in debug builds. `MainActivity` fetches and activates Remote Config at startup. Screen views are logged for the Rewards screen as well as the other instrumented screens. Settings changes log `settings_option_changed` with a string `settings_state` value containing the setting name and its new `on`/`off` state; when one gameplay preference disables the mutually exclusive option, that change is logged too. Theme changes use the separate `theme_toggled` event. The Firebase SDKs are operational integrations; puzzle state and statistics remain local.
 
 ## Guided Tour
 
@@ -160,7 +162,8 @@ The UI is Compose-first, and `SudokuScreen` coordinates most gameplay behavior d
 3. **Gameplay and resume state** — Follow `presentation/ui/screen/SudokuScreen.kt` to `data/state/GameState.kt`, `GameStateManager.kt`, and `GameRepositoryImpl.kt`.
 4. **Statistics and local database** — Trace `GameCompletionRecorder.kt` to `StatisticsRepository.kt`, `SudokuDatabase.kt`, the DAOs, and `StatisticsViewModel.kt`.
 5. **Streak retention flow** — Start with `StreakScreen.kt`; then inspect `StreakState.kt`, `StreakStateManager.kt`, `StreakReminderScheduler.kt`, and `StreakReminderWorker.kt`.
-6. **Build and release** — Review `app/build.gradle.kts` and `.github/workflows/android-build.yml`. Confirm required SDK/JDK settings and CI secrets before changing the release pipeline.
+6. **Rewards and settings** — Inspect `RewardsScreen.kt` for the current placeholder and `SettingsScreen.kt` plus `AppPreferences.kt` for gameplay preferences, streak behavior, and their analytics.
+7. **Build and release** — Review `app/build.gradle.kts` and `.github/workflows/android-build.yml`. Confirm required SDK/JDK settings and CI secrets before changing the release pipeline.
 
 ## File Map
 
@@ -174,7 +177,7 @@ In tables, `.../` abbreviates `app/src/main/java/com/quickmindgames/sudoku/`.
 | `app/src/main/java/com/quickmindgames/sudoku/SudokuApp.kt` | Application-level Firebase and Remote Config initialization. |
 | `.../presentation/ui/MainActivity.kt` | Activity setup, theme, permission handling, route host, and app shell. |
 | `.../presentation/navigation/AppNav.kt` | Navigation entry point used by the activity. |
-| `.../presentation/navigation/BottomScreen.kt` | Bottom-tab route, label, and icon definitions. |
+| `.../presentation/navigation/BottomScreen.kt` | Home, Streak, Rewards, and Settings bottom-tab route, label, and icon definitions. |
 
 ### Screens, components, and theme
 
@@ -184,6 +187,7 @@ In tables, `.../` abbreviates `app/src/main/java/com/quickmindgames/sudoku/`.
 | `.../presentation/ui/screen/SudokuScreen.kt` | Active puzzle interface and gameplay interaction. |
 | `.../presentation/ui/screen/LessonScreen.kt` | Guided lesson experience and completion callback. |
 | `.../presentation/ui/screen/StreakScreen.kt` | Streak challenge and progress interface. |
+| `.../presentation/ui/screen/RewardsScreen.kt` | Rewards-tab placeholder with a centered coming-soon message and screen-view analytics. |
 | `.../presentation/ui/screen/SettingsScreen.kt` | User preferences interface. |
 | `.../presentation/ui/screen/StatisticsScreen.kt` | Overall and category statistics presentation. |
 | `.../presentation/viewmodel/StatisticsViewModel.kt` | Statistics loading and UI state. |
@@ -222,7 +226,7 @@ In tables, `.../` abbreviates `app/src/main/java/com/quickmindgames/sudoku/`.
 | `.../data/database/entity/GameStatisticEntity.kt`, `StreakGameEntity.kt` | Persisted result records. |
 | `.../data/database/dao/GameStatisticDao.kt`, `StreakGameDao.kt` | Queries and inserts for completed games. |
 | `.../data/util/GameCompletionRecorder.kt` | Completion recording helper. |
-| `.../data/score/TotalScoreManager.kt` | Score management support. |
+| `.../data/points/TotalPointsManager.kt` | Lifetime points persistence (currently retains the `data.score` package and `TotalScoreManager` class name). |
 | `.../data/util/GameFeedback.kt` | Sound and vibration feedback support. |
 
 ### Shared utilities and integrations
