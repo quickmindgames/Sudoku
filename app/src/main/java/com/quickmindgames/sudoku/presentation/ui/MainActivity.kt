@@ -47,6 +47,7 @@ import com.quickmindgames.sudoku.presentation.navigation.AppNav
 import com.quickmindgames.sudoku.presentation.navigation.BottomScreen
 import com.quickmindgames.sudoku.presentation.ui.screen.HomeScreen
 import com.quickmindgames.sudoku.presentation.ui.screen.LessonScreen
+import com.quickmindgames.sudoku.presentation.ui.screen.RewardsScreen
 import com.quickmindgames.sudoku.presentation.ui.screen.SettingsScreen
 import com.quickmindgames.sudoku.presentation.ui.screen.StreakScreen
 import com.quickmindgames.sudoku.presentation.ui.screen.SudokuScreen
@@ -120,7 +121,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainSudokuApp() {
     val navController = rememberNavController()
-    val screens = listOf(BottomScreen.Home, BottomScreen.Streak, BottomScreen.Settings)
+    val screens = listOf(
+        BottomScreen.Home,
+        BottomScreen.Streak,
+        BottomScreen.Rewards,
+        BottomScreen.Settings
+    )
     val bottomBarRoutes = remember(screens) { screens.map { it.route } }
     val currentRoute = currentRoute(navController)
 
@@ -190,6 +196,11 @@ fun MainSudokuApp() {
                         navController.navigate("learn")
                     }
                 )
+            }
+
+            // ── REWARDS TAB ────────────────────────────────────
+            composable(BottomScreen.Rewards.route) {
+                RewardsScreen(modifier = Modifier.padding(tabPadding))
             }
 
             // ── STREAK TAB ──────────────────────────────────────

@@ -369,8 +369,8 @@ fun HomeScreen(
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    text = if (totalScore == 0) "No score yet — play a game!"
-                    else "Total Score: ${"%,d".format(totalScore)}",
+                    text = if (totalScore == 0) "No points yet — play a game!"
+                    else "Total Points: ${"%,d".format(totalScore)}",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (totalScore == 0)

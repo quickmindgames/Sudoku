@@ -277,7 +277,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Hide numbers that have been used in all 9 places",
+                            text = "Hide a number once all 9 of its cells are filled.",
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
@@ -289,10 +289,20 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             coroutineScope.launch {
                                 val disabledFreePlay =
                                     appPreferences.setHideUsedNumbers(enabled)
+                                AnalyticsUtils.logSettingsOptionChanged(
+                                    context,
+                                    AnalyticsConstants.HIDE_USED_NUMBERS,
+                                    enabled
+                                )
                                 if (disabledFreePlay) {
+                                    AnalyticsUtils.logSettingsOptionChanged(
+                                        context,
+                                        AnalyticsConstants.FREE_PLAY,
+                                        false
+                                    )
                                     Toast.makeText(
                                         context,
-                                        "Free Play turned off because Hide used numbers is enabled.",
+                                        "Free Play is now off because Hide used numbers is enabled.",
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }
@@ -346,7 +356,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "When selecting a cell with a number, highlight the same numbers in the board",
+                            text = "When you select a number, matching numbers are highlighted across the board.",
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
@@ -357,6 +367,11 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         onCheckedChange = { enabled ->
                             coroutineScope.launch {
                                 appPreferences.setHighlightSameNumbers(enabled)
+                                AnalyticsUtils.logSettingsOptionChanged(
+                                    context,
+                                    AnalyticsConstants.HIGHLIGHT_SAME_NUMBERS,
+                                    enabled
+                                )
                             }
                         },
                         colors = SwitchDefaults.colors(
@@ -406,7 +421,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Highlight the row, column and block",
+                            text = "Highlight the selected cell’s row, column, and 3×3 block.",
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
@@ -417,6 +432,11 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         onCheckedChange = { enabled ->
                             coroutineScope.launch {
                                 appPreferences.setHighlightRegion(enabled)
+                                AnalyticsUtils.logSettingsOptionChanged(
+                                    context,
+                                    AnalyticsConstants.HIGHLIGHT_REGION,
+                                    enabled
+                                )
                             }
                         },
                         colors = SwitchDefaults.colors(
@@ -466,7 +486,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "No Mistakes. No Score",
+                            text = "No Mistakes. No Points. Not for Streak Games.",
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
@@ -482,17 +502,27 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                                     hasSavedGame = true
                                     Toast.makeText(
                                         context,
-                                        "Finish or start a new game before changing gameplay options.",
+                                        "Finish your current game or start a new one to change gameplay options.",
                                         Toast.LENGTH_SHORT
                                     ).show()
                                     return@launch
                                 }
                                 val disabledHideUsedNumbers =
                                     appPreferences.setFreePlay(enabled)
+                                AnalyticsUtils.logSettingsOptionChanged(
+                                    context,
+                                    AnalyticsConstants.FREE_PLAY,
+                                    enabled
+                                )
                                 if (disabledHideUsedNumbers) {
+                                    AnalyticsUtils.logSettingsOptionChanged(
+                                        context,
+                                        AnalyticsConstants.HIDE_USED_NUMBERS,
+                                        false
+                                    )
                                     Toast.makeText(
                                         context,
-                                        "Hide used numbers turned off because Free Play is enabled.",
+                                        "Hide used numbers is now off because Free Play is enabled.",
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }
@@ -556,6 +586,11 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         onCheckedChange = { enabled ->
                             coroutineScope.launch {
                                 appPreferences.setSoundAndVibration(enabled)
+                                AnalyticsUtils.logSettingsOptionChanged(
+                                    context,
+                                    AnalyticsConstants.SOUND_VIBRATIONS,
+                                    enabled
+                                )
                             }
                         },
                         colors = SwitchDefaults.colors(

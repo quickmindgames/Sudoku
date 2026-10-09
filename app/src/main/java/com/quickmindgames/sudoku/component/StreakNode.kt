@@ -186,7 +186,7 @@ fun StreakNode(
                         val nodeFontSize = when {
                             digits <= 2 -> 22.sp
                             digits == 3 -> 16.sp
-                            else -> 11.sp
+                            else -> 12.sp
                         }
                         Text(
                             text = dayNumber.toString(),
