@@ -74,6 +74,7 @@ fun HomeScreen(
     onLearningModeClick: () -> Unit
 ) {
     var showSheet by remember { mutableStateOf(false) }
+    var showNewGameConfirmation by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val gameStateManager = remember { GameStateManager.getInstance(context) }
     val streakStateManager = remember { StreakStateManager.getInstance(context) }
@@ -232,6 +233,38 @@ fun HomeScreen(
         )
     }
 
+    if (showNewGameConfirmation) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showNewGameConfirmation = false },
+            title = {
+                Text(
+                    text = "Start a New Game?",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text("Your current game progress will be lost. Are you sure you want to start a new game?")
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showNewGameConfirmation = false }) {
+                    Text("Cancel")
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showNewGameConfirmation = false
+                        onNewGameClick()
+                        showSheet = true
+                    }
+                ) {
+                    Text("Start a New Game")
+                }
+            },
+            shape = RoundedCornerShape(20.dp)
+        )
+    }
+
     if (showSheet) {
         ModalBottomSheet(
             onDismissRequest = { showSheet = false },
@@ -336,8 +369,8 @@ fun HomeScreen(
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    text = if (totalScore == 0) "No score yet — play a game!"
-                    else "Total Score: ${"%,d".format(totalScore)}",
+                    text = if (totalScore == 0) "No points yet — play a game!"
+                    else "Total Points: ${"%,d".format(totalScore)}",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (totalScore == 0)
@@ -396,8 +429,12 @@ fun HomeScreen(
 
             Button(
                 onClick = {
-                    onNewGameClick()
-                    showSheet = true
+                    if (hasSavedGame) {
+                        showNewGameConfirmation = true
+                    } else {
+                        onNewGameClick()
+                        showSheet = true
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()

@@ -26,7 +26,7 @@ object AnalyticsUtils {
     }
 
     /**
-     * Logs a "new_game_started" event to Firebase Analytics with the specified difficulty level and resume state.
+     * Logs a "new_gamed" event to Firebase Analytics with the specified difficulty level and resume state.
      *
      * @param context The context from which the event is logged.
      * @param difficulty The difficulty level of the new game (e.g., "Breeze", "Pulse", "Rage", "Elite").
@@ -56,20 +56,20 @@ object AnalyticsUtils {
     }
 
     /**
-     * Logs a "streak_game_started" event to Firebase Analytics.
+     * Logs a "streak_game" event to Firebase Analytics.
      *
      * @param context The context from which the event is logged.
      */
     fun logStreakGameStarted(context: Context) {
         val firebaseAnalytics = FirebaseAnalytics.getInstance(context)
         val bundle = Bundle().apply {
-            putBoolean(AnalyticsConstants.STREAK_STARTED, true)
+            putString(AnalyticsConstants.STREAK_STARTED, "true")
         }
         firebaseAnalytics.logEvent(AnalyticsConstants.STREAK_GAME, bundle)
     }
 
     /**
-     * Logs a "streak_game_completed" event to Firebase Analytics with the specified streak count.
+     * Logs a "streak_game" event to Firebase Analytics with the specified streak count.
      *
      * @param context The context from which the event is logged.
      * @param streakCount The current streak count when the game was completed.
@@ -77,8 +77,8 @@ object AnalyticsUtils {
     fun logStreakGameCompleted(context: Context, streakCount: Int) {
         val firebaseAnalytics = FirebaseAnalytics.getInstance(context)
         val bundle = Bundle().apply {
-            putInt(AnalyticsConstants.STREAK_COUNT, streakCount)
-            putBoolean(AnalyticsConstants.STREAK_COMPLETED, true)
+            putLong(AnalyticsConstants.STREAK_COUNT, streakCount.toLong())
+            putString(AnalyticsConstants.STREAK_COMPLETED, "true")
         }
         firebaseAnalytics.logEvent(AnalyticsConstants.STREAK_GAME, bundle)
     }
@@ -91,9 +91,9 @@ object AnalyticsUtils {
     fun logLearningStarted(context: Context) {
         val firebaseAnalytics = FirebaseAnalytics.getInstance(context)
         val bundle = Bundle().apply {
-            putBoolean(AnalyticsConstants.LESSON_STARTED, true)
+            putString(AnalyticsConstants.LESSON_STARTED, "true")
         }
-        firebaseAnalytics.logEvent("learning_mode", bundle)
+        firebaseAnalytics.logEvent(AnalyticsConstants.LEARNING_MODE, bundle)
     }
 
     /**
@@ -104,9 +104,9 @@ object AnalyticsUtils {
     fun logLearningCompleted(context: Context) {
         val firebaseAnalytics = FirebaseAnalytics.getInstance(context)
         val bundle = Bundle().apply {
-            putBoolean(AnalyticsConstants.LESSON_COMPLETED, true)
+            putString(AnalyticsConstants.LESSON_COMPLETED, "true")
         }
-        firebaseAnalytics.logEvent("learning_mode", bundle)
+        firebaseAnalytics.logEvent(AnalyticsConstants.LEARNING_MODE, bundle)
     }
 
     /**
@@ -138,11 +138,14 @@ object AnalyticsUtils {
                 if (win) AnalyticsConstants.WIN else AnalyticsConstants.LOSS
             )
             putString(AnalyticsConstants.TIME, time)
-            putInt(AnalyticsConstants.MISTAKES, mistakes)
-            putInt(AnalyticsConstants.SCORE, score)
+            putLong(AnalyticsConstants.MISTAKES, mistakes.toLong())
+            putLong(AnalyticsConstants.SCORE, score.toLong())
             putString(AnalyticsConstants.DIFFICULTY, difficulty)
-            putBoolean(AnalyticsConstants.IS_STREAK, isStreak)
-            putInt(AnalyticsConstants.HINT_COUNT, hintCount)
+            putString(
+                AnalyticsConstants.IS_STREAK,
+                if (isStreak) AnalyticsConstants.YES else AnalyticsConstants.NO
+            )
+            putLong(AnalyticsConstants.HINT_COUNT, hintCount.toLong())
         }
         firebaseAnalytics.logEvent(AnalyticsConstants.GAME_RESULT, params)
     }
@@ -157,7 +160,7 @@ object AnalyticsUtils {
         val firebaseAnalytics = FirebaseAnalytics.getInstance(context)
         val params = Bundle().apply {
             putString(AnalyticsConstants.ACTION, AnalyticsConstants.HINT)
-            putString(AnalyticsConstants.DIFFICULTY, difficulty)
+            putString(AnalyticsConstants.DIFFICULTY_BY_HINTS, difficulty)
         }
         firebaseAnalytics.logEvent(AnalyticsConstants.GAME_ACTION, params)
     }
@@ -171,10 +174,9 @@ object AnalyticsUtils {
     fun logNotesToggled(context: Context, enabled: Boolean) {
         val firebaseAnalytics = FirebaseAnalytics.getInstance(context)
         val params = Bundle().apply {
-            putString(AnalyticsConstants.ACTION, AnalyticsConstants.NOTES)
             putString(
-                AnalyticsConstants.STATE,
-                if (enabled) AnalyticsConstants.ON else AnalyticsConstants.OFF
+                AnalyticsConstants.ACTION,
+                if (enabled) AnalyticsConstants.NOTES_ON else AnalyticsConstants.NOTES_OFF
             )
         }
         firebaseAnalytics.logEvent(AnalyticsConstants.GAME_ACTION, params)
@@ -221,6 +223,24 @@ object AnalyticsUtils {
     }
 
     /**
+     * Logs a "settings_option_changed" event to Firebase Analytics when a setting option is changed.
+     *
+     * @param context The context from which the event is logged.
+     * @param setting The setting that was changed.
+     * @param enabled The new state of the setting.
+     */
+    fun logSettingsOptionChanged(context: Context, setting: String, enabled: Boolean) {
+        val firebaseAnalytics = FirebaseAnalytics.getInstance(context)
+        val params = Bundle().apply {
+            putString(
+                AnalyticsConstants.SETTINGS_STATE,
+                setting + " - " + if (enabled) AnalyticsConstants.ON else AnalyticsConstants.OFF
+            )
+        }
+        firebaseAnalytics.logEvent(AnalyticsConstants.SETTINGS_OPTION_CHANGED, params)
+    }
+
+    /**
      * Logs a "notification_received" event to Firebase Analytics when a notification is received.
      *
      * @param context The context from which the event is logged.
@@ -249,13 +269,13 @@ object AnalyticsUtils {
     fun logStreakShare(context: Context, streakCount: Int) {
         val firebaseAnalytics = FirebaseAnalytics.getInstance(context)
         val bundle = Bundle().apply {
-            putInt(AnalyticsConstants.STREAK_COUNT_SHARE, streakCount)
+            putLong(AnalyticsConstants.STREAK_COUNT_SHARE, streakCount.toLong())
         }
         firebaseAnalytics.logEvent(AnalyticsConstants.STREAK_SHARE, bundle)
     }
 
     /**
-     * Logs a "statistics_event" event to Firebase Analytics when a statistics tab is viewed.
+     * Logs a "statistics" event to Firebase Analytics when a statistics tab is viewed.
      *
      * @param context The context from which the event is logged.
      * @param tab The tab viewed in the statistics screen (e.g., "Overall", "Breeze", "Pulse", "Rage", "Elite", "Streak").
@@ -267,6 +287,5 @@ object AnalyticsUtils {
         }
         firebaseAnalytics.logEvent(AnalyticsConstants.STATISTICS_EVENT, params)
     }
-
 
 }

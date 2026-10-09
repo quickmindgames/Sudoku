@@ -17,7 +17,7 @@ A self-contained learning flow that guides new users through 5 bite-sized lesson
 - After lessons, launch a Breeze-based Sudoku puzzle.
 - Learning Puzzle:
   - **Enabled**: Notes, Undo, Erase
-  - **Disabled**: Timer, Score/Coins, Mistakes, Hints
+  - **Disabled**: Timer, Score/Points, Mistakes, Hints
 - When user enters a wrong number:
   - Do NOT count a mistake
   - Do NOT end the game
@@ -35,7 +35,7 @@ A self-contained learning flow that guides new users through 5 bite-sized lesson
 
 ### Step 1 — Add `LessonData` model
 
-**File**: `app/src/main/java/com/quickmindgames/sudoku/domain/model/LessonData.kt` *(new file)*
+**File**: `../app/src/main/java/com/quickmindgames/sudoku/domain/model/LessonData.kt` *(new file)*
 
 ```kotlin
 package com.quickmindgames.sudoku.domain.model
@@ -199,7 +199,7 @@ data class LessonData(
 
 ### Step 3 — Create `LearningCompleteDialog`
 
-**File**: `app/src/main/java/com/quickmindgames/sudoku/component/LearningCompleteDialog.kt` *(new file)*
+**File**: `../app/src/main/java/com/quickmindgames/sudoku/component/LearningCompleteDialog.kt` *(new file)*
 
 ```kotlin
 package com.quickmindgames.sudoku.component
@@ -333,7 +333,7 @@ fun LearningCompleteDialog(
 
 ### Step 4 — Extend `SudokuScreen` for `mode = "learn"`
 
-**File**: `app/src/main/java/com/quickmindgames/sudoku/presentation/ui/screen/SudokuScreen.kt` *(modify)*
+**File**: `../app/src/main/java/com/quickmindgames/sudoku/presentation/ui/screen/SudokuScreen.kt` *(modify)*
 
 #### 4a — Add imports at top of file
 
@@ -689,7 +689,7 @@ Replace the existing `if (gameWon)` block:
 
 #### 5a — `AppNav.kt` *(modify)*
 
-**File**: `app/src/main/java/com/quickmindgames/sudoku/presentation/navigation/AppNav.kt`
+**File**: `../app/src/main/java/com/quickmindgames/sudoku/presentation/navigation/AppNav.kt`
 
 Add the import and a new `"learn"` composable route:
 
@@ -776,7 +776,7 @@ fun AppNav() {
 
 #### 5b — `MainSudokuApp` in `MainActivity.kt` *(modify)*
 
-**File**: `app/src/main/java/com/quickmindgames/sudoku/presentation/ui/MainActivity.kt`
+**File**: `../app/src/main/java/com/quickmindgames/sudoku/presentation/ui/MainActivity.kt`
 
 Add `onOpenLearn` parameter to `MainSudokuApp` and pass it to `HomeScreen`:
 
@@ -826,7 +826,7 @@ fun MainSudokuApp(
 
 #### 5c — `HomeScreen.kt` *(modify)*
 
-**File**: `app/src/main/java/com/quickmindgames/sudoku/presentation/ui/screen/HomeScreen.kt`
+**File**: `../app/src/main/java/com/quickmindgames/sudoku/presentation/ui/screen/HomeScreen.kt`
 
 Add imports at the top:
 ```kotlin

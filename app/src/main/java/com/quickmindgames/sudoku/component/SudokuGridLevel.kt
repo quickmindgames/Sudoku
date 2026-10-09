@@ -37,6 +37,8 @@ fun SudokuGridLevel(
     wrongCells: Set<Pair<Int, Int>>,
     shakeCells: Set<Pair<Int, Int>>,
     selectedCell: Pair<Int, Int>?,
+    highlightRegion: Boolean,
+    highlightSameNumbers: Boolean,
     onCellClick: (Int, Int) -> Unit
 ) {
 
@@ -60,13 +62,21 @@ fun SudokuGridLevel(
                 val original = originalGrid[row][col]
                 val isSelected = selectedCell == row to col
                 val selectedValue = selectedCell?.let { grid[it.first][it.second].value }
-                val isSameNumber =
+                val isSameNumber = highlightSameNumbers &&
                     selectedValue != null && selectedValue != 0 && value == selectedValue
+                val isInSelectedRegion = highlightRegion &&
+                    selectedCell?.let { (selectedRow, selectedCol) ->
+                        row == selectedRow ||
+                            col == selectedCol ||
+                            (row / 3 == selectedRow / 3 && col / 3 == selectedCol / 3)
+                    } == true
                 val isWrong = wrongCells.contains(row to col)
                 val shouldShake = shakeCells.contains(row to col)
                 val animatedBgColor = when {
+                    isWrong -> colors.error.copy(alpha = 0.10f)
                     isSelected -> colors.surfaceVariant
-                    isSameNumber -> colors.secondary.copy(alpha = 0.18f)
+                    isInSelectedRegion -> colors.secondary.copy(alpha = 0.15f)
+                    isSameNumber -> colors.secondary.copy(alpha = 0.30f)
                     original != 0 -> colors.surfaceVariant
                     else -> colors.surface
                 }
