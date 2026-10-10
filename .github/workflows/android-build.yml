@@ -1,6 +1,7 @@
 name: Build and Deploy Signed AAB
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - 'Release/release_*' # Trigger on branches that start with 'release_'
