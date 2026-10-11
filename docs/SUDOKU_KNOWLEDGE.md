@@ -7,7 +7,7 @@ This guide is for developers who need to build, navigate, and change the Sudoku 
 | | |
 |---|---|
 | **Project** | Sudoku (`com.quickmindgames.sudoku`) |
-| **Purpose** | An offline-first Sudoku game with difficulty-based puzzles, guided lessons, daily streak challenges, a rewards preview, settings, and local statistics. |
+| **Purpose** | An offline-first Sudoku game with difficulty-based puzzles, guided lessons, daily streak challenges, a points rewards wheel, settings, and local statistics. |
 | **Primary language** | Kotlin |
 | **UI** | Android with Jetpack Compose and Material 3 |
 | **Local persistence** | Preferences DataStore for active game, streak, and settings; Room for completed-game statistics |
@@ -43,10 +43,10 @@ The app is organized by responsibility rather than by a strict dependency-inject
 
 **Key files and folders:**
 
-- `app/src/main/java/com/quickmindgames/sudoku/presentation/ui/screen/` — Home, Sudoku play, lessons, streak, rewards, settings, and statistics screens.
-- `app/src/main/java/com/quickmindgames/sudoku/component/` — Shared board, number pad, difficulty, lesson, streak, and statistics components.
-- `app/src/main/java/com/quickmindgames/sudoku/presentation/ui/theme/` — Color, typography, and Material theme.
-- `app/src/main/res/` — Strings, themes, fonts, launcher assets, sounds, animations, and backup rules.
+- `../app/src/main/java/com/quickmindgames/sudoku/presentation/ui/screen` — Home, Sudoku play, lessons, streak, rewards, settings, and statistics screens.
+- `../app/src/main/java/com/quickmindgames/sudoku/component` — Shared board, number pad, difficulty, lesson, streak, statistics, and prize wheel components.
+- `../app/src/main/java/com/quickmindgames/sudoku/presentation/ui/theme` — Color, typography, and Material theme.
+- `../app/src/main/res` — Strings, themes, fonts, launcher assets, sounds, animations, and backup rules.
 
 ### Presentation & Navigation
 
@@ -59,7 +59,7 @@ The app is organized by responsibility rather than by a strict dependency-inject
 - `presentation/navigation/BottomScreen.kt` — Home, Streak, Rewards, and Settings bottom-tab definitions.
 - `presentation/viewmodel/StatisticsViewModel.kt` — Loads statistics from the repository and exposes `StateFlow` to the UI.
 
-Navigation is hosted by a `NavHost` in `MainActivity.kt`; routes cover the four primary tabs (Home, Streak, Rewards, and Settings), learning, and play modes (`new`, `resume`, `streak`, and `learn`). The Rewards tab currently presents a centered "Coming Soon" message and does not yet implement reward redemption or earning. Keep route arguments and navigation callbacks coordinated with the corresponding screens.
+Navigation is hosted by a `NavHost` in `MainActivity.kt`; routes cover the four primary tabs (Home, Streak, Rewards, and Settings), learning, and play modes (`new`, `resume`, `streak`, and `learn`). The Rewards tab displays the total points balance and a spin wheel that awards 10, 20, 50, or 100 points. A successful spin starts a four-hour cooldown persisted in `AppPreferences`; while cooling down, the wheel hub shows a live countdown and cannot be tapped. The wheel's prize model supports custom labels and captions, but payout handling currently credits point prizes only. Keep route arguments and navigation callbacks coordinated with the corresponding screens.
 
 ### Business Logic
 
@@ -81,7 +81,7 @@ Navigation is hosted by a `NavHost` in `MainActivity.kt`; routes cover the four 
 
 - `data/state/GameState.kt` and `GameStateManager.kt` — Active puzzle model and DataStore serialization/persistence.
 - `data/state/StreakState.kt` and `StreakStateManager.kt` — Daily streak model and its separate DataStore store.
-- `data/preferences/AppPreferences.kt` and `ThemePreferences.kt` — Gameplay and theme preferences.
+- `data/preferences/AppPreferences.kt` and `ThemePreferences.kt` — Gameplay and theme preferences, including the persisted last wheel-spin timestamp and sound/vibration setting.
 - `data/repository/` — Game and theme adapters plus statistics aggregation.
 - `data/util/GameCompletionRecorder.kt` — Records completed-game outcomes through the statistics repository.
 - `data/score/TotalScoreManager.kt` and `data/util/GameFeedback.kt` — Score and gameplay feedback support.
@@ -98,7 +98,7 @@ Navigation is hosted by a `NavHost` in `MainActivity.kt`; routes cover the four 
 - `utils/AnalyticsUtils.kt` and `AnalyticsConstants.kt` — Firebase Analytics event helpers and names.
 - `utils/StreakReminderScheduler.kt` and `StreakReminderWorker.kt` — Reminder scheduling and execution.
 - `SudokuApp.kt` — Firebase initialization and startup Remote Config defaults.
-- `app/src/main/AndroidManifest.xml` — Application/activity declaration and notification, advertising-ID, and vibration permissions.
+- `../app/src/main/AndroidManifest.xml` — Application/activity declaration and notification, advertising-ID, and vibration permissions.
 
 ### Build, Release & Documentation
 
@@ -106,14 +106,14 @@ Navigation is hosted by a `NavHost` in `MainActivity.kt`; routes cover the four 
 
 **Key files:**
 
-- `settings.gradle.kts` — Repository configuration and `:app` inclusion.
-- `build.gradle.kts` and `app/build.gradle.kts` — Plugins, Android build settings, dependencies, and release build type.
-- `gradle/libs.versions.toml` — Dependency and plugin version catalog.
-- `.github/workflows/android-build.yml` — Active GitHub Actions workflow under GitHub's workflow directory.
-- `app/release/android-build-copy.yml` — A checked-in workflow copy; because it is not under `.github/workflows/`, GitHub Actions does not discover it as a workflow at that path.
+- `../settings.gradle.kts` — Repository configuration and `:app` inclusion.
+- `../build.gradle.kts` and `../app/build.gradle.kts` — Plugins, Android build settings, dependencies, and release build type.
+- `../gradle/libs.versions.toml` — Dependency and plugin version catalog.
+- `../.github/workflows/android-build.yml` — Active GitHub Actions workflow under GitHub's workflow directory.
+- `app/release/android-build-copy.yml` — A checked-in workflow copy; because it is not under `../.github/workflows`, GitHub Actions does not discover it as a workflow at that path.
 - `PRODUCT_KNOWLEDGE.md` — Product and architecture summary.
 
-The release workflow is configured for pushes to `Release/release_*` branches. It builds a signed AAB, creates a GitHub Release, and publishes to the Google Play alpha track. The Play upload expects the `PLAY_STORE_JSON_KEY` repository secret. Read the workflow before changing release behavior; the copy under `app/release/` is not the active workflow location.
+The release workflow is configured for pushes to `Release/release_*` branches. It builds a signed AAB, creates a GitHub Release, and publishes to the Google Play alpha track. The Play upload expects the `PLAY_STORE_JSON_KEY` repository secret. Read the workflow before changing release behavior; the copy under `../app/release` is not the active workflow location.
 
 ## Key Concepts & Design Decisions
 
@@ -151,6 +151,12 @@ The UI is Compose-first, and `SudokuScreen` coordinates most gameplay behavior d
 
 The UI now labels the gameplay score as **Points** (including the home total, game HUD, and statistics summaries); the underlying score model, persistence, and analytics field names remain score-oriented. Do not treat this copy change as a data-schema migration.
 
+### Rewards and wheel cooldown
+
+`RewardsScreen` observes the lifetime total from `TotalScoreManager` and the sound/vibration option and last-spin timestamp from `AppPreferences`. The wheel is spun by tapping its center hub. A spin records its start time in DataStore and prevents another spin for four hours; the hub becomes a circular cooldown overlay with a live `Next Spin in HH:MM:SS` countdown. When a point prize is credited, the displayed total animates from the previous balance. Spin and prize-credit sounds use `GameFeedback` and respect the sound/vibration preference.
+
+`component/PrizeWheel.kt` defines `PrizeWheelPrize` with display `label`, `caption`, and optional `pointsAward`, and contains the current prize list. Add future wheel entries there with their desired text; custom prize effects need corresponding payout handling in `RewardsScreen` before they grant anything. Keep prize selection and slice-angle calculations based on the same prize list so the pointer lands on the selected segment.
+
 ### Firebase behavior
 
 `SudokuApp` initializes Firebase and Remote Config defaults. Analytics and Crashlytics collection are disabled in debug builds. `MainActivity` fetches and activates Remote Config at startup. Screen views are logged for the Rewards screen as well as the other instrumented screens. Settings changes log `settings_option_changed` with a string `settings_state` value containing the setting name and its new `on`/`off` state; when one gameplay preference disables the mutually exclusive option, that change is logged too. Theme changes use the separate `theme_toggled` event. The Firebase SDKs are operational integrations; puzzle state and statistics remain local.
@@ -162,19 +168,19 @@ The UI now labels the gameplay score as **Points** (including the home total, ga
 3. **Gameplay and resume state** — Follow `presentation/ui/screen/SudokuScreen.kt` to `data/state/GameState.kt`, `GameStateManager.kt`, and `GameRepositoryImpl.kt`.
 4. **Statistics and local database** — Trace `GameCompletionRecorder.kt` to `StatisticsRepository.kt`, `SudokuDatabase.kt`, the DAOs, and `StatisticsViewModel.kt`.
 5. **Streak retention flow** — Start with `StreakScreen.kt`; then inspect `StreakState.kt`, `StreakStateManager.kt`, `StreakReminderScheduler.kt`, and `StreakReminderWorker.kt`.
-6. **Rewards and settings** — Inspect `RewardsScreen.kt` for the current placeholder and `SettingsScreen.kt` plus `AppPreferences.kt` for gameplay preferences, streak behavior, and their analytics.
-7. **Build and release** — Review `app/build.gradle.kts` and `.github/workflows/android-build.yml`. Confirm required SDK/JDK settings and CI secrets before changing the release pipeline.
+6. **Rewards and settings** — Inspect `RewardsScreen.kt`, `component/PrizeWheel.kt`, `AppPreferences.kt`, and `GameFeedback.kt` for wheel prizes, points payout, four-hour cooldown, countdown, and sound behavior; inspect `SettingsScreen.kt` for gameplay preferences and their analytics.
+7. **Build and release** — Review `../app/build.gradle.kts` and `../.github/workflows/android-build.yml`. Confirm required SDK/JDK settings and CI secrets before changing the release pipeline.
 
 ## File Map
 
 Paths below are relative to the repository root.
-In tables, `.../` abbreviates `app/src/main/java/com/quickmindgames/sudoku/`.
+In tables, `.../` abbreviates `../app/src/main/java/com/quickmindgames/sudoku`.
 
 ### App entry and navigation
 
 | File | Responsibility |
 |---|---|
-| `app/src/main/java/com/quickmindgames/sudoku/SudokuApp.kt` | Application-level Firebase and Remote Config initialization. |
+| `../app/src/main/java/com/quickmindgames/sudoku/SudokuApp.kt` | Application-level Firebase and Remote Config initialization. |
 | `.../presentation/ui/MainActivity.kt` | Activity setup, theme, permission handling, route host, and app shell. |
 | `.../presentation/navigation/AppNav.kt` | Navigation entry point used by the activity. |
 | `.../presentation/navigation/BottomScreen.kt` | Home, Streak, Rewards, and Settings bottom-tab route, label, and icon definitions. |
@@ -187,11 +193,12 @@ In tables, `.../` abbreviates `app/src/main/java/com/quickmindgames/sudoku/`.
 | `.../presentation/ui/screen/SudokuScreen.kt` | Active puzzle interface and gameplay interaction. |
 | `.../presentation/ui/screen/LessonScreen.kt` | Guided lesson experience and completion callback. |
 | `.../presentation/ui/screen/StreakScreen.kt` | Streak challenge and progress interface. |
-| `.../presentation/ui/screen/RewardsScreen.kt` | Rewards-tab placeholder with a centered coming-soon message and screen-view analytics. |
+| `.../presentation/ui/screen/RewardsScreen.kt` | Rewards tab, animated points balance, prize-wheel spin/payout, cooldown countdown, and screen-view analytics. |
 | `.../presentation/ui/screen/SettingsScreen.kt` | User preferences interface. |
 | `.../presentation/ui/screen/StatisticsScreen.kt` | Overall and category statistics presentation. |
 | `.../presentation/viewmodel/StatisticsViewModel.kt` | Statistics loading and UI state. |
-| `.../component/` | Reusable Compose UI: difficulty cards, lesson cards/grid/dialog, number pad, Sudoku board/grid, statistics, and streak path/node/summary. |
+| `.../component/PrizeWheel.kt` | Reusable animated prize wheel, prize display model, center-hub spin action/cooldown overlay, and pointer drawing. |
+| `.../component/` | Reusable Compose UI: difficulty cards, lesson cards/grid/dialog, number pad, prize wheel, Sudoku board/grid, statistics, and streak path/node/summary. |
 | `.../presentation/ui/theme/Color.kt`, `Theme.kt`, `Type.kt` | App colors, Material theme, and typography. |
 | `.../presentation/util/ShakeModifier.kt` | Compose shake animation modifier. |
 
@@ -216,7 +223,7 @@ In tables, `.../` abbreviates `app/src/main/java/com/quickmindgames/sudoku/`.
 | `.../data/state/GameStateManager.kt` | DataStore read/write/clear operations for resumable games. |
 | `.../data/state/StreakState.kt` | Streak progress and optional active game model. |
 | `.../data/state/StreakStateManager.kt` | DataStore operations for streak progress and reminder markers. |
-| `.../data/preferences/AppPreferences.kt` | Gameplay preference flows and setters. |
+| `.../data/preferences/AppPreferences.kt` | Gameplay preference flows/setters, sound/vibration setting, and persisted wheel last-spin timestamp/four-hour cooldown constant. |
 | `.../data/preferences/ThemePreferences.kt` | Theme preference persistence. |
 | `.../data/source/ThemePreferencesDataSource.kt` | Theme preference source abstraction. |
 | `.../data/repository/GameRepositoryImpl.kt` | Game repository adapter backed by `GameStateManager`. |
@@ -227,7 +234,7 @@ In tables, `.../` abbreviates `app/src/main/java/com/quickmindgames/sudoku/`.
 | `.../data/database/dao/GameStatisticDao.kt`, `StreakGameDao.kt` | Queries and inserts for completed games. |
 | `.../data/util/GameCompletionRecorder.kt` | Completion recording helper. |
 | `.../data/points/TotalPointsManager.kt` | Lifetime points persistence (currently retains the `data.score` package and `TotalScoreManager` class name). |
-| `.../data/util/GameFeedback.kt` | Sound and vibration feedback support. |
+| `.../data/util/GameFeedback.kt` | Sound and vibration feedback, including wheel-spin and prize-credit sounds. |
 
 ### Shared utilities and integrations
 
@@ -245,16 +252,16 @@ In tables, `.../` abbreviates `app/src/main/java/com/quickmindgames/sudoku/`.
 
 | Path | Responsibility |
 |---|---|
-| `app/src/main/res/values/` | Strings, colors, and theme resources. |
-| `app/src/main/res/font/` | Bundled font weights. |
-| `app/src/main/res/raw/` | Gameplay audio and confetti animation assets. |
-| `app/src/main/res/drawable/`, `mipmap-*` | Launcher and splash assets. |
-| `app/src/main/res/xml/` | Backup and data extraction rules. |
-| `app/src/main/AndroidManifest.xml` | App declaration, launcher activity, and permissions. |
-| `app/build.gradle.kts` | Android SDK levels, app version, plugins, dependencies, and build types. |
-| `gradle/libs.versions.toml` | Dependency/plugin version catalog. |
-| `settings.gradle.kts`, `build.gradle.kts`, `gradle.properties` | Gradle repositories, module inclusion, root plugins, and build settings. |
-| `.github/workflows/android-build.yml` | Active release build and publication pipeline. |
+| `../app/src/main/res/values` | Strings, colors, and theme resources. |
+| `../app/src/main/res/font` | Bundled font weights. |
+| `../app/src/main/res/raw` | Gameplay audio and confetti animation assets. |
+| `../app/src/main/res/drawable`, `mipmap-*` | Launcher and splash assets. |
+| `../app/src/main/res/xml` | Backup and data extraction rules. |
+| `../app/src/main/AndroidManifest.xml` | App declaration, launcher activity, and permissions. |
+| `../app/build.gradle.kts` | Android SDK levels, app version, plugins, dependencies, and build types. |
+| `../gradle/libs.versions.toml` | Dependency/plugin version catalog. |
+| `../settings.gradle.kts`, `../build.gradle.kts`, `../gradle.properties` | Gradle repositories, module inclusion, root plugins, and build settings. |
+| `../.github/workflows/android-build.yml` | Active release build and publication pipeline. |
 
 ## Complexity Hotspots
 
@@ -271,9 +278,9 @@ When changing these areas, trace the full feature path (screen → state/reposit
 
 ## Development Notes
 
-- Keep generated outputs under `app/build/` out of source changes.
-- `local.properties` is machine-specific and ignored by Git. Avoid putting credentials into tracked Gradle files or documentation.
-- Dependencies are declared through the version catalog; add or update versions in `gradle/libs.versions.toml` and aliases in the Gradle scripts as needed.
-- The active CI workflow is under `.github/workflows/`. A YAML file elsewhere in the repository is not automatically an Actions workflow.
+- Keep generated outputs under `../app/build` out of source changes.
+- `../local.properties` is machine-specific and ignored by Git. Avoid putting credentials into tracked Gradle files or documentation.
+- Dependencies are declared through the version catalog; add or update versions in `../gradle/libs.versions.toml` and aliases in the Gradle scripts as needed.
+- The active CI workflow is under `../.github/workflows`. A YAML file elsewhere in the repository is not automatically an Actions workflow.
 - The app uses JUnit and AndroidX test dependencies; place automated tests in the corresponding app test source sets and prefer focused coverage for game rules, state serialization, and repository aggregation.
 - `PRODUCT_KNOWLEDGE.md` remains the product-level summary; this file is the more detailed developer onboarding and code-navigation guide.

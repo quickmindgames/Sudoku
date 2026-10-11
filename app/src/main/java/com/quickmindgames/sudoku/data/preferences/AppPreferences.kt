@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -13,11 +14,31 @@ private val Context.appDataStore: DataStore<Preferences> by preferencesDataStore
 
 class AppPreferences(private val context: Context) {
 
+    companion object {
+        // 4HR = 4 * 60 * 60 * 1000L
+        // 20s = 20 * 1000L
+        const val WHEEL_SPIN_COOLDOWN_MILLIS = 10 * 1000L
+
+        @Volatile
+        private var instance: AppPreferences? = null
+
+        fun getInstance(context: Context): AppPreferences {
+            return instance ?: synchronized(this) {
+                instance ?: AppPreferences(context.applicationContext).also { instance = it }
+            }
+        }
+    }
+
     private val HIDE_USED_NUMBERS_KEY = booleanPreferencesKey("hide_used_numbers")
     private val HIGHLIGHT_REGION_KEY = booleanPreferencesKey("highlight_region")
     private val HIGHLIGHT_SAME_NUMBERS_KEY = booleanPreferencesKey("highlight_same_numbers")
     private val FREE_PLAY_KEY = booleanPreferencesKey("free_play")
     private val SOUND_AND_VIBRATION_KEY = booleanPreferencesKey("sound_and_vibration")
+    private val LAST_SPIN_KEY = longPreferencesKey("last_spin")
+
+    val lastSpin: Flow<Long?> = context.appDataStore.data.map { preferences ->
+        preferences[LAST_SPIN_KEY]
+    }
 
     val hideUsedNumbers: Flow<Boolean> = context.appDataStore.data.map { preferences ->
         preferences[HIDE_USED_NUMBERS_KEY] ?: false
@@ -89,14 +110,10 @@ class AppPreferences(private val context: Context) {
         }
     }
 
-    companion object {
-        @Volatile
-        private var instance: AppPreferences? = null
-
-        fun getInstance(context: Context): AppPreferences {
-            return instance ?: synchronized(this) {
-                instance ?: AppPreferences(context.applicationContext).also { instance = it }
-            }
+    suspend fun setLastSpin(timestampMillis: Long) {
+        context.appDataStore.edit { preferences ->
+            preferences[LAST_SPIN_KEY] = timestampMillis
         }
     }
+
 }

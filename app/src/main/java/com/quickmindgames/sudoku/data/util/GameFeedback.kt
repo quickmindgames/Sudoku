@@ -28,6 +28,7 @@ class GameFeedback(context: Context) {
     private val wrongSound: Int
     private val completedSound: Int
     private val gameOverSound: Int
+    private val spinWheelSound: Int
 
     init {
         soundPool.setOnLoadCompleteListener { pool, sampleId, status ->
@@ -46,6 +47,7 @@ class GameFeedback(context: Context) {
         wrongSound = soundPool.load(context.applicationContext, R.raw.number_wrong, 1)
         completedSound = soundPool.load(context.applicationContext, R.raw.puzzle_complete, 1)
         gameOverSound = soundPool.load(context.applicationContext, R.raw.game_over, 1)
+        spinWheelSound = soundPool.load(context.applicationContext, R.raw.spin_wheel, 1)
     }
 
     fun playCorrectNumber(enabled: Boolean) {
@@ -71,6 +73,14 @@ class GameFeedback(context: Context) {
             playSound(gameOverSound)
             vibrate(durationMillis = 35, amplitude = 64)
         }
+    }
+
+    fun playSpinWheel(enabled: Boolean) {
+        if (enabled) playSound(spinWheelSound)
+    }
+
+    fun playPrizeCredited(enabled: Boolean) {
+        if (enabled) playSound(completedSound)
     }
 
     fun release() {
