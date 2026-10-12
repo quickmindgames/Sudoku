@@ -44,6 +44,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -91,7 +92,6 @@ import com.quickmindgames.sudoku.domain.util.undo
 import com.quickmindgames.sudoku.domain.util.undoStack
 import com.quickmindgames.sudoku.utils.AnalyticsConstants
 import com.quickmindgames.sudoku.utils.AnalyticsUtils
-import com.quickmindgames.sudoku.utils.RemoteConfigManager
 import com.quickmindgames.sudoku.utils.formatTime
 import com.quickmindgames.sudoku.utils.isWin
 import com.quickmindgames.sudoku.utils.ordinalSuffix
@@ -101,6 +101,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import kotlin.time.Duration.Companion.milliseconds
+
+private const val MAX_HINTS_PER_GAME = 3
 
 /**
  *
@@ -113,6 +115,7 @@ fun SudokuScreen(
     mode: String,
     difficulty: Difficulty?,
     streakDay: Int = 0,
+    useDoublePointsBooster: Boolean = false,
     onExit: () -> Unit,
     onStartNormalGame: () -> Unit = onExit
 ) {
@@ -196,6 +199,7 @@ fun SudokuScreen(
     var timeSeconds by remember { mutableIntStateOf(0) }
     var isRunning by remember { mutableStateOf(true) }
     var score by remember { mutableIntStateOf(0) }
+    var hasDoublePointsBooster by remember { mutableStateOf(false) }
     var timerKey by remember { mutableIntStateOf(0) }
     var currentDifficulty by remember { mutableStateOf(difficulty ?: Difficulty.Breeze) }
     var correctStreak by remember { mutableIntStateOf(0) }   // consecutive correct cells
@@ -205,9 +209,19 @@ fun SudokuScreen(
     }
 
     var isNotesMode by remember { mutableStateOf(false) }
-    var availableHints by remember(mode, difficulty) { mutableIntStateOf(1) }
+    var hintsUsed by remember(mode, difficulty) { mutableIntStateOf(0) }
+    var isHintProcessing by remember { mutableStateOf(false) }
+    val hintWallet by appPreferences.hintWallet.collectAsState(initial = 0)
 
     val isLearningMode = mode == "learn"
+    val remainingGameHints = (MAX_HINTS_PER_GAME - hintsUsed).coerceAtLeast(0)
+    val availableHints = minOf(hintWallet, remainingGameHints)
+    val canUseHint = !isLearningMode && availableHints > 0
+    val pointsToAward = if (hasDoublePointsBooster && !freePlayEnabled) {
+        (score.toLong() * 2L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+    } else {
+        score
+    }
     var learningHint by remember { mutableStateOf<String?>(null) }
     val colors = MaterialTheme.colorScheme
 
@@ -271,7 +285,7 @@ fun SudokuScreen(
             correctStreak = 0
             lastCorrectTime = 0
             for (r in 0..8) for (c in 0..8) scoredCells[r][c] = false
-            availableHints = 0 // hints disabled
+            hintsUsed = 0
 
             AnalyticsUtils.logLearningStarted(context)
         }
@@ -286,6 +300,7 @@ fun SudokuScreen(
             //originalGrid = puzzle.map { it.toList() }
             //solutionGrid = solution
             currentDifficulty = diff
+            hasDoublePointsBooster = useDoublePointsBooster
 
             // Properly reset user grid
             userGrid.clear()
@@ -309,7 +324,7 @@ fun SudokuScreen(
             lastCorrectTime = 0
             for (r in 0..8) for (c in 0..8) scoredCells[r][c] = false
 
-            availableHints = RemoteConfigManager.getHintsForDifficulty(diff.name.lowercase())
+            hintsUsed = 0
 
             // Log new game started event
             val savedGameDifficulty =
@@ -341,7 +356,8 @@ fun SudokuScreen(
                     timeSeconds = state.timeSeconds
                     selectedCell = state.selectedCell
                     isNotesMode = state.isNotesMode // Restore notes mode
-                    availableHints = state.availableHints
+                    hintsUsed = state.hintsUsed
+                    hasDoublePointsBooster = state.hasDoublePointsBooster
                     gameOver = false
                     gameWon = false
                     isRunning = true
@@ -374,6 +390,7 @@ fun SudokuScreen(
                 score = activeGame.score
                 timeSeconds = activeGame.timeSeconds
                 selectedCell = activeGame.selectedCell
+                hintsUsed = activeGame.hintsUsed
                 gameOver = false
                 gameWon = false
                 isRunning = true
@@ -404,6 +421,7 @@ fun SudokuScreen(
                 gameWon = false
                 selectedCell = null
                 shakeCells = emptySet()
+                hintsUsed = 0
                 isRunning = true
                 timerKey++
                 correctStreak = 0
@@ -449,7 +467,8 @@ fun SudokuScreen(
         timeSeconds,
         selectedCell,
         isNotesMode,
-        availableHints
+        hintsUsed,
+        hasDoublePointsBooster
     ) {
         // Only save if game has started (timer ticked at least once) and is not over/won
         if (!gameOver && !gameWon && !isLearningMode) {
@@ -464,11 +483,12 @@ fun SudokuScreen(
                 timeSeconds = timeSeconds,
                 selectedCell = selectedCell,
                 isNotesMode = isNotesMode, // Save notes mode
-                availableHints = availableHints,
+                hintsUsed = hintsUsed,
+                hasDoublePointsBooster = hasDoublePointsBooster
             )
 
             // Save as soon as timer has started (timeSeconds > 0)
-            if (currentState.hasStarted()) {
+            if (currentState.hasStarted() || hintsUsed > 0 || hasDoublePointsBooster) {
                 if (mode == "streak") {
                     val today = LocalDate.now().toString()
                     val savedStreak = streakStateManager.getStreakState().first()
@@ -969,6 +989,11 @@ fun SudokuScreen(
                         gameFeedback.playPuzzleCompleted(soundAndVibrationEnabled)
                         gameWon = true
                         isRunning = false
+                        val completedPoints = if (hasDoublePointsBooster && !freePlayEnabled) {
+                            (score.toLong() * 2L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                        } else {
+                            score
+                        }
 
                         if (!isLearningMode) {
                             // Record the game completion
@@ -999,7 +1024,7 @@ fun SudokuScreen(
                                     difficulty = currentDifficulty.name,
                                     isWon = true,
                                     mistakes = mistakes,
-                                    score = score,
+                                    score = completedPoints,
                                     timeSeconds = timeSeconds,
                                     mode = "regular"
                                 )
@@ -1138,7 +1163,9 @@ fun SudokuScreen(
                 //region Hint Button
                 FilledTonalButton(
                     onClick = {
-                        if (!isRunning || gameOver || gameWon || availableHints == 0) return@FilledTonalButton
+                        if (!isRunning || gameOver || gameWon || !canUseHint || isHintProcessing) {
+                            return@FilledTonalButton
+                        }
                         if (selectedCell == null) {
                             Toast.makeText(
                                 context,
@@ -1151,57 +1178,76 @@ fun SudokuScreen(
                         val cell = userGrid[r][c]
                         val isWrong = cell.value != 0 && cell.value != solutionGrid[r][c]
                         val isEditable = cell.value == 0 || isWrong
-                        if (isEditable) {
-                            saveUndoState(userGrid)
-                            userGrid[r][c] =
-                                cell.copy(value = solutionGrid[r][c], notes = emptySet())
-                            updateNotesAfterValueChange(userGrid, r, c, solutionGrid[r][c])
-                            availableHints--
-                            AnalyticsUtils.logHintUsed(context, currentDifficulty.name)
-                            coroutineScope.launch {
-                                delay(2000.milliseconds)
-                            }
-                            // Check for win after hint fills a cell
-                            if (!gameOver && !gameWon && isWin(userGrid, solutionGrid)) {
-                                gameFeedback.playPuzzleCompleted(soundAndVibrationEnabled)
-                                gameWon = true
-                                isRunning = false
-                                // Record the game completion
-                                if (mode == "streak") {
-                                    GameCompletionRecorder.recordStreakGameCompletion(
-                                        context = context,
-                                        scope = coroutineScope,
-                                        streakDay = streakDay,
-                                        isWon = true,
-                                        score = score,
-                                        timeSeconds = timeSeconds
-                                    )
-                                    GameCompletionRecorder.recordGameCompletion(
-                                        context = context,
-                                        scope = coroutineScope,
-                                        difficulty = "streak",
-                                        isWon = true,
-                                        mistakes = mistakes,
-                                        score = score,
-                                        timeSeconds = timeSeconds,
-                                        mode = "regular"
-                                    )
-                                } else {
-                                    GameCompletionRecorder.recordGameCompletion(
-                                        context = context,
-                                        scope = coroutineScope,
-                                        difficulty = currentDifficulty.name,
-                                        isWon = true,
-                                        mistakes = mistakes,
-                                        score = score,
-                                        timeSeconds = timeSeconds,
-                                        mode = "regular"
-                                    )
+                        if (!isEditable) {
+                            Toast.makeText(
+                                context,
+                                "This cell is already correct.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            return@FilledTonalButton
+                        }
+
+                        isHintProcessing = true
+                        coroutineScope.launch {
+                            try {
+                                if (!appPreferences.consumeHint()) {
+                                    Toast.makeText(
+                                        context,
+                                        "Your Hint Wallet is empty.",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    return@launch
                                 }
+                                saveUndoState(userGrid)
+                                userGrid[r][c] =
+                                    cell.copy(value = solutionGrid[r][c], notes = emptySet())
+                                updateNotesAfterValueChange(userGrid, r, c, solutionGrid[r][c])
+                                hintsUsed++
+                                AnalyticsUtils.logHintUsed(context, currentDifficulty.name)
+
+                                if (!gameOver && !gameWon && isWin(userGrid, solutionGrid)) {
+                                    gameFeedback.playPuzzleCompleted(soundAndVibrationEnabled)
+                                    gameWon = true
+                                    isRunning = false
+                                    if (mode == "streak") {
+                                        GameCompletionRecorder.recordStreakGameCompletion(
+                                            context = context,
+                                            scope = coroutineScope,
+                                            streakDay = streakDay,
+                                            isWon = true,
+                                            score = score,
+                                            timeSeconds = timeSeconds
+                                        )
+                                        GameCompletionRecorder.recordGameCompletion(
+                                            context = context,
+                                            scope = coroutineScope,
+                                            difficulty = "streak",
+                                            isWon = true,
+                                            mistakes = mistakes,
+                                            score = score,
+                                            timeSeconds = timeSeconds,
+                                            mode = "regular"
+                                        )
+                                    } else {
+                                        GameCompletionRecorder.recordGameCompletion(
+                                            context = context,
+                                            scope = coroutineScope,
+                                            difficulty = currentDifficulty.name,
+                                            isWon = true,
+                                            mistakes = mistakes,
+                                            score = score,
+                                            timeSeconds = timeSeconds,
+                                            mode = "regular"
+                                        )
+                                    }
+                                }
+                            } finally {
+                                isHintProcessing = false
                             }
                         }
                     },
-                    enabled = isRunning && !gameOver && !gameWon && availableHints > 0,
+                    enabled = isRunning && !gameOver && !gameWon && canUseHint &&
+                            !isHintProcessing,
                     modifier = Modifier
                         .weight(1f)
                         .height(64.dp),
@@ -1221,6 +1267,14 @@ fun SudokuScreen(
                             text = "Hint ($availableHints)",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = when {
+                                hintsUsed >= MAX_HINTS_PER_GAME -> "Limit reached"
+                                hintWallet == 0 -> "Wallet empty"
+                                else -> "Used $hintsUsed/$MAX_HINTS_PER_GAME"
+                            },
+                            fontSize = 9.sp
                         )
                     }
                 }
@@ -1268,7 +1322,7 @@ fun SudokuScreen(
                     score = score,
                     difficulty = currentDifficulty.name,
                     isStreak = mode == "streak",
-                    hintCount = 1 - availableHints  // currently only 1 hint allowed, so this will be 0 or 1
+                    hintCount = hintsUsed
                 )
             }
 
@@ -1339,8 +1393,7 @@ fun SudokuScreen(
                                     timerKey++
                                     correctStreak = 0
                                     lastCorrectTime = 0
-                                    availableHints =
-                                        RemoteConfigManager.getHintsForDifficulty(currentDifficulty.name.lowercase())
+                                    hintsUsed = 0
                                     for (r in 0..8) for (c in 0..8) scoredCells[r][c] = false
                                     coroutineScope.launch {
                                         if (mode != "streak") gameStateManager.clearGameState()
@@ -1391,7 +1444,12 @@ fun SudokuScreen(
         } else {
             // Persist score & streak state
             LaunchedEffect(Unit) {
-                if (!freePlayEnabled) totalScoreManager.addScore(score)
+                if (!freePlayEnabled) {
+                    if (hasDoublePointsBooster) {
+                        appPreferences.consumeDoublePointsBooster()
+                    }
+                    totalScoreManager.addScore(pointsToAward)
+                }
                 if (mode == "streak") {
                     val today = LocalDate.now().toString()
                     val savedStreak = streakStateManager.getStreakState().first()
@@ -1424,10 +1482,10 @@ fun SudokuScreen(
                     win = true,
                     time = formatTime(timeSeconds),
                     mistakes = mistakes,
-                    score = score,
+                    score = pointsToAward,
                     difficulty = currentDifficulty.name,
                     isStreak = mode == "streak",
-                    hintCount = 1 - availableHints  // currently only 1 hint allowed, so this will be 0 or 1
+                    hintCount = hintsUsed
                 )
             }
 
@@ -1472,6 +1530,15 @@ fun SudokuScreen(
                                     fontSize = 13.sp,
                                     color = Color.White.copy(alpha = 0.8f)
                                 )
+                                if (hasDoublePointsBooster && !freePlayEnabled) {
+                                    Text(
+                                        text = "You've earned $score x 2 = $pointsToAward points!",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
                             }
                         }
 
@@ -1520,7 +1587,7 @@ fun SudokuScreen(
                                     ) { Text("⭐", fontSize = 22.sp) }
                                     Spacer(Modifier.height(6.dp))
                                     Text(
-                                        text = "$score",
+                                        text = "$pointsToAward",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 16.sp,
                                         color = colors.onSurface
@@ -1587,6 +1654,7 @@ fun SudokuScreen(
                                         score = 0
                                         timeSeconds = 0
                                         gameWon = false
+                                        hasDoublePointsBooster = false
                                         selectedCell = null
                                         shakeCells = emptySet()
                                         isRunning = true
@@ -1594,8 +1662,7 @@ fun SudokuScreen(
                                         correctStreak = 0
                                         lastCorrectTime = 0
                                         for (r in 0..8) for (c in 0..8) scoredCells[r][c] = false
-                                        availableHints =
-                                            RemoteConfigManager.getHintsForDifficulty("breeze") // reset hints to default for new game
+                                        hintsUsed = 0
                                     },
                                     modifier = Modifier
                                         .fillMaxWidth()

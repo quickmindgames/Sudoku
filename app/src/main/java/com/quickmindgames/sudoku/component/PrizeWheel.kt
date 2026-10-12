@@ -33,6 +33,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -40,7 +42,8 @@ import com.quickmindgames.sudoku.R
 
 enum class PrizeType {
     POINTS,
-    HINTS
+    HINTS,
+    BOOSTER
 }
 
 // Add custom prizes with their own wheel text, type, and award amount.
@@ -61,7 +64,8 @@ val PrizeWheelPrizes = listOf(
     PrizeWheelPrize(label = "+20", type = PrizeType.POINTS, amount = 20, 3),
     PrizeWheelPrize(label = "+50", type = PrizeType.POINTS, amount = 50),
     PrizeWheelPrize(label = "+100", type = PrizeType.POINTS, amount = 100),
-    PrizeWheelPrize(label = "+1", type = PrizeType.HINTS, amount = 1)
+    PrizeWheelPrize(label = "+1", type = PrizeType.HINTS, amount = 1),
+    PrizeWheelPrize(label = "2X", type = PrizeType.BOOSTER, amount = 1)
 )
 
 fun weightedPrizeIndex(
@@ -91,11 +95,18 @@ fun PrizeWheel(
     val context = LocalContext.current
     val boldTypeface = remember(context) { context.resources.getFont(R.font.bold) }
 
-    val segmentColors = listOf(
+    /*val segmentColors = listOf(
         MaterialTheme.colorScheme.primary,
         MaterialTheme.colorScheme.tertiary,
         MaterialTheme.colorScheme.secondary,
         MaterialTheme.colorScheme.error
+    )*/
+    val segmentColors = listOf(
+        Color(0xFF263238), // blue grey
+        Color(0xFF4A148C), // deep purple
+        Color(0xFF006064), // dark teal
+        Color(0xFF1B5E20), // dark green
+        Color(0xFF880E4F)  // deep magenta
     )
     val pointerColor = MaterialTheme.colorScheme.primary
     val outlineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
@@ -125,7 +136,7 @@ fun PrizeWheel(
                 color = android.graphics.Color.WHITE
                 textAlign = Paint.Align.CENTER
                 // Adjust these relative sizes to scale the labels with the wheel.
-                textSize = radius * 0.20f
+                textSize = radius * 0.18f
                 typeface = boldTypeface
                 setShadowLayer(radius * 0.025f, 0f, radius * 0.018f, 0x99000000.toInt())
             }
@@ -156,11 +167,11 @@ fun PrizeWheel(
 
                 val labelAngle = Math.toRadians((startAngle + segmentAngle / 2f).toDouble())
                 // Move labels toward the rim by increasing this ratio; decrease it to pull them inward.
-                val labelRadius = radius * 0.60f
+                val labelRadius = radius * 0.65f
                 val labelX = center.x + labelRadius * kotlin.math.cos(labelAngle).toFloat()
                 val labelY = center.y + labelRadius * kotlin.math.sin(labelAngle).toFloat()
                 val prizeCaption = when (prize.type) {
-                    PrizeType.POINTS -> "POINTS"
+                    PrizeType.POINTS, PrizeType.BOOSTER -> "POINTS"
                     PrizeType.HINTS -> "HINT"
                 }
                 drawIntoCanvas { canvas ->
@@ -295,7 +306,9 @@ fun PrizeWheel(
                 Text(
                     text = "SPIN",
                     color = Color(0xFF5D3100),
-                    style = MaterialTheme.typography.labelLarge
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontFamily = FontFamily(Font(R.font.bold))
+                    ),
                 )
             }
         }

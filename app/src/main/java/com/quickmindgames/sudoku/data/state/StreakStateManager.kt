@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.quickmindgames.sudoku.data.preferences.AppPreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -22,6 +23,7 @@ class StreakStateManager(private val context: Context) {
         context.streakDataStore.edit { preferences ->
             preferences[STREAK_STATE_KEY] = streakState.serialize()
         }
+        AppPreferences.getInstance(context).processStreakMilestones(streakState.streakCount)
     }
 
     fun getStreakState(): Flow<StreakState?> {
@@ -73,4 +75,3 @@ class StreakStateManager(private val context: Context) {
         }
     }
 }
-

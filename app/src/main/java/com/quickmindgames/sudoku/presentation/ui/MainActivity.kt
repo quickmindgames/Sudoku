@@ -15,8 +15,11 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -30,6 +33,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
@@ -41,7 +46,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.quickmindgames.sudoku.data.preferences.ThemePreferences
+import com.quickmindgames.sudoku.data.preferences.AppPreferences
 import com.quickmindgames.sudoku.data.repository.StatisticsRepository
+import com.quickmindgames.sudoku.data.score.TotalScoreManager
+import com.quickmindgames.sudoku.data.state.StreakStateManager
 import com.quickmindgames.sudoku.domain.model.Difficulty
 import com.quickmindgames.sudoku.presentation.navigation.AppNav
 import com.quickmindgames.sudoku.presentation.navigation.BottomScreen
@@ -57,6 +65,8 @@ import com.quickmindgames.sudoku.utils.RemoteConfigManager
 import com.quickmindgames.sudoku.utils.StreakReminderScheduler
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 class MainActivity : ComponentActivity() {
 
@@ -120,6 +130,41 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainSudokuApp() {
+    val context = LocalContext.current
+    val appPreferences = remember { AppPreferences.getInstance(context) }
+    val totalScoreManager = remember { TotalScoreManager.getInstance(context) }
+    val streakStateManager = remember { StreakStateManager.getInstance(context) }
+    var hintWalletInitialized by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        val lifetimePoints = totalScoreManager.totalScore.first()
+        val savedStreak = streakStateManager.getStreakState().first()
+        val currentStreakDays = savedStreak?.let { streak ->
+            val lastCompletedDate = streak.lastCompletedDate
+                ?.let(LocalDate::parse)
+                ?: return@let 0
+            val daysSinceCompletion = ChronoUnit.DAYS.between(
+                lastCompletedDate,
+                LocalDate.now()
+            )
+            if (daysSinceCompletion in 0..2) streak.streakCount else 0
+        } ?: 0
+        appPreferences.migrateHintWallet(lifetimePoints, currentStreakDays)
+        appPreferences.grantHintWalletReleaseBonusOnce()
+        appPreferences.reconcileHintMilestones(lifetimePoints, currentStreakDays)
+        hintWalletInitialized = true
+    }
+
+    if (!hintWalletInitialized) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
     val navController = rememberNavController()
     val screens = listOf(
         BottomScreen.Home,
@@ -179,8 +224,10 @@ fun MainSudokuApp() {
                 HomeScreen(
                     modifier = Modifier.padding(tabPadding),
                     onNewGameClick = { /* optional analytics, etc. */ },
-                    onDifficultySelected = { difficulty: Difficulty ->
-                        navController.navigate("play/new/${difficulty.name}/0")
+                    onDifficultySelected = { difficulty: Difficulty, useDoublePointsBooster ->
+                        navController.navigate(
+                            "play/new/${difficulty.name}/0?useDoublePointsBooster=$useDoublePointsBooster"
+                        )
                     },
                     onResume = {
                         navController.navigate("play/resume/none/0")
@@ -240,16 +287,20 @@ fun MainSudokuApp() {
 
             // ── PLAY SCREEN (Sudoku) ────────────────────────────
             composable(
-                route = "play/{mode}/{difficulty}/{streakDay}",
+                route = "play/{mode}/{difficulty}/{streakDay}?useDoublePointsBooster={useDoublePointsBooster}",
                 arguments = listOf(
                     navArgument("mode") { defaultValue = "new" },
                     navArgument("difficulty") { defaultValue = "none" },
-                    navArgument("streakDay") { defaultValue = "0" }
+                    navArgument("streakDay") { defaultValue = "0" },
+                    navArgument("useDoublePointsBooster") { defaultValue = "false" }
                 )
             ) { entry ->
                 val mode = entry.arguments?.getString("mode") ?: "new"
                 val diffStr = entry.arguments?.getString("difficulty") ?: "none"
                 val streakDay = entry.arguments?.getString("streakDay")?.toIntOrNull() ?: 0
+                val useDoublePointsBooster =
+                    entry.arguments?.getString("useDoublePointsBooster")?.toBooleanStrictOrNull()
+                        ?: false
                 val difficulty = diffStr
                     .takeIf { it != "none" }
                     ?.let { s ->
@@ -262,6 +313,7 @@ fun MainSudokuApp() {
                     mode = mode,
                     difficulty = difficulty,
                     streakDay = streakDay,
+                    useDoublePointsBooster = useDoublePointsBooster,
                     onExit = { navController.popBackStack() },
                     onStartNormalGame = {
                         navController.navigate("play/new/${Difficulty.Breeze.name}/0") {

@@ -28,9 +28,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.Switch
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +51,7 @@ import com.quickmindgames.sudoku.R
 import com.quickmindgames.sudoku.component.DifficultyCard
 import com.quickmindgames.sudoku.component.StreakSummaryCard
 import com.quickmindgames.sudoku.data.score.TotalScoreManager
+import com.quickmindgames.sudoku.data.preferences.AppPreferences
 import com.quickmindgames.sudoku.data.state.GameStateManager
 import com.quickmindgames.sudoku.data.state.StreakState
 import com.quickmindgames.sudoku.data.state.StreakStateManager
@@ -68,7 +71,7 @@ import java.time.LocalDate
 fun HomeScreen(
     modifier: Modifier = Modifier,
     onNewGameClick: () -> Unit,
-    onDifficultySelected: (Difficulty) -> Unit,
+    onDifficultySelected: (Difficulty, Boolean) -> Unit,
     onResume: () -> Unit,
     onStreakClick: () -> Unit,
     onLearningModeClick: () -> Unit
@@ -79,6 +82,10 @@ fun HomeScreen(
     val gameStateManager = remember { GameStateManager.getInstance(context) }
     val streakStateManager = remember { StreakStateManager.getInstance(context) }
     val totalScoreManager = remember { TotalScoreManager.getInstance(context) }
+    val appPreferences = remember { AppPreferences.getInstance(context) }
+    val doublePointsBoosterWallet by appPreferences.doublePointsBoosterWallet
+        .collectAsState(initial = 0)
+    var useDoublePointsBooster by remember { mutableStateOf(false) }
 
     // Saved game state
     var hasSavedGame by remember { mutableStateOf(false) }
@@ -301,7 +308,8 @@ fun HomeScreen(
                         isLocked = !isUnlocked,
                         onClick = {
                             showSheet = false
-                            onDifficultySelected(difficulty)
+                            onDifficultySelected(difficulty, useDoublePointsBooster)
+                            useDoublePointsBooster = false
                         },
                         onLockedClick = {
                             Toast.makeText(context, lockedMessage, Toast.LENGTH_SHORT).show()
@@ -312,6 +320,36 @@ fun HomeScreen(
                         }
                     )
                     Spacer(Modifier.height(12.dp))
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "2X Points Booster",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Available: $doublePointsBoosterWallet Boosters",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Double the points earned from this game.",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = useDoublePointsBooster,
+                        onCheckedChange = { useDoublePointsBooster = it },
+                        enabled = doublePointsBoosterWallet > 0
+                    )
                 }
 
                 Spacer(Modifier.height(12.dp))

@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.quickmindgames.sudoku.data.preferences.AppPreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -22,10 +23,17 @@ class TotalScoreManager(private val context: Context) {
     }
 
     suspend fun addScore(points: Int) {
+        require(points >= 0) { "Lifetime points cannot be deducted." }
+        if (points == 0) return
+        var updatedTotal = 0
         context.scoreDataStore.edit { preferences ->
             val current = preferences[TOTAL_SCORE_KEY] ?: 0
-            preferences[TOTAL_SCORE_KEY] = current + points
+            updatedTotal = (current.coerceAtLeast(0).toLong() + points)
+                .coerceAtMost(Int.MAX_VALUE.toLong())
+                .toInt()
+            preferences[TOTAL_SCORE_KEY] = updatedTotal
         }
+        AppPreferences.getInstance(context).processPointMilestones(updatedTotal)
     }
 
     companion object {

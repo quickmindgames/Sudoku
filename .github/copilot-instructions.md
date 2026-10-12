@@ -2,7 +2,7 @@
 
 ## Project summary
 
-Offline-first Sudoku game (`com.quickmindgames.sudoku`) with four difficulty levels (Breeze, Pulse, Rage, Elite), guided lessons, daily streak challenges, settings, and local statistics. The Rewards tab is a "Coming Soon" placeholder only.
+Offline-first Sudoku game (`com.quickmindgames.sudoku`) with four difficulty levels (Breeze, Pulse, Rage, Elite), guided lessons, daily streak challenges, a persistent points and hint wallet, a prize wheel, settings, and local statistics.
 
 There are no accounts, no cloud saves, and no backend API. Firebase is used only for Analytics, Crashlytics, and Remote Config.
 
@@ -38,7 +38,9 @@ For detailed onboarding and a file map, see `docs/SUDOKU_KNOWLEDGE.md`.
 ## Domain rules and terminology
 
 - **Points vs. score:** the UI says "Points", but code, persistence, and analytics identifiers still use "score". Do not rename them or treat this as a data migration.
-- **Clue counts** come from `RemoteConfigManager`. Code defaults: Breeze 46-51, Pulse 32-37, Rage 26-31, Elite 22-26, one hint per level. Debug builds use a fixed clue constant (70).
+- **Clue counts** come from `RemoteConfigManager`. Code defaults: Breeze 46-51, Pulse 32-37, Rage 26-31, Elite 22-26. Debug builds use a fixed clue constant (70). Hint availability comes only from the persistent Hint Wallet, not Remote Config.
+- **Hint Wallet** data is in `AppPreferences` (Preferences DataStore). The one-time historical migration grants one hint per 1,000 lifetime points and one per five current streak days; a separate one-time release bonus grants 10 hints. Future point and streak milestones are persisted and must not be credited twice. Each game, including streak games, can use at most three wallet hints; `GameState.hintsUsed` persists usage for unfinished games.
+- **Rewards** shows lifetime points, the Hint Wallet, the 2X Points Wallet, and the weighted Prize Wheel. Point prizes go through `TotalScoreManager`; the `+1 Hint` and `2X Booster` prizes are idempotently credited to their respective wallets. Preserve the cooldown configured in `AppPreferences`. The Home difficulty sheet can attach one available booster to a new game; `GameState` persists this selection for resume. A completed boosted game consumes one booster and doubles credited points.
 - **Free Play** removes mistakes and points in regular games. It is ignored in streak mode, is mutually exclusive with Hide Used Numbers, and cannot be changed while a saved game exists.
 - **Hide Used Numbers** hides a digit once all nine instances are placed.
 - **Streaks** use a separate DataStore (`StreakStateManager`) and a separate Room entity (`StreakGameEntity`). Never mix streak results with regular game statistics.
@@ -47,6 +49,7 @@ For detailed onboarding and a file map, see `docs/SUDOKU_KNOWLEDGE.md`.
 ## Fragile areas (read before changing)
 
 - **`GameState` serialization** is a hand-built line format persisted across launches. Preserve compatibility with existing saves or explicitly handle old payloads. `deserialize` returns `null` for malformed data.
+- **Hint rewards** span separate point, streak, game, and preferences stores. Keep migration and milestone grants atomic within `AppPreferences`, and preserve idempotency during startup reconciliation, wheel payouts, and hint consumption.
 - **`SudokuGenerator`** removes cells from a valid solution but does not verify the puzzle has a unique solution. Account for this when changing generation or difficulty tuning.
 - **`getCurrentConsecutiveWins()`** counts all streak wins, not consecutive ones, despite its name. Fix the query and define the intended behavior before relying on it.
 - **Streak state** (count, last completed date, active date, reminder markers) must stay consistent.

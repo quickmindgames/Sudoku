@@ -7,7 +7,7 @@ This guide is for developers who need to build, navigate, and change the Sudoku 
 | | |
 |---|---|
 | **Project** | Sudoku (`com.quickmindgames.sudoku`) |
-| **Purpose** | An offline-first Sudoku game with difficulty-based puzzles, guided lessons, daily streak challenges, a points rewards wheel, settings, and local statistics. |
+| **Purpose** | An offline-first Sudoku game with difficulty-based puzzles, guided lessons, daily streak challenges, points, Hint and 2X Points Booster wallets, a prize wheel, settings, and local statistics. |
 | **Primary language** | Kotlin |
 | **UI** | Android with Jetpack Compose and Material 3 |
 | **Local persistence** | Preferences DataStore for active game, streak, and settings; Room for completed-game statistics |
@@ -43,7 +43,7 @@ The app is organized by responsibility rather than by a strict dependency-inject
 
 **Key files and folders:**
 
-- `../app/src/main/java/com/quickmindgames/sudoku/presentation/ui/screen` — Home, Sudoku play, lessons, streak, rewards, settings, and statistics screens.
+- `../app/src/main/java/com/quickmindgames/sudoku/presentation/ui/screen` — Home (new-game selection and booster toggle), Sudoku play, lessons, streak, rewards, settings, and statistics screens.
 - `../app/src/main/java/com/quickmindgames/sudoku/component` — Shared board, number pad, difficulty, lesson, streak, statistics, and prize wheel components.
 - `../app/src/main/java/com/quickmindgames/sudoku/presentation/ui/theme` — Color, typography, and Material theme.
 - `../app/src/main/res` — Strings, themes, fonts, launcher assets, sounds, animations, and backup rules.
@@ -59,7 +59,7 @@ The app is organized by responsibility rather than by a strict dependency-inject
 - `presentation/navigation/BottomScreen.kt` — Home, Streak, Rewards, and Settings bottom-tab definitions.
 - `presentation/viewmodel/StatisticsViewModel.kt` — Loads statistics from the repository and exposes `StateFlow` to the UI.
 
-Navigation is hosted by a `NavHost` in `MainActivity.kt`; routes cover the four primary tabs (Home, Streak, Rewards, and Settings), learning, and play modes (`new`, `resume`, `streak`, and `learn`). The Rewards tab displays the total points balance and a spin wheel that awards 10, 20, 50, or 100 points. A successful spin starts a four-hour cooldown persisted in `AppPreferences`; while cooling down, the wheel hub shows a live countdown and cannot be tapped. The wheel's prize model supports custom labels and captions, but payout handling currently credits point prizes only. Keep route arguments and navigation callbacks coordinated with the corresponding screens.
+Navigation is hosted by a `NavHost` in `MainActivity.kt`; routes cover the four primary tabs (Home, Streak, Rewards, and Settings), learning, and play modes (`new`, `resume`, `streak`, and `learn`). Home passes the selected 2X Booster option into a new-game route; the difficulty sheet shows the available balance and disables the switch when the wallet is empty. The Rewards tab displays lifetime points, the Hint Wallet, and the 2X Points Wallet alongside a weighted Prize Wheel. An info button on the Hint Wallet card opens a dismissible dialog explaining hint earning and per-game usage. The current wheel includes point prizes, a `+1 Hint` prize, and a `2X` Booster prize. Spin cooldown timestamps are persisted in `AppPreferences`; while cooling down, the wheel hub shows a live countdown and cannot be tapped. Keep route arguments and navigation callbacks coordinated with the corresponding screens.
 
 ### Business Logic
 
@@ -81,7 +81,8 @@ Navigation is hosted by a `NavHost` in `MainActivity.kt`; routes cover the four 
 
 - `data/state/GameState.kt` and `GameStateManager.kt` — Active puzzle model and DataStore serialization/persistence.
 - `data/state/StreakState.kt` and `StreakStateManager.kt` — Daily streak model and its separate DataStore store.
-- `data/preferences/AppPreferences.kt` and `ThemePreferences.kt` — Gameplay and theme preferences, including the persisted last wheel-spin timestamp and sound/vibration setting.
+- `data/preferences/AppPreferences.kt` and `ThemePreferences.kt` — Gameplay and theme preferences, Hint and 2X Points Booster wallet balances, hint reward progress, idempotent wheel rewards, last wheel-spin timestamp, and sound/vibration setting.
+- `data/rewards/HintRewardRules.kt` — Pure calculations for initial hint grants and point/streak milestone rewards.
 - `data/repository/` — Game and theme adapters plus statistics aggregation.
 - `data/util/GameCompletionRecorder.kt` — Records completed-game outcomes through the statistics repository.
 - `data/score/TotalScoreManager.kt` and `data/util/GameFeedback.kt` — Score and gameplay feedback support.
@@ -94,7 +95,7 @@ Navigation is hosted by a `NavHost` in `MainActivity.kt`; routes cover the four 
 
 - `data/database/SudokuDatabase.kt` — Singleton Room database.
 - `data/database/entity/` and `data/database/dao/` — Regular-game and streak-game records and queries.
-- `utils/RemoteConfigManager.kt` — Remote clue-count and hint settings.
+- `utils/RemoteConfigManager.kt` — Remote clue-count settings.
 - `utils/AnalyticsUtils.kt` and `AnalyticsConstants.kt` — Firebase Analytics event helpers and names.
 - `utils/StreakReminderScheduler.kt` and `StreakReminderWorker.kt` — Reminder scheduling and execution.
 - `SudokuApp.kt` — Firebase initialization and startup Remote Config defaults.
@@ -119,13 +120,13 @@ The release workflow is configured for pushes to `Release/release_*` branches. I
 
 ### Puzzle generation and difficulty
 
-`Difficulty` defines `Breeze`, `Pulse`, `Rage`, and `Elite`. `SudokuGenerator` fills a 9-by-9 grid using randomized backtracking, then removes cells to reach a randomly selected clue count. `RemoteConfigManager` provides the clue ranges and hint counts; its code defaults are Breeze 46-51, Pulse 32-37, Rage 26-31, Elite 22-26, and one hint per level. In debug builds, the generator's clue getters use the debug constant (70) rather than the normal configured ranges.
+`Difficulty` defines `Breeze`, `Pulse`, `Rage`, and `Elite`. `SudokuGenerator` fills a 9-by-9 grid using randomized backtracking, then removes cells to reach a randomly selected clue count. `RemoteConfigManager` provides clue ranges; its code defaults are Breeze 46-51, Pulse 32-37, and Rage 26-31, Elite 22-26. In debug builds, the generator's clue getters use the debug constant (70) rather than the normal configured ranges. Hint availability is independent of difficulty and comes from the persistent Hint Wallet.
 
 The generator removes cells from a valid completed solution, but does not test that the resulting puzzle has exactly one solution. Consider that behavior when changing puzzle generation or difficulty tuning.
 
 ### Active game and resume behavior
 
-`GameState` captures the difficulty, original and solution grids, user values and notes, wrong-cell coordinates, mistakes, score, elapsed time, selected cell, notes mode, and remaining hints. It serializes this state to a string in Preferences DataStore through `GameStateManager`; `GameRepositoryImpl` adapts the manager to the `GameRepository` contract. This is a local save, not a cloud save.
+`GameState` captures the difficulty, original and solution grids, user values and notes, wrong-cell coordinates, mistakes, score, elapsed time, selected cell, notes mode, the number of wallet hints used, and whether the game has a 2X Points Booster selected. It serializes this state to a string in Preferences DataStore through `GameStateManager`; `GameRepositoryImpl` adapts the manager to the `GameRepository` contract. Older saves without `HINTS_USED` or `DOUBLE_POINTS_BOOSTER` resume with zero hints used and no booster. This is a local save, not a cloud save.
 
 The current serialized representation is a hand-built line format. If fields or delimiters change, preserve compatibility with existing saved state or explicitly handle old payloads. `GameState.deserialize` currently returns `null` for malformed payloads.
 
@@ -153,9 +154,17 @@ The UI now labels the gameplay score as **Points** (including the home total, ga
 
 ### Rewards and wheel cooldown
 
-`RewardsScreen` observes the lifetime total from `TotalScoreManager` and the sound/vibration option and last-spin timestamp from `AppPreferences`. The wheel is spun by tapping its center hub. A spin records its start time in DataStore and prevents another spin for four hours; the hub becomes a circular cooldown overlay with a live `Next Spin in HH:MM:SS` countdown. When a point prize is credited, the displayed total animates from the previous balance. Spin and prize-credit sounds use `GameFeedback` and respect the sound/vibration preference.
+`RewardsScreen` observes lifetime points from `TotalScoreManager` and wallet balances from `AppPreferences`. Before navigation is enabled, `MainSudokuApp` runs the initial Hint Wallet migration (one hint per 1,000 existing lifetime points plus one per five current streak days) and a separate 10-hint release bonus. Both operations add to rather than overwrite the wallet and each has its own persistent completion flag. The migration records its historical grant breakdown and milestone cursors atomically. The breakdown, including the 10 bonus hints, appears in an animated highlighted card once when Rewards is first opened after migration; a persisted display flag prevents it appearing again.
 
-`component/PrizeWheel.kt` defines `PrizeWheelPrize` with display `label`, `caption`, and optional `pointsAward`, and contains the current prize list. Add future wheel entries there with their desired text; custom prize effects need corresponding payout handling in `RewardsScreen` before they grant anything. Keep prize selection and slice-angle calculations based on the same prize list so the pointer lands on the selected segment.
+After migration, point milestones award one hint per additional 1,000 lifetime points, including all thresholds crossed by one update. Streak milestones award one hint at each new multiple of five consecutive streak wins. Losing or retrying a streak game does not advance the completed streak count; only a newly completed streak day does. When the streak count resets, milestone progress resets too, allowing the player to earn milestones again in a later streak. Progress cursors and wallet changes are persisted together in `AppPreferences` to prevent duplicate claims. The info dialog opened from the Hint Wallet card explains these earning methods, the Prize Wheel chance to win a hint, and the limit of three hint uses per game. Prize-wheel point rewards update lifetime points through `TotalScoreManager`; the `+1 Hint` and `2X` Booster rewards are credited once for their spin IDs. The current cooldown is `AppPreferences.WHEEL_SPIN_COOLDOWN_MILLIS`; the wheel hub displays a live `Next Spin in HH:MM:SS` countdown while cooling down. Spin and prize-credit sounds use `GameFeedback` and respect the sound/vibration preference.
+
+`component/PrizeWheel.kt` defines `PrizeWheelPrize` with prize type, amount, relative weight, display label, and caption. The wheel uses a fixed five-color dark palette for contrast with its white prize labels, with a gold rim, pointer, and center hub; the Rewards layout centers the wheel vertically within the space below the wallet cards and migration notice. Add future wheel entries there with their desired text and weight; add corresponding payout handling in `RewardsScreen` before a new type grants anything. Keep prize selection and slice-angle calculations based on the same prize list so the pointer lands on the selected segment.
+
+### Hint Wallet and game usage
+
+The persistent Hint Wallet balance is stored in Preferences DataStore through `AppPreferences`; it never goes below zero, and hints are not deducted from lifetime points. `SudokuScreen` uses wallet hints exclusively—there are no difficulty-specific free hints—and limits usage to three hints per game in regular and streak modes. A hint is deducted only after checking that the selected cell can be filled. The `hintsUsed` count is saved with an unfinished `GameState`, restored with that game, and reset when a genuinely new game starts. Remote Config still tunes puzzle clue ranges but no longer controls hint availability.
+
+The 2X Points Booster balance is also stored in `AppPreferences`. A player can select one booster in the Home difficulty sheet when the wallet is non-empty. The selected booster is saved in `GameState` and restored on resume; when the game is completed, it doubles the points credited to lifetime points and regular-game statistics, displays the base and doubled totals in the win dialog, and consumes one booster.
 
 ### Firebase behavior
 
@@ -168,7 +177,7 @@ The UI now labels the gameplay score as **Points** (including the home total, ga
 3. **Gameplay and resume state** — Follow `presentation/ui/screen/SudokuScreen.kt` to `data/state/GameState.kt`, `GameStateManager.kt`, and `GameRepositoryImpl.kt`.
 4. **Statistics and local database** — Trace `GameCompletionRecorder.kt` to `StatisticsRepository.kt`, `SudokuDatabase.kt`, the DAOs, and `StatisticsViewModel.kt`.
 5. **Streak retention flow** — Start with `StreakScreen.kt`; then inspect `StreakState.kt`, `StreakStateManager.kt`, `StreakReminderScheduler.kt`, and `StreakReminderWorker.kt`.
-6. **Rewards and settings** — Inspect `RewardsScreen.kt`, `component/PrizeWheel.kt`, `AppPreferences.kt`, and `GameFeedback.kt` for wheel prizes, points payout, four-hour cooldown, countdown, and sound behavior; inspect `SettingsScreen.kt` for gameplay preferences and their analytics.
+6. **Rewards and settings** — Inspect `RewardsScreen.kt`, `component/PrizeWheel.kt`, `AppPreferences.kt`, `HintRewardRules.kt`, `TotalScoreManager.kt`, and `GameFeedback.kt` for wallet migration, milestones, wheel payouts, cooldown, countdown, and sound behavior; inspect `SudokuScreen.kt` and `GameState.kt` for wallet hint use and per-game persistence.
 7. **Build and release** — Review `../app/build.gradle.kts` and `../.github/workflows/android-build.yml`. Confirm required SDK/JDK settings and CI secrets before changing the release pipeline.
 
 ## File Map
@@ -189,15 +198,15 @@ In tables, `.../` abbreviates `../app/src/main/java/com/quickmindgames/sudoku`.
 
 | File(s) | Responsibility |
 |---|---|
-| `.../presentation/ui/screen/HomeScreen.kt` | New game, resume, difficulty, streak, and learning entry points. |
-| `.../presentation/ui/screen/SudokuScreen.kt` | Active puzzle interface and gameplay interaction. |
+| `.../presentation/ui/screen/HomeScreen.kt` | New game, resume, difficulty and booster selection, streak, and learning entry points. |
+| `.../presentation/ui/screen/SudokuScreen.kt` | Active puzzle interface, gameplay interaction, booster persistence/consumption, and completion scoring. |
 | `.../presentation/ui/screen/LessonScreen.kt` | Guided lesson experience and completion callback. |
 | `.../presentation/ui/screen/StreakScreen.kt` | Streak challenge and progress interface. |
-| `.../presentation/ui/screen/RewardsScreen.kt` | Rewards tab, animated points balance, prize-wheel spin/payout, cooldown countdown, and screen-view analytics. |
+| `.../presentation/ui/screen/RewardsScreen.kt` | Rewards tab, points and wallet balances, Hint Wallet earning-info dialog, one-time migration summary, prize-wheel spin/payout, cooldown countdown, and screen-view analytics. |
 | `.../presentation/ui/screen/SettingsScreen.kt` | User preferences interface. |
 | `.../presentation/ui/screen/StatisticsScreen.kt` | Overall and category statistics presentation. |
 | `.../presentation/viewmodel/StatisticsViewModel.kt` | Statistics loading and UI state. |
-| `.../component/PrizeWheel.kt` | Reusable animated prize wheel, prize display model, center-hub spin action/cooldown overlay, and pointer drawing. |
+| `.../component/PrizeWheel.kt` | Reusable animated prize wheel, point/hint/booster prize display model, center-hub spin action/cooldown overlay, and pointer drawing. |
 | `.../component/` | Reusable Compose UI: difficulty cards, lesson cards/grid/dialog, number pad, prize wheel, Sudoku board/grid, statistics, and streak path/node/summary. |
 | `.../presentation/ui/theme/Color.kt`, `Theme.kt`, `Type.kt` | App colors, Material theme, and typography. |
 | `.../presentation/util/ShakeModifier.kt` | Compose shake animation modifier. |
@@ -219,11 +228,12 @@ In tables, `.../` abbreviates `../app/src/main/java/com/quickmindgames/sudoku`.
 
 | File(s) | Responsibility |
 |---|---|
-| `.../data/state/GameState.kt` | Active game and cell/note data; serialization format. |
+| `.../data/state/GameState.kt` | Active game and cell/note data, per-game hint usage and 2X Booster selection, and serialization format. |
 | `.../data/state/GameStateManager.kt` | DataStore read/write/clear operations for resumable games. |
 | `.../data/state/StreakState.kt` | Streak progress and optional active game model. |
 | `.../data/state/StreakStateManager.kt` | DataStore operations for streak progress and reminder markers. |
-| `.../data/preferences/AppPreferences.kt` | Gameplay preference flows/setters, sound/vibration setting, and persisted wheel last-spin timestamp/four-hour cooldown constant. |
+| `.../data/preferences/AppPreferences.kt` | Gameplay preference flows/setters, persistent Hint and 2X Points Booster wallets, hint migration/milestones, per-spin reward idempotency, booster consumption, and wheel last-spin timestamp/cooldown constant. |
+| `.../data/rewards/HintRewardRules.kt` | Initial wallet grant and point/streak milestone calculation rules. |
 | `.../data/preferences/ThemePreferences.kt` | Theme preference persistence. |
 | `.../data/source/ThemePreferencesDataSource.kt` | Theme preference source abstraction. |
 | `.../data/repository/GameRepositoryImpl.kt` | Game repository adapter backed by `GameStateManager`. |
@@ -240,7 +250,7 @@ In tables, `.../` abbreviates `../app/src/main/java/com/quickmindgames/sudoku`.
 
 | File(s) | Responsibility |
 |---|---|
-| `.../utils/RemoteConfigManager.kt` | Firebase Remote Config defaults, fetch, clue and hint accessors. |
+| `.../utils/RemoteConfigManager.kt` | Firebase Remote Config defaults, fetch, and clue-count accessors. |
 | `.../utils/AnalyticsUtils.kt`, `AnalyticsConstants.kt` | Analytics event wrapper and event names. |
 | `.../utils/StreakReminderScheduler.kt`, `StreakReminderWorker.kt` | Streak reminder scheduling and work execution. |
 | `.../utils/SudokuRules.kt` | Gameplay win-state and wrong-cell helpers. |
