@@ -27,8 +27,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,21 +37,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.quickmindgames.sudoku.R
 import com.quickmindgames.sudoku.component.DifficultyCard
 import com.quickmindgames.sudoku.component.StreakSummaryCard
-import com.quickmindgames.sudoku.data.score.TotalScoreManager
 import com.quickmindgames.sudoku.data.preferences.AppPreferences
+import com.quickmindgames.sudoku.data.score.TotalScoreManager
 import com.quickmindgames.sudoku.data.state.GameStateManager
 import com.quickmindgames.sudoku.data.state.StreakState
 import com.quickmindgames.sudoku.data.state.StreakStateManager
@@ -59,7 +60,10 @@ import com.quickmindgames.sudoku.domain.model.Difficulty
 import com.quickmindgames.sudoku.presentation.ui.isDifficultyUnlocked
 import com.quickmindgames.sudoku.utils.AnalyticsConstants
 import com.quickmindgames.sudoku.utils.AnalyticsUtils
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 /**
  *
@@ -85,6 +89,8 @@ fun HomeScreen(
     val appPreferences = remember { AppPreferences.getInstance(context) }
     val doublePointsBoosterWallet by appPreferences.doublePointsBoosterWallet
         .collectAsState(initial = 0)
+    val streakShieldWallet by appPreferences.streakShieldWallet.collectAsState(initial = 0)
+    val coroutineScope = rememberCoroutineScope()
     var useDoublePointsBooster by remember { mutableStateOf(false) }
 
     // Saved game state
@@ -97,6 +103,7 @@ fun HomeScreen(
     var hasActiveToday by remember { mutableStateOf(false) }
     var showStreakBrokenDialog by remember { mutableStateOf(false) }
     var showStreakReminderDialog by remember { mutableStateOf(false) }
+    var showStreakShieldDialog by remember { mutableStateOf(false) }
 
     // Total lifetime score
     var totalScore by remember { mutableIntStateOf(0) }
@@ -113,10 +120,11 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         kotlinx.coroutines.flow.combine(
             streakStateManager.getReminderShown(),
-            streakStateManager.getStreakState()
-        ) { isReminderShown, saved ->
-            Pair(isReminderShown, saved)
-        }.collect { (isReminderShown, saved) ->
+            streakStateManager.getStreakState(),
+            appPreferences.streakShieldWallet
+        ) { isReminderShown, saved, shieldCount ->
+            Triple(isReminderShown, saved, shieldCount)
+        }.collect { (isReminderShown, saved, shieldCount) ->
             val s = saved ?: StreakState(0, null, null, null)
             streakCount = s.streakCount
             completedToday = s.lastCompletedDate == today
@@ -134,21 +142,30 @@ fun HomeScreen(
                 when {
                     daysDifference == 0 -> {
                         // Streak is fine - completed today
+                        showStreakShieldDialog = false
                     }
 
                     daysDifference == 1 -> {
                         // Completed yesterday - streak is still alive
+                        showStreakShieldDialog = false
                     }
 
                     daysDifference == 2 -> {
-                        // Missed yesterday but completed the day before - show reminder if not already shown
                         if (!isReminderShown) {
-                            showStreakReminderDialog = true
+                            if (shieldCount > 0) {
+                                showStreakShieldDialog = true
+                                showStreakReminderDialog = false
+                            } else {
+                                showStreakReminderDialog = true
+                                showStreakShieldDialog = false
+                            }
                         }
                     }
 
                     daysDifference > 2 -> {
                         // Missed more than 1 day - streak is broken
+                        showStreakShieldDialog = false
+                        showStreakReminderDialog = false
                         showStreakBrokenDialog = true
                         streakStateManager.saveStreakState(
                             StreakState(
@@ -190,6 +207,99 @@ fun HomeScreen(
                     onStreakClick() // Redirect to Streak Tab
                 }) {
                     Text("Go to Streak")
+                }
+            },
+            shape = RoundedCornerShape(20.dp)
+        )
+    }
+
+    if (showStreakShieldDialog) {
+        LaunchedEffect(Unit) {
+            streakStateManager.setReminderShown(true)
+        }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { },
+            title = {
+                Text(
+                    text = stringResource(R.string.streak_shield_prompt_title),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp
+                )
+            },
+            text = {
+                val shieldsAvailable = pluralStringResource(
+                    R.plurals.streak_shields_available,
+                    streakShieldWallet,
+                    streakShieldWallet
+                )
+                Text(
+                    text = stringResource(
+                        R.string.streak_shield_prompt_description,
+                        streakCount,
+                        shieldsAvailable
+                    ),
+                    fontSize = 16.sp
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    coroutineScope.launch {
+                        val savedStreak = streakStateManager.getStreakState().first()
+                        val currentDate = LocalDate.now()
+                        val protectedStreak = savedStreak?.protectMissedDay(currentDate)
+                        if (protectedStreak == null) {
+                            showStreakShieldDialog = false
+                            val lastCompletedDate = savedStreak?.lastCompletedDate
+                                ?.let(LocalDate::parse)
+                            if (
+                                savedStreak != null &&
+                                lastCompletedDate != null &&
+                                ChronoUnit.DAYS.between(lastCompletedDate, currentDate) > 2
+                            ) {
+                                streakStateManager.saveStreakState(
+                                    StreakState(0, null, null, null)
+                                )
+                                showStreakBrokenDialog = true
+                            } else if ((savedStreak?.streakCount ?: 0) > 0) {
+                                showStreakReminderDialog = true
+                            }
+                            return@launch
+                        }
+                        if (!appPreferences.consumeStreakShield()) {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.streak_shield_unavailable),
+                                Toast.LENGTH_LONG
+                            ).show()
+                            showStreakShieldDialog = false
+                            showStreakReminderDialog = true
+                            return@launch
+                        }
+                        streakStateManager.saveStreakState(protectedStreak)
+                        streakStateManager.setReminderShown(false)
+                        showStreakShieldDialog = false
+                    }
+                }) {
+                    Text(stringResource(R.string.streak_shield_use_one))
+                }
+            },
+            dismissButton = {
+                Button(onClick = {
+                    coroutineScope.launch {
+                        streakStateManager.saveStreakState(
+                            StreakState(
+                                streakCount = 0,
+                                lastCompletedDate = null,
+                                activeDate = null,
+                                activeGame = null
+                            )
+                        )
+                        streakStateManager.setReminderShown(false)
+                        showStreakShieldDialog = false
+                        onStreakClick()
+                    }
+                }) {
+                    Text(stringResource(R.string.streak_shield_restart))
                 }
             },
             shape = RoundedCornerShape(20.dp)

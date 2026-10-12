@@ -7,7 +7,7 @@ This guide is for developers who need to build, navigate, and change the Sudoku 
 | | |
 |---|---|
 | **Project** | Sudoku (`com.quickmindgames.sudoku`) |
-| **Purpose** | An offline-first Sudoku game with difficulty-based puzzles, guided lessons, daily streak challenges, points, Hint and 2X Points Booster wallets, a prize wheel, settings, and local statistics. |
+| **Purpose** | An offline-first Sudoku game with difficulty-based puzzles, guided lessons, daily streak challenges, points, Hint, 2X Points Booster, and Streak Shield wallets, a prize wheel, settings, and local statistics. |
 | **Primary language** | Kotlin |
 | **UI** | Android with Jetpack Compose and Material 3 |
 | **Local persistence** | Preferences DataStore for active game, streak, and settings; Room for completed-game statistics |
@@ -59,7 +59,7 @@ The app is organized by responsibility rather than by a strict dependency-inject
 - `presentation/navigation/BottomScreen.kt` — Home, Streak, Rewards, and Settings bottom-tab definitions.
 - `presentation/viewmodel/StatisticsViewModel.kt` — Loads statistics from the repository and exposes `StateFlow` to the UI.
 
-Navigation is hosted by a `NavHost` in `MainActivity.kt`; routes cover the four primary tabs (Home, Streak, Rewards, and Settings), learning, and play modes (`new`, `resume`, `streak`, and `learn`). Home passes the selected 2X Booster option into a new-game route; the difficulty sheet shows the available balance and disables the switch when the wallet is empty. The Rewards tab displays lifetime points, the Hint Wallet, and the 2X Points Wallet alongside a weighted Prize Wheel. An info button on the Hint Wallet card opens a dismissible dialog explaining hint earning and per-game usage. The current wheel includes point prizes, a `+1 Hint` prize, and a `2X` Booster prize. Spin cooldown timestamps are persisted in `AppPreferences`; while cooling down, the wheel hub shows a live countdown and cannot be tapped. Keep route arguments and navigation callbacks coordinated with the corresponding screens.
+Navigation is hosted by a `NavHost` in `MainActivity.kt`; routes cover the four primary tabs (Home, Streak, Rewards, and Settings), learning, and play modes (`new`, `resume`, `streak`, and `learn`). Home passes the selected 2X Booster option into a new-game route; the difficulty sheet shows the available balance and disables the switch when the wallet is empty. The Rewards tab displays lifetime points and the Hint, 2X Points, and Streak Shield wallets alongside a weighted Prize Wheel. An info button on the Hint Wallet card opens a dismissible dialog explaining hint earning and per-game usage. The current wheel includes point prizes, a `+1 Hint` prize, a `2X` Booster prize, and a `+1 Streak Shield` prize. Spin cooldown timestamps are persisted in `AppPreferences`; while cooling down, the wheel hub shows a live countdown and cannot be tapped. Keep route arguments and navigation callbacks coordinated with the corresponding screens.
 
 ### Business Logic
 
@@ -81,7 +81,7 @@ Navigation is hosted by a `NavHost` in `MainActivity.kt`; routes cover the four 
 
 - `data/state/GameState.kt` and `GameStateManager.kt` — Active puzzle model and DataStore serialization/persistence.
 - `data/state/StreakState.kt` and `StreakStateManager.kt` — Daily streak model and its separate DataStore store.
-- `data/preferences/AppPreferences.kt` and `ThemePreferences.kt` — Gameplay and theme preferences, Hint and 2X Points Booster wallet balances, hint reward progress, idempotent wheel rewards, last wheel-spin timestamp, and sound/vibration setting.
+- `data/preferences/AppPreferences.kt` and `ThemePreferences.kt` — Gameplay and theme preferences, Hint, 2X Points Booster, and Streak Shield wallet balances, hint reward progress, idempotent wheel rewards, last wheel-spin timestamp, and sound/vibration setting.
 - `data/rewards/HintRewardRules.kt` — Pure calculations for initial hint grants and point/streak milestone rewards.
 - `data/repository/` — Game and theme adapters plus statistics aggregation.
 - `data/util/GameCompletionRecorder.kt` — Records completed-game outcomes through the statistics repository.
@@ -154,9 +154,9 @@ The UI now labels the gameplay score as **Points** (including the home total, ga
 
 ### Rewards and wheel cooldown
 
-`RewardsScreen` observes lifetime points from `TotalScoreManager` and wallet balances from `AppPreferences`. Before navigation is enabled, `MainSudokuApp` runs the initial Hint Wallet migration (one hint per 1,000 existing lifetime points plus one per five current streak days) and a separate 10-hint release bonus. Both operations add to rather than overwrite the wallet and each has its own persistent completion flag. The migration records its historical grant breakdown and milestone cursors atomically. The breakdown, including the 10 bonus hints, appears in an animated highlighted card once when Rewards is first opened after migration; a persisted display flag prevents it appearing again.
+`RewardsScreen` observes lifetime points from `TotalScoreManager` and wallet balances from `AppPreferences`. Before navigation is enabled, `MainSudokuApp` runs the initial Hint Wallet migration (one hint per 1,000 existing lifetime points plus one per five current streak days), a separate 10-hint release bonus, and a one-time one-shield release bonus. The release bonuses add to rather than overwrite their wallets and each has its own persistent completion flag. The hint migration records its historical grant breakdown and milestone cursors atomically. The breakdown, including the 10 bonus hints, appears in an animated highlighted card once when Rewards is first opened after migration; a persisted display flag prevents it appearing again.
 
-After migration, point milestones award one hint per additional 1,000 lifetime points, including all thresholds crossed by one update. Streak milestones award one hint at each new multiple of five consecutive streak wins. Losing or retrying a streak game does not advance the completed streak count; only a newly completed streak day does. When the streak count resets, milestone progress resets too, allowing the player to earn milestones again in a later streak. Progress cursors and wallet changes are persisted together in `AppPreferences` to prevent duplicate claims. The info dialog opened from the Hint Wallet card explains these earning methods, the Prize Wheel chance to win a hint, and the limit of three hint uses per game. Prize-wheel point rewards update lifetime points through `TotalScoreManager`; the `+1 Hint` and `2X` Booster rewards are credited once for their spin IDs. The current cooldown is `AppPreferences.WHEEL_SPIN_COOLDOWN_MILLIS`; the wheel hub displays a live `Next Spin in HH:MM:SS` countdown while cooling down. Spin and prize-credit sounds use `GameFeedback` and respect the sound/vibration preference.
+After migration, point milestones award one hint per additional 1,000 lifetime points, including all thresholds crossed by one update. Streak milestones award one hint at each new multiple of five consecutive streak wins. Losing or retrying a streak game does not advance the completed streak count; only a newly completed streak day does. When the streak count resets, milestone progress resets too, allowing the player to earn milestones again in a later streak. Progress cursors and wallet changes are persisted together in `AppPreferences` to prevent duplicate claims. The info dialog opened from the Hint Wallet card explains these earning methods, the Prize Wheel chance to win a hint, and the limit of three hint uses per game. Prize-wheel point rewards update lifetime points through `TotalScoreManager`; the `+1 Hint`, `2X` Booster, and `+1 Streak Shield` rewards are credited once for their spin IDs. The current cooldown is `AppPreferences.WHEEL_SPIN_COOLDOWN_MILLIS`; the wheel hub displays a live `Next Spin in HH:MM:SS` countdown while cooling down. Spin and prize-credit sounds use `GameFeedback` and respect the sound/vibration preference.
 
 `component/PrizeWheel.kt` defines `PrizeWheelPrize` with prize type, amount, relative weight, display label, and caption. The wheel uses a fixed five-color dark palette for contrast with its white prize labels, with a gold rim, pointer, and center hub; the Rewards layout centers the wheel vertically within the space below the wallet cards and migration notice. Add future wheel entries there with their desired text and weight; add corresponding payout handling in `RewardsScreen` before a new type grants anything. Keep prize selection and slice-angle calculations based on the same prize list so the pointer lands on the selected segment.
 
@@ -165,6 +165,8 @@ After migration, point milestones award one hint per additional 1,000 lifetime p
 The persistent Hint Wallet balance is stored in Preferences DataStore through `AppPreferences`; it never goes below zero, and hints are not deducted from lifetime points. `SudokuScreen` uses wallet hints exclusively—there are no difficulty-specific free hints—and limits usage to three hints per game in regular and streak modes. A hint is deducted only after checking that the selected cell can be filled. The `hintsUsed` count is saved with an unfinished `GameState`, restored with that game, and reset when a genuinely new game starts. Remote Config still tunes puzzle clue ranges but no longer controls hint availability.
 
 The 2X Points Booster balance is also stored in `AppPreferences`. A player can select one booster in the Home difficulty sheet when the wallet is non-empty. The selected booster is saved in `GameState` and restored on resume; when the game is completed, it doubles the points credited to lifetime points and regular-game statistics, displays the base and doubled totals in the win dialog, and consumes one booster.
+
+The Streak Shield balance is stored in `AppPreferences`, shown in Rewards, and can be earned from the Prize Wheel. A one-time launch bonus credits one shield. When one calendar day has been missed, Home offers to spend one shield to preserve the streak; this advances `lastCompletedDate` by one day without increasing `streakCount`. Each subsequently missed day can consume another shield. Restarting resets the streak immediately, and leaving the streak unprotected until the next day keeps the existing automatic reset and message.
 
 ### Firebase behavior
 
@@ -198,7 +200,7 @@ In tables, `.../` abbreviates `../app/src/main/java/com/quickmindgames/sudoku`.
 
 | File(s) | Responsibility |
 |---|---|
-| `.../presentation/ui/screen/HomeScreen.kt` | New game, resume, difficulty and booster selection, streak, and learning entry points. |
+| `.../presentation/ui/screen/HomeScreen.kt` | New game, resume, difficulty and booster selection, streak shield recovery, streak, and learning entry points. |
 | `.../presentation/ui/screen/SudokuScreen.kt` | Active puzzle interface, gameplay interaction, booster persistence/consumption, and completion scoring. |
 | `.../presentation/ui/screen/LessonScreen.kt` | Guided lesson experience and completion callback. |
 | `.../presentation/ui/screen/StreakScreen.kt` | Streak challenge and progress interface. |
@@ -206,7 +208,7 @@ In tables, `.../` abbreviates `../app/src/main/java/com/quickmindgames/sudoku`.
 | `.../presentation/ui/screen/SettingsScreen.kt` | User preferences interface. |
 | `.../presentation/ui/screen/StatisticsScreen.kt` | Overall and category statistics presentation. |
 | `.../presentation/viewmodel/StatisticsViewModel.kt` | Statistics loading and UI state. |
-| `.../component/PrizeWheel.kt` | Reusable animated prize wheel, point/hint/booster prize display model, center-hub spin action/cooldown overlay, and pointer drawing. |
+| `.../component/PrizeWheel.kt` | Reusable animated prize wheel, point/hint/booster/shield prize display model, center-hub spin action/cooldown overlay, and pointer drawing. |
 | `.../component/` | Reusable Compose UI: difficulty cards, lesson cards/grid/dialog, number pad, prize wheel, Sudoku board/grid, statistics, and streak path/node/summary. |
 | `.../presentation/ui/theme/Color.kt`, `Theme.kt`, `Type.kt` | App colors, Material theme, and typography. |
 | `.../presentation/util/ShakeModifier.kt` | Compose shake animation modifier. |
@@ -232,7 +234,7 @@ In tables, `.../` abbreviates `../app/src/main/java/com/quickmindgames/sudoku`.
 | `.../data/state/GameStateManager.kt` | DataStore read/write/clear operations for resumable games. |
 | `.../data/state/StreakState.kt` | Streak progress and optional active game model. |
 | `.../data/state/StreakStateManager.kt` | DataStore operations for streak progress and reminder markers. |
-| `.../data/preferences/AppPreferences.kt` | Gameplay preference flows/setters, persistent Hint and 2X Points Booster wallets, hint migration/milestones, per-spin reward idempotency, booster consumption, and wheel last-spin timestamp/cooldown constant. |
+| `.../data/preferences/AppPreferences.kt` | Gameplay preference flows/setters, persistent Hint, 2X Points Booster, and Streak Shield wallets, hint migration/milestones, per-spin reward idempotency, wallet consumption, and wheel last-spin timestamp/cooldown constant. |
 | `.../data/rewards/HintRewardRules.kt` | Initial wallet grant and point/streak milestone calculation rules. |
 | `.../data/preferences/ThemePreferences.kt` | Theme preference persistence. |
 | `.../data/source/ThemePreferencesDataSource.kt` | Theme preference source abstraction. |

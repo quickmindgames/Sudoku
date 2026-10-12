@@ -26,6 +26,7 @@ class AppPreferences internal constructor(
         // 20s = 20 * 1000L
         const val WHEEL_SPIN_COOLDOWN_MILLIS = 10 * 1000L
         const val HINT_WALLET_RELEASE_BONUS = 10
+        const val STREAK_SHIELD_WALLET_RELEASE_BONUS = 1
 
         @Volatile
         private var instance: AppPreferences? = null
@@ -47,6 +48,9 @@ class AppPreferences internal constructor(
     private val HINT_WALLET_KEY = intPreferencesKey("hint_wallet")
     private val DOUBLE_POINTS_BOOSTER_WALLET_KEY =
         intPreferencesKey("double_points_booster_wallet")
+    private val STREAK_SHIELD_WALLET_KEY = intPreferencesKey("streak_shield_wallet")
+    private val STREAK_SHIELD_RELEASE_BONUS_CREDITED_KEY =
+        booleanPreferencesKey("streak_shield_release_bonus_credited")
     private val HINT_MIGRATION_COMPLETE_KEY = booleanPreferencesKey("hint_migration_complete")
     private val HINT_MIGRATION_SUMMARY_SHOWN_KEY =
         booleanPreferencesKey("hint_migration_summary_shown")
@@ -58,6 +62,8 @@ class AppPreferences internal constructor(
     private val OBSERVED_STREAK_DAYS_KEY = intPreferencesKey("observed_streak_days")
     private val LAST_HINT_SPIN_ID_KEY = stringPreferencesKey("last_hint_spin_id")
     private val LAST_BOOSTER_SPIN_ID_KEY = stringPreferencesKey("last_booster_spin_id")
+    private val LAST_STREAK_SHIELD_SPIN_ID_KEY =
+        stringPreferencesKey("last_streak_shield_spin_id")
 
     val hintWallet: Flow<Int> = dataStore.data.map { preferences ->
         preferences[HINT_WALLET_KEY] ?: 0
@@ -65,6 +71,10 @@ class AppPreferences internal constructor(
 
     val doublePointsBoosterWallet: Flow<Int> = dataStore.data.map { preferences ->
         preferences[DOUBLE_POINTS_BOOSTER_WALLET_KEY] ?: 0
+    }
+
+    val streakShieldWallet: Flow<Int> = dataStore.data.map { preferences ->
+        preferences[STREAK_SHIELD_WALLET_KEY] ?: 0
     }
 
     val initialPointHints: Flow<Int> = dataStore.data.map { preferences ->
@@ -192,6 +202,21 @@ class AppPreferences internal constructor(
         return granted
     }
 
+    suspend fun grantStreakShieldReleaseBonusOnce(): Boolean {
+        var granted = false
+        dataStore.edit { preferences ->
+            if (preferences[STREAK_SHIELD_RELEASE_BONUS_CREDITED_KEY] != true) {
+                preferences[STREAK_SHIELD_WALLET_KEY] = addWithoutOverflow(
+                    preferences[STREAK_SHIELD_WALLET_KEY] ?: 0,
+                    STREAK_SHIELD_WALLET_RELEASE_BONUS
+                )
+                preferences[STREAK_SHIELD_RELEASE_BONUS_CREDITED_KEY] = true
+                granted = true
+            }
+        }
+        return granted
+    }
+
     suspend fun claimHintMigrationSummaryOnce(): Boolean {
         var shouldShow = false
         dataStore.edit { preferences ->
@@ -293,6 +318,23 @@ class AppPreferences internal constructor(
         return added
     }
 
+    suspend fun addWheelStreakShieldOnce(spinId: String, amount: Int): Boolean {
+        require(spinId.isNotBlank()) { "Spin ID cannot be blank." }
+        require(amount > 0) { "Streak shield amount must be greater than zero." }
+        var added = false
+        dataStore.edit { preferences ->
+            if (preferences[LAST_STREAK_SHIELD_SPIN_ID_KEY] != spinId) {
+                preferences[STREAK_SHIELD_WALLET_KEY] = addWithoutOverflow(
+                    preferences[STREAK_SHIELD_WALLET_KEY] ?: 0,
+                    amount
+                )
+                preferences[LAST_STREAK_SHIELD_SPIN_ID_KEY] = spinId
+                added = true
+            }
+        }
+        return added
+    }
+
     suspend fun consumeDoublePointsBooster(): Boolean {
         var consumed = false
         dataStore.edit { preferences ->
@@ -303,6 +345,20 @@ class AppPreferences internal constructor(
                 consumed = true
             } else {
                 preferences[DOUBLE_POINTS_BOOSTER_WALLET_KEY] = 0
+            }
+        }
+        return consumed
+    }
+
+    suspend fun consumeStreakShield(): Boolean {
+        var consumed = false
+        dataStore.edit { preferences ->
+            val balance = (preferences[STREAK_SHIELD_WALLET_KEY] ?: 0).coerceAtLeast(0)
+            if (balance > 0) {
+                preferences[STREAK_SHIELD_WALLET_KEY] = balance - 1
+                consumed = true
+            } else {
+                preferences[STREAK_SHIELD_WALLET_KEY] = 0
             }
         }
         return consumed

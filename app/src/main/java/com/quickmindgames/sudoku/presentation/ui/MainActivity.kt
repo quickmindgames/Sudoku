@@ -151,6 +151,7 @@ fun MainSudokuApp() {
         } ?: 0
         appPreferences.migrateHintWallet(lifetimePoints, currentStreakDays)
         appPreferences.grantHintWalletReleaseBonusOnce()
+        appPreferences.grantStreakShieldReleaseBonusOnce()
         appPreferences.reconcileHintMilestones(lifetimePoints, currentStreakDays)
         hintWalletInitialized = true
     }

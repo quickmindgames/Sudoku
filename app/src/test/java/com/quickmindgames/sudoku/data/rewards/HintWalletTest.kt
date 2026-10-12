@@ -140,6 +140,33 @@ class HintWalletTest {
     }
 
     @Test
+    fun wheelShieldsAccumulateOncePerSpinAndCannotBeSpentBelowZero() = runBlocking {
+        val preferences = AppPreferences(InMemoryPreferencesDataStore())
+
+        assertTrue(preferences.addWheelStreakShieldOnce("spin-1", 1))
+        assertFalse(preferences.addWheelStreakShieldOnce("spin-1", 1))
+        assertTrue(preferences.addWheelStreakShieldOnce("spin-2", 2))
+        assertEquals(3, preferences.streakShieldWallet.first())
+
+        assertTrue(preferences.consumeStreakShield())
+        assertTrue(preferences.consumeStreakShield())
+        assertTrue(preferences.consumeStreakShield())
+        assertFalse(preferences.consumeStreakShield())
+        assertEquals(0, preferences.streakShieldWallet.first())
+    }
+
+    @Test
+    fun streakShieldLaunchBonusIsGrantedOnlyOnceAndAddsToExistingBalance() = runBlocking {
+        val preferences = AppPreferences(InMemoryPreferencesDataStore())
+        preferences.addWheelStreakShieldOnce("spin-1", 2)
+
+        assertTrue(preferences.grantStreakShieldReleaseBonusOnce())
+        assertEquals(3, preferences.streakShieldWallet.first())
+        assertFalse(preferences.grantStreakShieldReleaseBonusOnce())
+        assertEquals(3, preferences.streakShieldWallet.first())
+    }
+
+    @Test
     fun gameStatePersistsHintUsageAndLegacySavesDefaultToZero() {
         val state = sampleGameState(hintsUsed = 2, hasDoublePointsBooster = true)
         val serialized = state.serialize()

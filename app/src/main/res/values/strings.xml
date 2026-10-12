@@ -3,6 +3,26 @@
     <string name="app_name_full">Sudoku – Classic Puzzle Game</string>
     <string name="lbl_puzzle">Classic Puzzle Game</string>
     <string name="lbl_lets_practice">Let\'s Practice</string>
+    <string name="streak_shield_wallet">Shield Wallet</string>
+    <string name="streak_shield_prompt_title">Save Your Streak?</string>
+    <string name="streak_shield_prompt_description">You missed playing a streak yesterday! Your %1$d-day streak is at risk.\n\n%2$s\n\nUse 1 shield to preserve your streak.</string>
+    <plurals name="streak_shields_available">
+        <item quantity="one">1 Streak Shield available.</item>
+        <item quantity="other">%1$d Streak Shields available.</item>
+    </plurals>
+    <string name="streak_shield_use_one">Use 1 Shield</string>
+    <string name="streak_shield_restart">Restart the streak</string>
+    <string name="streak_shield_unavailable">No Streak Shields are available.</string>
+    <string name="streak_shield_won">You won +%1$d streak shield!</string>
+    <string name="points_wallet_info_title">Total Points</string>
+    <string name="points_wallet_info">Your total points are earned by completing games and winning point prizes from the Prize Wheel.</string>
+    <string name="hint_wallet_info_title">Hint Wallet</string>
+    <string name="booster_wallet_info_title">2X Points Wallet</string>
+    <string name="booster_wallet_info">Use a 2X Points Booster on a new game to double the points awarded when you complete it. One booster is consumed per completed boosted game.</string>
+    <string name="shield_wallet_info_title">Shield Wallet</string>
+    <string name="shield_wallet_info">Use one Streak Shield to protect one missed day and preserve your streak count. Shields can be earned from the Prize Wheel.</string>
+    <string name="rewards_wallet_summary_title">🎉 Wallet rewards added!</string>
+    <string name="rewards_wallet_summary_details">💡 Hints added: %1$d points · %2$d streak · %3$d bonus\n2X Boosters: %4$d available (Prize Wheel)\n🔥 Shields: %5$d available (includes +%6$d one-time bonus and wheel rewards)</string>
     <string name="lbl_how_to_play">How to play?</string>
     <string name="lbl_tutorial">Tutorial</string>
     <string name="lbl_practice_mode">Practice Mode</string>

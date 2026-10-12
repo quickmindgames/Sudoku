@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -47,11 +48,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.quickmindgames.sudoku.R
 import com.quickmindgames.sudoku.component.PrizeType
 import com.quickmindgames.sudoku.component.PrizeWheel
 import com.quickmindgames.sudoku.component.PrizeWheelPrizes
@@ -66,6 +70,13 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import kotlin.random.Random
 
+private enum class WalletInfo {
+    POINTS,
+    HINTS,
+    BOOSTERS,
+    SHIELDS
+}
+
 @Preview
 @Composable
 fun RewardsScreen(modifier: Modifier = Modifier) {
@@ -77,6 +88,7 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
     val hintWallet by appPreferences.hintWallet.collectAsState(initial = 0)
     val doublePointsBoosterWallet by appPreferences.doublePointsBoosterWallet
         .collectAsState(initial = 0)
+    val streakShieldWallet by appPreferences.streakShieldWallet.collectAsState(initial = 0)
     val initialPointHints by appPreferences.initialPointHints.collectAsState(initial = 0)
     val initialStreakHints by appPreferences.initialStreakHints.collectAsState(initial = 0)
     val soundAndVibrationEnabled by appPreferences.soundAndVibration.collectAsState(initial = true)
@@ -89,7 +101,7 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
     var animateNextPointsUpdate by remember { mutableStateOf(false) }
     var isSpinning by remember { mutableStateOf(false) }
     var showMigrationSummary by remember { mutableStateOf(false) }
-    var showHintEarningInfo by remember { mutableStateOf(false) }
+    var selectedWalletInfo by remember { mutableStateOf<WalletInfo?>(null) }
     val cooldownRemainingMillis = lastSpinMillis?.let {
         (it + AppPreferences.WHEEL_SPIN_COOLDOWN_MILLIS - currentTimeMillis).coerceAtLeast(0L)
     }
@@ -166,109 +178,220 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
             //verticalArrangement = Arrangement.Center
         ) {
 
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Column(
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("Total Points", fontSize = 12.sp)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text(text = "⭐", fontSize = 18.sp)
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                text = "%,d".format(pointsCounter.value.roundToInt()),
-                                fontSize = 18.sp,
-                                style = MaterialTheme.typography.headlineSmall
-                            )
-                        }
-                    }
-
-                }
-
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .weight(1f)
+                            .height(82.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
                     ) {
                         Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 4.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Hint Wallet", fontSize = 12.sp)
-                            IconButton(
-                                onClick = { showHintEarningInfo = true },
-                                modifier = Modifier.size(24.dp)
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Info,
-                                    contentDescription = "How to earn hints",
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.size(18.dp)
+                                Text(
+                                    text = "Total Points",
+                                    fontSize = 16.sp,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 2,
+                                    modifier = Modifier.height(28.dp)
                                 )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text(text = "⭐", fontSize = 16.sp)
+                                    Spacer(Modifier.width(2.dp))
+                                    Text(
+                                        text = "%,d".format(pointsCounter.value.roundToInt()),
+                                        fontSize = walletCountFontSize(
+                                            pointsCounter.value.roundToInt()
+                                        ),
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Clip
+                                    )
+                                }
+                            }
+                            walletInfoButton("About total points") {
+                                selectedWalletInfo = WalletInfo.POINTS
                             }
                         }
+                    }
+
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(82.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    ) {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 4.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(text = "💡", fontSize = 18.sp)
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                text = "%,d".format(hintWallet),
-                                fontSize = 18.sp,
-                                style = MaterialTheme.typography.headlineSmall
-                            )
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "Hint Wallet",
+                                    fontSize = 16.sp,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 2,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(28.dp)
+                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text(text = "💡", fontSize = 16.sp)
+                                    Spacer(Modifier.width(2.dp))
+                                    Text(
+                                        text = "%,d".format(hintWallet),
+                                        fontSize = walletCountFontSize(hintWallet),
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Clip
+                                    )
+                                }
+                            }
+                            walletInfoButton("How to earn hints") {
+                                selectedWalletInfo = WalletInfo.HINTS
+                            }
                         }
                     }
                 }
 
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Column(
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .weight(1f)
+                            .height(82.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
                     ) {
-                        Text("2X Points Wallet", fontSize = 12.sp, textAlign = TextAlign.Center)
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 4.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(text = "2X", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                text = "%,d".format(doublePointsBoosterWallet),
-                                fontSize = 18.sp,
-                                style = MaterialTheme.typography.headlineSmall
-                            )
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "2X Points Wallet",
+                                    fontSize = 16.sp,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 2,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(28.dp)
+                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = "2X",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(Modifier.width(2.dp))
+                                    Text(
+                                        text = "%,d".format(doublePointsBoosterWallet),
+                                        fontSize = walletCountFontSize(doublePointsBoosterWallet),
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Clip
+                                    )
+                                }
+                            }
+                            walletInfoButton("About the 2X Points Wallet") {
+                                selectedWalletInfo = WalletInfo.BOOSTERS
+                            }
+                        }
+                    }
+
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(82.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 4.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.streak_shield_wallet),
+                                    fontSize = 16.sp,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 2,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(28.dp)
+                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text(text = "🔥", fontSize = 16.sp)
+                                    Spacer(Modifier.width(2.dp))
+                                    Text(
+                                        text = "%,d".format(streakShieldWallet),
+                                        fontSize = walletCountFontSize(streakShieldWallet),
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Clip
+                                    )
+                                }
+                            }
+                            walletInfoButton("About the Shield Wallet") {
+                                selectedWalletInfo = WalletInfo.SHIELDS
+                            }
                         }
                     }
                 }
@@ -296,28 +419,35 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 14.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalArrangement = Arrangement.spacedBy(3.dp)
                         ) {
                             Text(
-                                text = "🎉 Hint Wallet rewards added!",
-                                style = MaterialTheme.typography.titleMedium,
+                                text = stringResource(R.string.rewards_wallet_summary_title),
+                                style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                textAlign = TextAlign.Center
+                                textAlign = TextAlign.Start
                             )
-                            Spacer(modifier = Modifier.size(6.dp))
                             Text(
-                                text = "Hints from lifetime points: $initialPointHints\n" +
-                                        "Hints from your streak: $initialStreakHints\n" +
-                                        "Bonus hints: ${AppPreferences.HINT_WALLET_RELEASE_BONUS}",
+                                text = stringResource(
+                                    R.string.rewards_wallet_summary_details,
+                                    initialPointHints,
+                                    initialStreakHints,
+                                    AppPreferences.HINT_WALLET_RELEASE_BONUS,
+                                    doublePointsBoosterWallet,
+                                    streakShieldWallet,
+                                    AppPreferences.STREAK_SHIELD_WALLET_RELEASE_BONUS
+                                ),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                textAlign = TextAlign.Center
+                                textAlign = TextAlign.Start,
+                                lineHeight = 16.sp
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.size(24.dp))
+
+                    Spacer(modifier = Modifier.size(12.dp))
                 }
             }
 
@@ -379,14 +509,33 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                                     }
 
                                     PrizeType.BOOSTER -> {
-                                        val credited = appPreferences.addWheelDoublePointsBoosterOnce(
+                                        val credited =
+                                            appPreferences.addWheelDoublePointsBoosterOnce(
+                                                spinId = spinStartedAt.toString(),
+                                                amount = prize.amount
+                                            )
+                                        if (credited) {
+                                            Toast.makeText(
+                                                context,
+                                                "You won +${prize.amount} 2X points booster!",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                            gameFeedback.playPrizeCredited(soundAndVibrationEnabled)
+                                        }
+                                    }
+
+                                    PrizeType.STREAK_SHIELD -> {
+                                        val credited = appPreferences.addWheelStreakShieldOnce(
                                             spinId = spinStartedAt.toString(),
                                             amount = prize.amount
                                         )
                                         if (credited) {
                                             Toast.makeText(
                                                 context,
-                                                "You won +${prize.amount} 2X points booster!",
+                                                context.getString(
+                                                    R.string.streak_shield_won,
+                                                    prize.amount
+                                                ),
                                                 Toast.LENGTH_LONG
                                             ).show()
                                             gameFeedback.playPrizeCredited(soundAndVibrationEnabled)
@@ -407,20 +556,26 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
 
         }
 
-        if (showHintEarningInfo) {
+        if (selectedWalletInfo != null) {
             AlertDialog(
-                onDismissRequest = { showHintEarningInfo = false },
+                onDismissRequest = { selectedWalletInfo = null },
                 title = {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "How to earn hints",
+                            text = when (selectedWalletInfo) {
+                                WalletInfo.POINTS -> stringResource(R.string.points_wallet_info_title)
+                                WalletInfo.HINTS -> stringResource(R.string.hint_wallet_info_title)
+                                WalletInfo.BOOSTERS -> stringResource(R.string.booster_wallet_info_title)
+                                WalletInfo.SHIELDS -> stringResource(R.string.shield_wallet_info_title)
+                                null -> ""
+                            },
                             modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.titleLarge
                         )
-                        IconButton(onClick = { showHintEarningInfo = false }) {
+                        IconButton(onClick = { selectedWalletInfo = null }) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close"
@@ -430,17 +585,77 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                 },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("• Earn 1 hint for every 1,000 points.")
-                        Text("• Earn 1 hint for every 5 consecutive streak days.")
-                        Text("• Spin the Prize Wheel for a chance to win +1 hint.")
-                        Text(
-                            text = "You can use up to 3 hints in each game.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        when (selectedWalletInfo) {
+                            WalletInfo.POINTS ->
+                                Text(
+                                    stringResource(R.string.points_wallet_info),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+
+                            WalletInfo.HINTS -> {
+                                Text(
+                                    "• Earn 1 hint for every 1,000 points.",
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Text(
+                                    "• Earn 1 hint for every 5 consecutive streak days.",
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Text(
+                                    "• Spin the Prize Wheel for a chance to win +1 hint.",
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Text(
+                                    text = "You can use up to 3 hints in each game.",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
+
+                            WalletInfo.BOOSTERS ->
+                                Text(
+                                    stringResource(R.string.booster_wallet_info),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+
+                            WalletInfo.SHIELDS ->
+                                Text(
+                                    stringResource(R.string.shield_wallet_info),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+
+                            null -> Unit
+                        }
                     }
                 },
                 confirmButton = {}
             )
         }
+    }
+}
+
+private fun walletCountFontSize(value: Int) = when ("%,d".format(value).length) {
+    in 0..4 -> 14.sp
+    5 -> 12.sp
+    6 -> 11.sp
+    7 -> 10.sp
+    else -> 9.sp
+}
+
+@Composable
+private fun walletInfoButton(
+    contentDescription: String,
+    onClick: () -> Unit
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.size(32.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.Info,
+            contentDescription = contentDescription,
+            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier.size(24.dp)
+        )
     }
 }

@@ -43,7 +43,8 @@ import com.quickmindgames.sudoku.R
 enum class PrizeType {
     POINTS,
     HINTS,
-    BOOSTER
+    BOOSTER,
+    STREAK_SHIELD
 }
 
 // Add custom prizes with their own wheel text, type, and award amount.
@@ -59,13 +60,13 @@ data class PrizeWheelPrize(
 }
 
 val PrizeWheelPrizes = listOf(
-    PrizeWheelPrize(label = "+5", type = PrizeType.POINTS, amount = 5, weight = 4),
     PrizeWheelPrize(label = "+10", type = PrizeType.POINTS, amount = 10, weight = 4),
     PrizeWheelPrize(label = "+20", type = PrizeType.POINTS, amount = 20, 3),
-    PrizeWheelPrize(label = "+50", type = PrizeType.POINTS, amount = 50),
+    PrizeWheelPrize(label = "+50", type = PrizeType.POINTS, amount = 50, weight = 2),
     PrizeWheelPrize(label = "+100", type = PrizeType.POINTS, amount = 100),
-    PrizeWheelPrize(label = "+1", type = PrizeType.HINTS, amount = 1),
-    PrizeWheelPrize(label = "2X", type = PrizeType.BOOSTER, amount = 1)
+    PrizeWheelPrize(label = "💡", type = PrizeType.HINTS, amount = 1),
+    PrizeWheelPrize(label = "2X", type = PrizeType.BOOSTER, amount = 1),
+    PrizeWheelPrize(label = "🔥", type = PrizeType.STREAK_SHIELD, amount = 1)
 )
 
 fun weightedPrizeIndex(
@@ -136,14 +137,14 @@ fun PrizeWheel(
                 color = android.graphics.Color.WHITE
                 textAlign = Paint.Align.CENTER
                 // Adjust these relative sizes to scale the labels with the wheel.
-                textSize = radius * 0.18f
+                textSize = radius * 0.17f
                 typeface = boldTypeface
                 setShadowLayer(radius * 0.025f, 0f, radius * 0.018f, 0x99000000.toInt())
             }
             val subtitlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = android.graphics.Color.WHITE
                 textAlign = Paint.Align.CENTER
-                textSize = radius * 0.08f
+                textSize = radius * 0.07f
                 typeface = boldTypeface
             }
 
@@ -173,6 +174,7 @@ fun PrizeWheel(
                 val prizeCaption = when (prize.type) {
                     PrizeType.POINTS, PrizeType.BOOSTER -> "POINTS"
                     PrizeType.HINTS -> "HINT"
+                    PrizeType.STREAK_SHIELD -> "SHIELD"
                 }
                 drawIntoCanvas { canvas ->
                     canvas.nativeCanvas.drawText(
@@ -185,7 +187,7 @@ fun PrizeWheel(
                         prizeCaption,
                         labelX,
                         // This vertical offset controls the gap beneath the prize amount.
-                        labelY + radius * 0.2f,
+                        labelY + radius * 0.18f,
                         subtitlePaint
                     )
                 }
