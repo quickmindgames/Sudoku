@@ -31,6 +31,7 @@ For detailed onboarding and a file map, see `docs/SUDOKU_KNOWLEDGE.md`.
 - Follow the existing pattern of the feature you are touching: singleton accessors, repositories, and Compose `remember`. Do not introduce a DI framework or new architecture unless explicitly asked.
 - `SudokuScreen` coordinates gameplay directly. `StatisticsViewModel` is the only main ViewModel. Do not move logic into new ViewModels unless asked.
 - Package layout: `presentation/` (screens, navigation, theme), `component/` (reusable Compose UI), `domain/` (generator, validator, models, repository contracts), `data/` (state, preferences, repositories, Room), `utils/`.
+- Keep each screen's entry-point composable in its `presentation/ui/screen` file. Put every supporting UI `@Composable` in its own Kotlin file under `component/`; do not define helper or child composables in a screen file. Keep screen-specific state and orchestration in the screen and pass the required values and callbacks into its components.
 - Add new dependencies as versions in `gradle/libs.versions.toml` and aliases in the Gradle scripts.
 - Put user-facing text in `app/src/main/res/values/strings.xml`.
 - Keep changes minimal. Trace the full path (screen, state/repository, persistence) and preserve existing behavior outside the requested change.

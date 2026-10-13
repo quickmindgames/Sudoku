@@ -1,13 +1,9 @@
 package com.quickmindgames.sudoku.presentation.ui.screen
 
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,15 +20,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,6 +42,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -59,6 +56,9 @@ import com.quickmindgames.sudoku.R
 import com.quickmindgames.sudoku.component.PrizeType
 import com.quickmindgames.sudoku.component.PrizeWheel
 import com.quickmindgames.sudoku.component.PrizeWheelPrizes
+import com.quickmindgames.sudoku.component.WalletInfoButton
+import com.quickmindgames.sudoku.component.WalletInfoSection
+import com.quickmindgames.sudoku.component.WalletRewardSummaryRow
 import com.quickmindgames.sudoku.component.weightedPrizeIndex
 import com.quickmindgames.sudoku.data.preferences.AppPreferences
 import com.quickmindgames.sudoku.data.score.TotalScoreManager
@@ -79,6 +79,7 @@ private enum class WalletInfo {
 
 @Preview
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun RewardsScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val totalScoreManager = remember { TotalScoreManager.getInstance(context) }
@@ -230,7 +231,7 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                                     )
                                 }
                             }
-                            walletInfoButton("About total points") {
+                            WalletInfoButton("About total points") {
                                 selectedWalletInfo = WalletInfo.POINTS
                             }
                         }
@@ -280,7 +281,7 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                                     )
                                 }
                             }
-                            walletInfoButton("How to earn hints") {
+                            WalletInfoButton("How to earn hints") {
                                 selectedWalletInfo = WalletInfo.HINTS
                             }
                         }
@@ -339,7 +340,7 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                                     )
                                 }
                             }
-                            walletInfoButton("About the 2X Points Wallet") {
+                            WalletInfoButton("About the 2X Points Wallet") {
                                 selectedWalletInfo = WalletInfo.BOOSTERS
                             }
                         }
@@ -389,65 +390,11 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                                     )
                                 }
                             }
-                            walletInfoButton("About the Shield Wallet") {
+                            WalletInfoButton("About the Shield Wallet") {
                                 selectedWalletInfo = WalletInfo.SHIELDS
                             }
                         }
                     }
-                }
-            }
-
-            Spacer(modifier = Modifier.size(24.dp))
-
-            AnimatedVisibility(
-                visible = showMigrationSummary,
-                enter = fadeIn(animationSpec = tween(1000)) +
-                        slideInVertically(
-                            animationSpec = tween(1000, easing = FastOutSlowInEasing),
-                            initialOffsetY = { it / 3 }
-                        ) +
-                        expandVertically(animationSpec = tween(1000))
-            ) {
-                Column {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                        )
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 10.dp),
-                            verticalArrangement = Arrangement.spacedBy(3.dp)
-                        ) {
-                            Text(
-                                text = stringResource(R.string.rewards_wallet_summary_title),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                textAlign = TextAlign.Start
-                            )
-                            Text(
-                                text = stringResource(
-                                    R.string.rewards_wallet_summary_details,
-                                    initialPointHints,
-                                    initialStreakHints,
-                                    AppPreferences.HINT_WALLET_RELEASE_BONUS,
-                                    doublePointsBoosterWallet,
-                                    streakShieldWallet,
-                                    AppPreferences.STREAK_SHIELD_WALLET_RELEASE_BONUS
-                                ),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                textAlign = TextAlign.Start,
-                                lineHeight = 16.sp
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.size(12.dp))
                 }
             }
 
@@ -556,80 +503,242 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
 
         }
 
-        if (selectedWalletInfo != null) {
-            AlertDialog(
-                onDismissRequest = { selectedWalletInfo = null },
-                title = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = when (selectedWalletInfo) {
-                                WalletInfo.POINTS -> stringResource(R.string.points_wallet_info_title)
-                                WalletInfo.HINTS -> stringResource(R.string.hint_wallet_info_title)
-                                WalletInfo.BOOSTERS -> stringResource(R.string.booster_wallet_info_title)
-                                WalletInfo.SHIELDS -> stringResource(R.string.shield_wallet_info_title)
-                                null -> ""
-                            },
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                        IconButton(onClick = { selectedWalletInfo = null }) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Close"
-                            )
-                        }
-                    }
-                },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        when (selectedWalletInfo) {
-                            WalletInfo.POINTS ->
-                                Text(
-                                    stringResource(R.string.points_wallet_info),
-                                    style = MaterialTheme.typography.bodyLarge
+        if (showMigrationSummary) {
+            BasicAlertDialog(
+                onDismissRequest = { showMigrationSummary = false }
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = 420.dp),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    brush = Brush.horizontalGradient(
+                                        listOf(Color(0xFF1565C0), Color(0xFF6A1B9A))
+                                    ),
+                                    shape = RoundedCornerShape(
+                                        topStart = 28.dp,
+                                        topEnd = 28.dp
+                                    )
                                 )
-
-                            WalletInfo.HINTS -> {
+                                .padding(horizontal = 20.dp, vertical = 24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("🎁", fontSize = 44.sp)
+                                Spacer(Modifier.height(8.dp))
                                 Text(
-                                    "• Earn 1 hint for every 1,000 points.",
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-                                Text(
-                                    "• Earn 1 hint for every 5 consecutive streak days.",
-                                    style = MaterialTheme.typography.bodyLarge
+                                    text = stringResource(R.string.rewards_wallet_summary_title),
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.White,
+                                    textAlign = TextAlign.Center
                                 )
                                 Text(
-                                    "• Spin the Prize Wheel for a chance to win +1 hint.",
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-                                Text(
-                                    text = "You can use up to 3 hints in each game.",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.bodyLarge
+                                    text = stringResource(R.string.rewards_welcome_subtitle),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.White.copy(alpha = 0.85f),
+                                    textAlign = TextAlign.Center
                                 )
                             }
+                        }
 
-                            WalletInfo.BOOSTERS ->
-                                Text(
-                                    stringResource(R.string.booster_wallet_info),
-                                    style = MaterialTheme.typography.bodyLarge
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 18.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            val hintGrantDetails = buildList {
+                                if (initialPointHints > 0) {
+                                    add(
+                                        context.getString(
+                                            R.string.rewards_welcome_points_hints,
+                                            initialPointHints
+                                        )
+                                    )
+                                }
+                                if (initialStreakHints > 0) {
+                                    add(
+                                        context.getString(
+                                            R.string.rewards_welcome_streak_hints,
+                                            initialStreakHints
+                                        )
+                                    )
+                                }
+                                if (AppPreferences.HINT_WALLET_RELEASE_BONUS > 0) {
+                                    add(
+                                        context.getString(
+                                            R.string.rewards_welcome_bonus_hints,
+                                            AppPreferences.HINT_WALLET_RELEASE_BONUS
+                                        )
+                                    )
+                                }
+                            }.joinToString(" · ")
+
+                            WalletRewardSummaryRow(
+                                emoji = "💡",
+                                title = stringResource(R.string.hint_wallet_info_title),
+                                amount = initialPointHints +
+                                        initialStreakHints +
+                                        AppPreferences.HINT_WALLET_RELEASE_BONUS,
+                                detail = hintGrantDetails
+                            )
+                            WalletRewardSummaryRow(
+                                emoji = "🔥",
+                                title = stringResource(R.string.shield_wallet_info_title),
+                                amount = streakShieldWallet,
+                                detail = stringResource(
+                                    R.string.rewards_welcome_shields_detail,
+                                    AppPreferences.STREAK_SHIELD_WALLET_RELEASE_BONUS
                                 )
-
-                            WalletInfo.SHIELDS ->
-                                Text(
-                                    stringResource(R.string.shield_wallet_info),
-                                    style = MaterialTheme.typography.bodyLarge
+                            )
+                            Button(
+                                onClick = { showMigrationSummary = false },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
                                 )
-
-                            null -> Unit
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.rewards_welcome_button),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
                     }
-                },
-                confirmButton = {}
-            )
+                }
+            }
+        }
+
+        if (selectedWalletInfo != null) {
+            val infoTitle = when (selectedWalletInfo) {
+                WalletInfo.POINTS -> stringResource(R.string.points_wallet_info_title)
+                WalletInfo.HINTS -> stringResource(R.string.hint_wallet_info_title)
+                WalletInfo.BOOSTERS -> stringResource(R.string.booster_wallet_info_title)
+                WalletInfo.SHIELDS -> stringResource(R.string.shield_wallet_info_title)
+                null -> ""
+            }
+            BasicAlertDialog(
+                onDismissRequest = { selectedWalletInfo = null }
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = 420.dp),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+                ) {
+                    Column {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    brush = Brush.horizontalGradient(
+                                        listOf(Color(0xFF1565C0), Color(0xFF6A1B9A))
+                                    ),
+                                    shape = RoundedCornerShape(
+                                        topStart = 28.dp,
+                                        topEnd = 28.dp
+                                    )
+                                )
+                                .padding(start = 20.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = infoTitle,
+                                modifier = Modifier.fillMaxWidth(),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 18.dp),
+                            verticalArrangement = Arrangement.spacedBy(18.dp)
+                        ) {
+                            when (selectedWalletInfo) {
+                                WalletInfo.POINTS -> {
+                                    WalletInfoSection(
+                                        label = stringResource(R.string.wallet_info_earn_label),
+                                        details = listOf(
+                                            stringResource(R.string.points_wallet_earn)
+                                        )
+                                    )
+                                }
+
+                                WalletInfo.HINTS -> {
+                                    WalletInfoSection(
+                                        label = stringResource(R.string.wallet_info_earn_label),
+                                        details = listOf(
+                                            stringResource(R.string.hint_wallet_earn_points),
+                                            stringResource(R.string.hint_wallet_earn_streak),
+                                            stringResource(R.string.hint_wallet_earn_wheel)
+                                        )
+                                    )
+                                    WalletInfoSection(
+                                        label = stringResource(R.string.wallet_info_use_label),
+                                        details = listOf(
+                                            stringResource(R.string.hint_wallet_use)
+                                        )
+                                    )
+                                }
+
+                                WalletInfo.BOOSTERS -> {
+                                    WalletInfoSection(
+                                        label = stringResource(R.string.wallet_info_earn_label),
+                                        details = listOf(
+                                            stringResource(R.string.booster_wallet_earn)
+                                        )
+                                    )
+                                    WalletInfoSection(
+                                        label = stringResource(R.string.wallet_info_use_label),
+                                        details = listOf(
+                                            stringResource(R.string.booster_wallet_info)
+                                        )
+                                    )
+                                }
+
+                                WalletInfo.SHIELDS -> {
+                                    WalletInfoSection(
+                                        label = stringResource(R.string.wallet_info_earn_label),
+                                        details = listOf(
+                                            stringResource(R.string.shield_wallet_earn)
+                                        )
+                                    )
+                                    WalletInfoSection(
+                                        label = stringResource(R.string.wallet_info_use_label),
+                                        details = listOf(
+                                            stringResource(R.string.shield_wallet_info)
+                                        )
+                                    )
+                                }
+
+                                null -> Unit
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -640,22 +749,4 @@ private fun walletCountFontSize(value: Int) = when ("%,d".format(value).length) 
     6 -> 11.sp
     7 -> 10.sp
     else -> 9.sp
-}
-
-@Composable
-private fun walletInfoButton(
-    contentDescription: String,
-    onClick: () -> Unit
-) {
-    IconButton(
-        onClick = onClick,
-        modifier = Modifier.size(32.dp)
-    ) {
-        Icon(
-            imageVector = Icons.Default.Info,
-            contentDescription = contentDescription,
-            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier.size(24.dp)
-        )
-    }
 }

@@ -106,7 +106,7 @@ val Typography = Typography(
         fontFamily = customFontFamily,
         fontWeight = FontWeight.Light,
         fontSize = 12.sp,
-        lineHeight = 16.sp,
+        lineHeight = 18.sp,
         letterSpacing = 0.4.sp
     ),
 
@@ -122,14 +122,14 @@ val Typography = Typography(
         fontFamily = customFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
-        lineHeight = 16.sp,
+        lineHeight = 18.sp,
         letterSpacing = 0.5.sp
     ),
     labelSmall = TextStyle(
         fontFamily = customFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
-        lineHeight = 16.sp,
+        lineHeight = 18.sp,
         letterSpacing = 0.5.sp
     )
 )

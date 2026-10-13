@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.quickmindgames.sudoku.BuildConfig
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -199,8 +200,8 @@ fun StreakPath(
                                     val dayNumber = index + 1
                                     val isCompleted = dayNumber <= streakCount
                                     val isNext = dayNumber == streakCount + 1
-                                    val isLocked = dayNumber > streakCount + 1
-                                    val isPlayable = isNext && (hasActiveToday || !completedToday)
+                                    val isLocked = dayNumber > streakCount + 1 && !BuildConfig.DEBUG
+                                    val isPlayable = BuildConfig.DEBUG || isNext && (hasActiveToday || !completedToday)
                                     val isActive = isNext && hasActiveToday
                                     val isNextButCompletedToday =
                                         isNext && completedToday && !hasActiveToday
