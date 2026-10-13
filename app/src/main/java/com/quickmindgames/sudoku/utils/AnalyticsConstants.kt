@@ -70,6 +70,12 @@ object AnalyticsConstants {
     const val SOUND_VIBRATIONS = "sound_vibration"
     const val YES = "Yes"
     const val NO = "No"
+    const val OVERALL_STATS = "overall_stats"
+    const val BREEZE_STATS = "breeze_stats"
+    const val PULSE_STATS = "pulse_stats"
+    const val RAGE_STATS = "rage_stats"
+    const val ELITE_STATS = "elite_stats"
+    const val STREAK_STATS = "streak_stats"
     //endregion
 
 }

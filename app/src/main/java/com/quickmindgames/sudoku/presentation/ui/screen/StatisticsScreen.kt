@@ -23,15 +23,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryScrollableTabRow
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,6 +42,7 @@ import com.quickmindgames.sudoku.component.StreakStatsTab
 import com.quickmindgames.sudoku.presentation.viewmodel.StatisticsViewModel
 import com.quickmindgames.sudoku.utils.AnalyticsConstants
 import com.quickmindgames.sudoku.utils.AnalyticsUtils
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @Composable
@@ -60,7 +58,6 @@ fun StatisticsScreen(
     val tabs = listOf("Overall", "Breeze", "Pulse", "Rage", "Elite", "Streak")
     val pagerState = rememberPagerState(pageCount = { tabs.size })
     val coroutineScope = rememberCoroutineScope()
-    val lastLoggedTabIndex = remember { mutableIntStateOf(-1) }
 
     // Intercept system back button and forward it to the same callback
     BackHandler {
@@ -70,6 +67,11 @@ fun StatisticsScreen(
     // Refresh statistics when screen is focused
     LaunchedEffect(Unit) {
         viewModel.refreshStatistics()
+        viewModel.hasLoadedStatistics.first { it }
+        AnalyticsUtils.logStatisticsViewed(
+            context = context,
+            statistics = viewModel.allStatistics.value
+        )
     }
 
     LaunchedEffect(Unit) {
@@ -78,15 +80,6 @@ fun StatisticsScreen(
             AnalyticsConstants.STATISTICS,
             AnalyticsConstants.STATISTICS_SCREEN
         )
-    }
-
-    // Log tab view event when tab changes
-    LaunchedEffect(pagerState.currentPage) {
-        if (pagerState.currentPage != lastLoggedTabIndex.intValue) {
-            val tabName = tabs[pagerState.currentPage]
-            AnalyticsUtils.logStatisticsViewed(context, tabName)
-            lastLoggedTabIndex.intValue = pagerState.currentPage
-        }
     }
 
     Column(
