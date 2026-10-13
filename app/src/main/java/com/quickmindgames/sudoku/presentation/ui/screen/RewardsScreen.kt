@@ -52,23 +52,22 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.quickmindgames.sudoku.R
-import com.quickmindgames.sudoku.component.PrizeType
 import com.quickmindgames.sudoku.component.PrizeWheel
 import com.quickmindgames.sudoku.component.PrizeWheelPrizes
 import com.quickmindgames.sudoku.component.WalletInfoButton
 import com.quickmindgames.sudoku.component.WalletInfoSection
 import com.quickmindgames.sudoku.component.WalletRewardSummaryRow
-import com.quickmindgames.sudoku.component.weightedPrizeIndex
 import com.quickmindgames.sudoku.data.preferences.AppPreferences
-import com.quickmindgames.sudoku.data.score.TotalScoreManager
 import com.quickmindgames.sudoku.data.util.GameFeedback
+import com.quickmindgames.sudoku.presentation.viewmodel.PrizeCreditResult
+import com.quickmindgames.sudoku.presentation.viewmodel.RewardsViewModel
 import com.quickmindgames.sudoku.utils.AnalyticsConstants
 import com.quickmindgames.sudoku.utils.AnalyticsUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
-import kotlin.random.Random
 
 private enum class WalletInfo {
     POINTS,
@@ -82,27 +81,28 @@ private enum class WalletInfo {
 @OptIn(ExperimentalMaterial3Api::class)
 fun RewardsScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val totalScoreManager = remember { TotalScoreManager.getInstance(context) }
-    val appPreferences = remember { AppPreferences.getInstance(context) }
+    val rewardsViewModel: RewardsViewModel = viewModel(
+        factory = remember(context) { RewardsViewModel.factory(context) }
+    )
+    val rewardsState by rewardsViewModel.uiState.collectAsState()
     val gameFeedback = remember(context) { GameFeedback(context) }
-    val totalPoints by totalScoreManager.totalScore.collectAsState(initial = 0)
-    val hintWallet by appPreferences.hintWallet.collectAsState(initial = 0)
-    val doublePointsBoosterWallet by appPreferences.doublePointsBoosterWallet
-        .collectAsState(initial = 0)
-    val streakShieldWallet by appPreferences.streakShieldWallet.collectAsState(initial = 0)
-    val initialPointHints by appPreferences.initialPointHints.collectAsState(initial = 0)
-    val initialStreakHints by appPreferences.initialStreakHints.collectAsState(initial = 0)
-    val soundAndVibrationEnabled by appPreferences.soundAndVibration.collectAsState(initial = true)
-    val lastSpinMillis by appPreferences.lastSpin.collectAsState(initial = Long.MIN_VALUE)
     val coroutineScope = rememberCoroutineScope()
     val rotation = remember { Animatable(0f) }
     val pointsCounter = remember { Animatable(0f) }
     var currentTimeMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var hasLoadedPoints by remember { mutableStateOf(false) }
     var animateNextPointsUpdate by remember { mutableStateOf(false) }
-    var isSpinning by remember { mutableStateOf(false) }
-    var showMigrationSummary by remember { mutableStateOf(false) }
     var selectedWalletInfo by remember { mutableStateOf<WalletInfo?>(null) }
+    val totalPoints = rewardsState.totalPoints
+    val hintWallet = rewardsState.hintWallet
+    val doublePointsBoosterWallet = rewardsState.doublePointsBoosterWallet
+    val streakShieldWallet = rewardsState.streakShieldWallet
+    val initialPointHints = rewardsState.initialPointHints
+    val initialStreakHints = rewardsState.initialStreakHints
+    val soundAndVibrationEnabled = rewardsState.soundAndVibrationEnabled
+    val lastSpinMillis = rewardsState.lastSpinMillis
+    val isSpinning = rewardsState.isSpinning
+    val showMigrationSummary = rewardsState.showMigrationSummary
     val cooldownRemainingMillis = lastSpinMillis?.let {
         (it + AppPreferences.WHEEL_SPIN_COOLDOWN_MILLIS - currentTimeMillis).coerceAtLeast(0L)
     }
@@ -151,7 +151,6 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
     }
 
     LaunchedEffect(Unit) {
-        showMigrationSummary = appPreferences.claimHintMigrationSummaryOnce()
         AnalyticsUtils.logScreenView(
             context,
             AnalyticsConstants.REWARDS,
@@ -406,20 +405,16 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                     cooldownLabel = cooldownLabel,
                     onSpin = {
                         if (!canSpin || isSpinning) return@PrizeWheel
-                        val prizeIndex = weightedPrizeIndex(PrizeWheelPrizes, Random)
-                        val prize = PrizeWheelPrizes[prizeIndex]
-                        val segmentAngle = 360f / PrizeWheelPrizes.size
-                        val targetRotation =
-                            (360f - segmentAngle / 2f - prizeIndex * segmentAngle) % 360f
-                        val currentRotation = ((rotation.value % 360f) + 360f) % 360f
-                        val remainingRotation = (targetRotation - currentRotation + 360f) % 360f
-
                         coroutineScope.launch {
-                            isSpinning = true
+                            val spin = rewardsViewModel.beginSpin() ?: return@launch
                             try {
-                                val spinStartedAt = System.currentTimeMillis()
-                                appPreferences.setLastSpin(spinStartedAt)
-                                currentTimeMillis = spinStartedAt
+                                val segmentAngle = 360f / PrizeWheelPrizes.size
+                                val targetRotation =
+                                    (360f - segmentAngle / 2f -
+                                            spin.prizeIndex * segmentAngle) % 360f
+                                val currentRotation = ((rotation.value % 360f) + 360f) % 360f
+                                val remainingRotation =
+                                    (targetRotation - currentRotation + 360f) % 360f
                                 gameFeedback.playSpinWheel(soundAndVibrationEnabled)
                                 rotation.animateTo(
                                     targetValue = rotation.value + 10 * 360f + remainingRotation,
@@ -428,70 +423,52 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                                         easing = FastOutSlowInEasing
                                     )
                                 )
-                                when (prize.type) {
-                                    PrizeType.POINTS -> {
+                                when (rewardsViewModel.creditPrize(spin)) {
+                                    PrizeCreditResult.POINTS -> {
                                         animateNextPointsUpdate = true
-                                        totalScoreManager.addScore(prize.amount)
                                         Toast.makeText(
                                             context,
-                                            "You won +${prize.amount} points!",
+                                            "You won +${spin.prize.amount} points!",
                                             Toast.LENGTH_LONG
                                         ).show()
                                         gameFeedback.playPrizeCredited(soundAndVibrationEnabled)
                                     }
 
-                                    PrizeType.HINTS -> {
-                                        val credited = appPreferences.addWheelHintOnce(
-                                            spinId = spinStartedAt.toString(),
-                                            amount = prize.amount
-                                        )
-                                        if (credited) {
-                                            Toast.makeText(
-                                                context,
-                                                "You won +${prize.amount} hint!",
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                            gameFeedback.playPrizeCredited(soundAndVibrationEnabled)
-                                        }
+                                    PrizeCreditResult.HINTS_CREDITED -> {
+                                        Toast.makeText(
+                                            context,
+                                            "You won +${spin.prize.amount} hint!",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                        gameFeedback.playPrizeCredited(soundAndVibrationEnabled)
                                     }
 
-                                    PrizeType.BOOSTER -> {
-                                        val credited =
-                                            appPreferences.addWheelDoublePointsBoosterOnce(
-                                                spinId = spinStartedAt.toString(),
-                                                amount = prize.amount
-                                            )
-                                        if (credited) {
-                                            Toast.makeText(
-                                                context,
-                                                "You won +${prize.amount} 2X points booster!",
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                            gameFeedback.playPrizeCredited(soundAndVibrationEnabled)
-                                        }
+                                    PrizeCreditResult.BOOSTER_CREDITED -> {
+                                        Toast.makeText(
+                                            context,
+                                            "You won +${spin.prize.amount} 2X points booster!",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                        gameFeedback.playPrizeCredited(soundAndVibrationEnabled)
                                     }
 
-                                    PrizeType.STREAK_SHIELD -> {
-                                        val credited = appPreferences.addWheelStreakShieldOnce(
-                                            spinId = spinStartedAt.toString(),
-                                            amount = prize.amount
-                                        )
-                                        if (credited) {
-                                            Toast.makeText(
-                                                context,
-                                                context.getString(
-                                                    R.string.streak_shield_won,
-                                                    prize.amount
-                                                ),
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                            gameFeedback.playPrizeCredited(soundAndVibrationEnabled)
-                                        }
+                                    PrizeCreditResult.STREAK_SHIELD_CREDITED -> {
+                                        Toast.makeText(
+                                            context,
+                                            context.getString(
+                                                R.string.streak_shield_won,
+                                                spin.prize.amount
+                                            ),
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                        gameFeedback.playPrizeCredited(soundAndVibrationEnabled)
                                     }
+
+                                    PrizeCreditResult.ALREADY_CREDITED -> Unit
                                 }
 
                             } finally {
-                                isSpinning = false
+                                rewardsViewModel.finishSpin()
                             }
                         }
                     },
@@ -505,7 +482,7 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
 
         if (showMigrationSummary) {
             BasicAlertDialog(
-                onDismissRequest = { showMigrationSummary = false }
+                onDismissRequest = { rewardsViewModel.dismissMigrationSummary() }
             ) {
                 Card(
                     modifier = Modifier
@@ -603,7 +580,7 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                                 )
                             )
                             Button(
-                                onClick = { showMigrationSummary = false },
+                                onClick = { rewardsViewModel.dismissMigrationSummary() },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(50.dp),
@@ -745,8 +722,8 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
 
 private fun walletCountFontSize(value: Int) = when ("%,d".format(value).length) {
     in 0..4 -> 14.sp
-    5 -> 12.sp
-    6 -> 11.sp
-    7 -> 10.sp
-    else -> 9.sp
+    5 -> 13.sp
+    6 -> 12.sp
+    7 -> 11.sp
+    else -> 10.sp
 }

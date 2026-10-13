@@ -23,20 +23,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.quickmindgames.sudoku.component.StreakPath
-import com.quickmindgames.sudoku.data.state.StreakState
-import com.quickmindgames.sudoku.data.state.StreakStateManager
+import com.quickmindgames.sudoku.presentation.viewmodel.StreakViewModel
 import com.quickmindgames.sudoku.utils.AnalyticsConstants
 import com.quickmindgames.sudoku.utils.AnalyticsUtils
 import com.quickmindgames.sudoku.utils.MultipleEventsCutter
@@ -54,24 +53,10 @@ fun StreakScreen(
     onOpenStreak: (Int) -> Unit
 ) {
     val context = LocalContext.current
-    val streakStateManager = remember { StreakStateManager.getInstance(context) }
-
-    var streakState by remember {
-        mutableStateOf(
-            StreakState(
-                streakCount = 0,
-                lastCompletedDate = null,
-                activeDate = null,
-                activeGame = null
-            )
-        )
-    }
-
-    LaunchedEffect(Unit) {
-        streakStateManager.getStreakState().collect { saved ->
-            streakState = saved ?: StreakState(0, null, null, null)
-        }
-    }
+    val streakViewModel: StreakViewModel = viewModel(
+        factory = remember(context) { StreakViewModel.factory(context) }
+    )
+    val streakState by streakViewModel.uiState.collectAsState()
 
     LaunchedEffect(Unit) {
         AnalyticsUtils.logScreenView(
@@ -83,8 +68,8 @@ fun StreakScreen(
 
     val today = remember { LocalDate.now().toString() }
     val streakCount = streakState.streakCount
-    val hasActiveToday = streakState.activeDate == today
-            && streakState.activeGame?.hasStarted() == true
+    val hasActiveToday = streakState.activeDate == today &&
+        streakState.activeGameStarted
     val completedToday = streakState.lastCompletedDate == today
     val cutter = MultipleEventsCutter.rememberMultipleEventsCutter()
     val statusText = when {

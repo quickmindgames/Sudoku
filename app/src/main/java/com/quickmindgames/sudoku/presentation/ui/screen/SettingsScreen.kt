@@ -33,6 +33,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,16 +48,13 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.quickmindgames.sudoku.BuildConfig
 import com.quickmindgames.sudoku.R
-import com.quickmindgames.sudoku.data.preferences.AppPreferences
-import com.quickmindgames.sudoku.data.preferences.ThemePreferences
-import com.quickmindgames.sudoku.data.state.GameStateManager
+import com.quickmindgames.sudoku.presentation.viewmodel.SettingsViewModel
 import com.quickmindgames.sudoku.presentation.viewmodel.StatisticsViewModel
 import com.quickmindgames.sudoku.utils.AnalyticsConstants
 import com.quickmindgames.sudoku.utils.AnalyticsUtils
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -68,60 +66,12 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(modifier: Modifier = Modifier) {
     //region State and preference collection
     val context = LocalContext.current
-    val themePreferences = remember { ThemePreferences.getInstance(context) }
-    val appPreferences = remember { AppPreferences.getInstance(context) }
-    val gameStateManager = remember { GameStateManager.getInstance(context) }
+    val settingsViewModel: SettingsViewModel = viewModel(
+        factory = remember(context) { SettingsViewModel.factory(context) }
+    )
+    val settingsState by settingsViewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     var showStatistics by remember { mutableStateOf(false) }
-
-    var isDarkMode by remember { mutableStateOf(false) }
-    var hideUsedNumbers by remember { mutableStateOf(false) }
-    var highlightRegion by remember { mutableStateOf(false) }
-    var highlightSameNumbers by remember { mutableStateOf(false) }
-    var freePlay by remember { mutableStateOf(false) }
-    var hasSavedGame by remember { mutableStateOf(false) }
-    var soundAndVibration by remember { mutableStateOf(true) }
-
-    LaunchedEffect(Unit) {
-        themePreferences.isDarkMode.collect { darkMode ->
-            isDarkMode = darkMode
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        // Hide used numbers and Free Play are mutually exclusive preferences.
-        appPreferences.normalizeGameplayOptions()
-        combine(appPreferences.hideUsedNumbers, appPreferences.freePlay) { hide, free ->
-            hide to free
-        }.collect { (hide, free) ->
-            hideUsedNumbers = hide
-            freePlay = free
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        appPreferences.highlightRegion.collect { enabled ->
-            highlightRegion = enabled
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        appPreferences.highlightSameNumbers.collect { enabled ->
-            highlightSameNumbers = enabled
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        gameStateManager.getSavedGameState().collect { savedGame ->
-            hasSavedGame = savedGame != null
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        appPreferences.soundAndVibration.collect { enabled ->
-            soundAndVibration = enabled
-        }
-    }
     //endregion
 
     LaunchedEffect(Unit) {
@@ -284,22 +234,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         )
                     }
                     Switch(
-                        checked = hideUsedNumbers,
+                        checked = settingsState.hideUsedNumbers,
                         onCheckedChange = { enabled ->
                             coroutineScope.launch {
-                                val disabledFreePlay =
-                                    appPreferences.setHideUsedNumbers(enabled)
-                                AnalyticsUtils.logSettingsOptionChanged(
-                                    context,
-                                    AnalyticsConstants.HIDE_USED_NUMBERS,
-                                    enabled
-                                )
-                                if (disabledFreePlay) {
-                                    AnalyticsUtils.logSettingsOptionChanged(
-                                        context,
-                                        AnalyticsConstants.FREE_PLAY,
-                                        false
-                                    )
+                                if (settingsViewModel.setHideUsedNumbers(enabled)) {
                                     Toast.makeText(
                                         context,
                                         "Free Play is now off because Hide used numbers is enabled.",
@@ -363,15 +301,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         )
                     }
                     Switch(
-                        checked = highlightSameNumbers,
+                        checked = settingsState.highlightSameNumbers,
                         onCheckedChange = { enabled ->
                             coroutineScope.launch {
-                                appPreferences.setHighlightSameNumbers(enabled)
-                                AnalyticsUtils.logSettingsOptionChanged(
-                                    context,
-                                    AnalyticsConstants.HIGHLIGHT_SAME_NUMBERS,
-                                    enabled
-                                )
+                                settingsViewModel.setHighlightSameNumbers(enabled)
                             }
                         },
                         colors = SwitchDefaults.colors(
@@ -428,15 +361,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         )
                     }
                     Switch(
-                        checked = highlightRegion,
+                        checked = settingsState.highlightRegion,
                         onCheckedChange = { enabled ->
                             coroutineScope.launch {
-                                appPreferences.setHighlightRegion(enabled)
-                                AnalyticsUtils.logSettingsOptionChanged(
-                                    context,
-                                    AnalyticsConstants.HIGHLIGHT_REGION,
-                                    enabled
-                                )
+                                settingsViewModel.setHighlightRegion(enabled)
                             }
                         },
                         colors = SwitchDefaults.colors(
@@ -493,13 +421,11 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         )
                     }
                     Switch(
-                        checked = freePlay,
+                        checked = settingsState.freePlay,
                         onCheckedChange = { enabled ->
                             coroutineScope.launch {
-                                // Prevent gameplay rules from changing during a saved game.
-                                if (gameStateManager.getSavedGameState().first() != null
-                                ) {
-                                    hasSavedGame = true
+                                val result = settingsViewModel.setFreePlay(enabled)
+                                if (result.blockedBySavedGame) {
                                     Toast.makeText(
                                         context,
                                         "Finish your current game or start a new one to change gameplay options.",
@@ -507,19 +433,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                                     ).show()
                                     return@launch
                                 }
-                                val disabledHideUsedNumbers =
-                                    appPreferences.setFreePlay(enabled)
-                                AnalyticsUtils.logSettingsOptionChanged(
-                                    context,
-                                    AnalyticsConstants.FREE_PLAY,
-                                    enabled
-                                )
-                                if (disabledHideUsedNumbers) {
-                                    AnalyticsUtils.logSettingsOptionChanged(
-                                        context,
-                                        AnalyticsConstants.HIDE_USED_NUMBERS,
-                                        false
-                                    )
+                                if (result.disabledHideUsedNumbers) {
                                     Toast.makeText(
                                         context,
                                         "Hide used numbers is now off because Free Play is enabled.",
@@ -582,15 +496,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         )
                     }
                     Switch(
-                        checked = soundAndVibration,
+                        checked = settingsState.soundAndVibration,
                         onCheckedChange = { enabled ->
                             coroutineScope.launch {
-                                appPreferences.setSoundAndVibration(enabled)
-                                AnalyticsUtils.logSettingsOptionChanged(
-                                    context,
-                                    AnalyticsConstants.SOUND_VIBRATIONS,
-                                    enabled
-                                )
+                                settingsViewModel.setSoundAndVibration(enabled)
                             }
                         },
                         colors = SwitchDefaults.colors(
@@ -638,7 +547,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = if (isDarkMode) "🌙" else "☀️", fontSize = 24.sp)
+                        Text(
+                            text = if (settingsState.isDarkMode) "🌙" else "☀️",
+                            fontSize = 24.sp
+                        )
                     }
                     Spacer(Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
@@ -649,18 +561,16 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = if (isDarkMode) "Enabled" else "Disabled",
+                            text = if (settingsState.isDarkMode) "Enabled" else "Disabled",
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
                         )
                     }
                     Switch(
-                        checked = isDarkMode,
+                        checked = settingsState.isDarkMode,
                         onCheckedChange = { enabled ->
-                            coroutineScope.launch { themePreferences.setDarkMode(enabled) }
-                            val themeName = if (enabled) "dark_theme" else "light_theme"
-                            AnalyticsUtils.logThemeToggled(context, themeName)
+                            coroutineScope.launch { settingsViewModel.setDarkMode(enabled) }
                         },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = MaterialTheme.colorScheme.primary,

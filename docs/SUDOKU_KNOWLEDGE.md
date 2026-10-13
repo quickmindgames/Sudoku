@@ -15,7 +15,7 @@ This guide is for developers who need to build, navigate, and change the Sudoku 
 | **Android SDK** | `minSdk 28`, `compileSdk 37`, `targetSdk 36` |
 | **JVM** | Java/Kotlin 17 |
 
-The project is a single Android app module (`:app`). The normal game loop is local: choose a difficulty, generate and play a puzzle, save the active board, then record the result. Firebase is used for analytics, crash reporting, and remote tuning—not for accounts, game saves, or cloud synchronization. There is no Retrofit API layer.
+The project is a single Android app module (`:app`). Quick Mind Games Sudoku is an offline-first app for standard Sudoku play, guided practice, daily streak challenges, points and wallet rewards, and local statistics. Puzzles have four difficulty levels: Breeze, Pulse, Rage, and Elite. The normal game loop is local: choose a difficulty, generate and play a puzzle, save the active board, then record the result. Firebase is used for analytics, crash reporting, and remote tuning—not for accounts, game saves, or cloud synchronization. There is no Retrofit API layer.
 
 ### First build
 
@@ -35,7 +35,7 @@ The application module applies the Google Services Gradle plugin. Local Firebase
 
 ## Architecture Layers
 
-The app is organized by responsibility rather than by a strict dependency-injection or use-case framework. Compose screens own much of the gameplay interaction and state coordination; the statistics screen has the clearest ViewModel/repository separation.
+The app is organized by responsibility rather than by a strict dependency-injection or use-case framework. Compose screens render UI and coordinate navigation/UI effects; `SudokuGameViewModel` owns the active Sudoku session, while the statistics screen has a separate ViewModel/repository flow.
 
 ### UI/UX Features
 
@@ -146,7 +146,7 @@ Check DAO semantics when changing statistics: the current `getCurrentConsecutive
 
 ### UI state and dependency wiring
 
-The UI is Compose-first, and `SudokuScreen` coordinates most gameplay behavior directly rather than delegating it to a dedicated game ViewModel. `StatisticsViewModel` is the main ViewModel in the project. Dependencies are constructed through singleton accessors, repositories, and Compose `remember`; there is no Hilt graph. Follow the established pattern in the touched feature unless the change explicitly includes an architecture refactor.
+The UI is Compose-first. `HomeViewModel` owns Home's saved-game, lifetime-points, wallet, and streak state, including streak recovery/reset actions; `HomeScreen` retains sheet/dialog presentation, booster selection, and navigation. `SettingsViewModel` observes persisted settings, normalizes mutually exclusive gameplay options, applies setting changes, enforces the saved-game guard for Free Play, and logs setting changes; `SettingsScreen` retains row presentation, feedback messages, and statistics navigation. `RewardsViewModel` observes reward balances and sound settings, manages cooldown eligibility and one-time migration-summary claiming, and coordinates prize selection/payout; `RewardsScreen` retains wheel/dialog animations, presentation, analytics, sounds, and toasts. `StreakViewModel` observes persisted streak progress and exposes the state used by `StreakScreen`, which retains streak display, sharing, analytics, and navigation. `SudokuGameViewModel` owns mode-specific initialization and resume, board/session state, gameplay actions and scoring, Hint Wallet use, timer state, autosave, and completion persistence. `SudokuScreen` renders that state and retains dialog presentation, navigation, analytics presentation, and UI feedback such as sounds and toasts. `StatisticsViewModel` owns statistics presentation state. Dependencies are constructed through singleton accessors, repositories, and Compose `remember`; there is no Hilt graph.
 
 ### Preferences and interaction details
 
@@ -202,13 +202,18 @@ In tables, `.../` abbreviates `../app/src/main/java/com/quickmindgames/sudoku`.
 
 | File(s) | Responsibility |
 |---|---|
-| `.../presentation/ui/screen/HomeScreen.kt` | New game, resume, difficulty and booster selection, streak shield recovery, streak, and learning entry points. |
-| `.../presentation/ui/screen/SudokuScreen.kt` | Active puzzle interface, gameplay interaction, booster persistence/consumption, and completion scoring. |
+| `.../presentation/ui/screen/HomeScreen.kt` | Home UI, dialog/sheet presentation, booster selection, navigation callbacks, and learning entry point. |
+| `.../presentation/viewmodel/HomeViewModel.kt` | Saved-game and wallet state, total points, streak status, missed-day checks, shield protection, and streak reset. |
+| `.../presentation/ui/screen/SudokuScreen.kt` | Active puzzle interface, dialog presentation, navigation, analytics presentation, and UI feedback. |
 | `.../presentation/ui/screen/LessonScreen.kt` | Guided lesson experience and completion callback. |
-| `.../presentation/ui/screen/StreakScreen.kt` | Streak challenge and progress interface. |
-| `.../presentation/ui/screen/RewardsScreen.kt` | Rewards tab, points and wallet balances, wallet info dialogs, one-time welcome summary, prize-wheel spin/payout, cooldown countdown, and screen-view analytics. |
-| `.../presentation/ui/screen/SettingsScreen.kt` | User preferences interface. |
+| `.../presentation/ui/screen/StreakScreen.kt` | Streak progress display, sharing, analytics, and navigation. |
+| `.../presentation/ui/screen/RewardsScreen.kt` | Rewards tab layout, wallet info dialogs, prize-wheel animation, welcome summary presentation, and screen-view analytics. |
+| `.../presentation/ui/screen/SettingsScreen.kt` | User preferences rows, setting feedback, and statistics navigation. |
 | `.../presentation/ui/screen/StatisticsScreen.kt` | Overall and category statistics presentation. |
+| `.../presentation/viewmodel/SudokuGameViewModel.kt` | Screen-scoped Sudoku session initialization/resume, board state and actions, scoring, Hint Wallet use, timer, autosave, and completion persistence. |
+| `.../presentation/viewmodel/SettingsViewModel.kt` | Settings preference state, gameplay-option normalization and guard, preference writes, and setting-change analytics. |
+| `.../presentation/viewmodel/RewardsViewModel.kt` | Reward balance and sound preference state, cooldown and spin eligibility, migration-summary claim, and prize payout coordination. |
+| `.../presentation/viewmodel/StreakViewModel.kt` | Observes persisted streak progress and exposes the current count, active-game status, and completion date. |
 | `.../presentation/viewmodel/StatisticsViewModel.kt` | Statistics loading and UI state. |
 | `.../component/PrizeWheel.kt` | Reusable animated prize wheel, point/hint/booster/shield prize display model, center-hub spin action/cooldown overlay, and pointer drawing. |
 | `.../component/WalletInfoButton.kt` | Reusable info icon button on each Rewards wallet card. |

@@ -142,6 +142,3 @@ fun LessonScreen(
         }
     }
 }
-
-
-

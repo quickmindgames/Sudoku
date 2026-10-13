@@ -29,9 +29,13 @@ For detailed onboarding and a file map, see `docs/SUDOKU_KNOWLEDGE.md`.
 ## Code conventions
 
 - Follow the existing pattern of the feature you are touching: singleton accessors, repositories, and Compose `remember`. Do not introduce a DI framework or new architecture unless explicitly asked.
-- `SudokuScreen` coordinates gameplay directly. `StatisticsViewModel` is the only main ViewModel. Do not move logic into new ViewModels unless asked.
+- `HomeViewModel` owns Home's saved-game, lifetime-points, wallet, and streak state, including streak recovery/reset actions. Keep sheet/dialog presentation, booster selection, and navigation in `HomeScreen`.
+- `SettingsViewModel` owns persisted settings state, gameplay-option normalization, preference updates, and the saved-game guard for Free Play. Keep settings row presentation, user feedback, and statistics navigation in `SettingsScreen`.
+- `RewardsViewModel` owns reward balances, cooldown eligibility, migration-summary claiming, and prize-spin/payout coordination. Keep wheel/dialog animations and feedback in `RewardsScreen`.
+- `StreakViewModel` observes persisted streak progress and exposes the state used by `StreakScreen`; keep streak display, sharing, and navigation in Compose.
+- `SudokuGameViewModel` owns Sudoku session state, initialization/resume, gameplay actions, timer behavior, and game persistence. Keep rendering, dialogs, UI feedback, and navigation callbacks in `SudokuScreen`; extend this screen-scoped ViewModel for gameplay behavior rather than adding another game ViewModel.
 - Package layout: `presentation/` (screens, navigation, theme), `component/` (reusable Compose UI), `domain/` (generator, validator, models, repository contracts), `data/` (state, preferences, repositories, Room), `utils/`.
-- Keep each screen's entry-point composable in its `presentation/ui/screen` file. Put every supporting UI `@Composable` in its own Kotlin file under `component/`; do not define helper or child composables in a screen file. Keep screen-specific state and orchestration in the screen and pass the required values and callbacks into its components.
+- Keep each screen's entry-point composable in its `presentation/ui/screen` file. Put every supporting UI `@Composable` in its own Kotlin file under `component/`; do not define helper or child composables in a screen file. Keep presentation-only state and screen orchestration in the screen, put persistent/business state in its ViewModel when needed, and pass values and callbacks into components.
 - Add new dependencies as versions in `gradle/libs.versions.toml` and aliases in the Gradle scripts.
 - Put user-facing text in `app/src/main/res/values/strings.xml`.
 - Keep changes minimal. Trace the full path (screen, state/repository, persistence) and preserve existing behavior outside the requested change.
