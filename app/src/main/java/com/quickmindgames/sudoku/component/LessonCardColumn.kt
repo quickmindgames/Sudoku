@@ -34,7 +34,7 @@ fun LessonCardColumn(lesson: LessonData, stepNumber: Int) {
     ) {
         // Left side: Column grid - fixed width
         Box(
-            modifier = Modifier.width(140.dp),
+            modifier = Modifier.width(110.dp),
             contentAlignment = Alignment.Center
         ) {
             VisualLessonGrid(grid = lesson.visualGrid)
@@ -49,8 +49,8 @@ fun LessonCardColumn(lesson: LessonData, stepNumber: Int) {
         ) {
             // Step badge
             Text(
-                text = "Lesson $stepNumber",
-                fontSize = 12.sp,
+                text = "• Lesson $stepNumber",
+                fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = colors.primary,
                 modifier = Modifier
@@ -60,16 +60,18 @@ fun LessonCardColumn(lesson: LessonData, stepNumber: Int) {
                     )
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             )
-            Spacer(Modifier.height(8.dp))
+
+            Spacer(Modifier.height(12.dp))
 
             Text(
                 text = lesson.title,
                 fontSize = 28.sp,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.Bold,
                 color = colors.onBackground,
                 textAlign = TextAlign.Center,
                 letterSpacing = 0.3.sp
             )
+
             Spacer(Modifier.height(12.dp))
 
             // Body

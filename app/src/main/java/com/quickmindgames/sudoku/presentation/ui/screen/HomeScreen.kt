@@ -5,6 +5,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,9 +17,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Help
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.automirrored.rounded.Help
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ElevatedButton
@@ -27,6 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -40,6 +42,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -51,13 +54,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.quickmindgames.sudoku.R
 import com.quickmindgames.sudoku.component.DifficultyCard
 import com.quickmindgames.sudoku.component.StreakSummaryCard
+import com.quickmindgames.sudoku.component.primaryGradientBrush
 import com.quickmindgames.sudoku.domain.model.Difficulty
+import com.quickmindgames.sudoku.presentation.ui.isDifficultyUnlocked
 import com.quickmindgames.sudoku.presentation.viewmodel.HomeStreakDialog
 import com.quickmindgames.sudoku.presentation.viewmodel.HomeViewModel
 import com.quickmindgames.sudoku.presentation.viewmodel.ProtectStreakResult
-import com.quickmindgames.sudoku.presentation.ui.isDifficultyUnlocked
 import com.quickmindgames.sudoku.utils.AnalyticsConstants
 import com.quickmindgames.sudoku.utils.AnalyticsUtils
+import com.quickmindgames.sudoku.utils.formatTime
 import kotlinx.coroutines.launch
 
 /**
@@ -154,6 +159,7 @@ fun HomeScreen(
                                 context.getString(R.string.streak_shield_unavailable),
                                 Toast.LENGTH_LONG
                             ).show()
+
                             ProtectStreakResult.PROTECTED,
                             ProtectStreakResult.NO_LONGER_ELIGIBLE -> Unit
                         }
@@ -330,17 +336,15 @@ fun HomeScreen(
         }
     }
 
+    //region Main Design
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
             .padding(
-                top = 12.dp
+                start = 20.dp,
+                end = 20.dp
             )
-            .padding(horizontal = 24.dp)
     ) {
-        Spacer(Modifier.height(16.dp))
-
         StreakSummaryCard(
             streakCount = homeState.streakCount,
             completedToday = homeState.completedToday,
@@ -357,88 +361,157 @@ fun HomeScreen(
             Image(
                 painter = painterResource(id = R.drawable.ic_launcher),
                 contentDescription = null,
-                modifier = Modifier.size(172.dp)
+                modifier = Modifier.size(196.dp)
             )
 
+            // Tag Line
             Text(
-                text = stringResource(R.string.lbl_puzzle),
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                modifier = Modifier.padding(top = 4.dp)
+                text = stringResource(R.string.lbl_puzzle).uppercase(),
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Total lifetime score
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
+            //region Total Points
+            Surface(
+                shape = RoundedCornerShape(36.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(
+                    0.dp,
+                    MaterialTheme.colorScheme.tertiary
+                )
             ) {
-                Text(
-                    text = "⭐",
-                    fontSize = 16.sp
-                )
-                Spacer(Modifier.width(4.dp))
-                Text(
-                    text = if (homeState.totalScore == 0) "No points yet — play a game!"
-                    else "Total Points: ${"%,d".format(homeState.totalScore)}",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (homeState.totalScore == 0)
-                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
-                    else
-                        MaterialTheme.colorScheme.primary
-                )
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_score),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = Color.Unspecified
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    if (homeState.totalScore == 0) {
+                        Text(
+                            text = "No points yet — play a game!",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                        )
+                    } else {
+                        Text(
+                            text = "Total Points: ",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = "%,d".format(homeState.totalScore),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
             }
+            //endregion
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Resume button
+            //region Resume Button
             if (homeState.hasSavedGame) {
                 ElevatedButton(
                     onClick = onResume,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(64.dp),
-                    shape = RoundedCornerShape(16.dp),
+                        .height(76.dp),
+                    shape = RoundedCornerShape(24.dp),
                     colors = ButtonDefaults.elevatedButtonColors(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    ),
+                    border = BorderStroke(
+                        0.5.dp,
+                        MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.2f)
                     )
                 ) {
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
+                        horizontalArrangement = Arrangement.Start,
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            modifier = Modifier.size(28.dp)
-                        )
-                        Spacer(Modifier.width(12.dp))
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.PlayArrow,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                        Spacer(Modifier.width(16.dp))
                         Column(horizontalAlignment = Alignment.Start) {
                             Text(
                                 text = "Resume Game",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
                             )
-                            homeState.savedGameDifficulty?.let { difficulty ->
+                            Row(
+                                modifier = Modifier.padding(top = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text(
-                                    text = difficulty.label,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Normal,
+                                    text = "In progress".uppercase(),
+                                    style = MaterialTheme.typography.titleSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp
+                                    ),
                                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(
                                         alpha = 0.7f
+                                    )
+                                )
+                                homeState.savedGameDifficulty?.let { difficulty ->
+                                    Text(
+                                        text = " • ${difficulty.label}",
+                                        style = MaterialTheme.typography.titleSmall.copy(
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 13.sp
+                                        ),
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(
+                                            alpha = 0.5f
+                                        )
+                                    )
+                                }
+                                Text(
+                                    text = " • ${formatTime(homeState.savedGameTimeSeconds)}",
+                                    style = MaterialTheme.typography.titleSmall.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 13.sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(
+                                        alpha = 0.5f
                                     )
                                 )
                             }
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
+            //endregion
 
+            //region New Game
             Button(
                 onClick = {
                     if (homeState.hasSavedGame) {
@@ -450,55 +523,82 @@ fun HomeScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp),
-                shape = RoundedCornerShape(16.dp),
+                    .height(64.dp)
+                    .background(
+                        brush = primaryGradientBrush(),
+                        shape = RoundedCornerShape(24.dp)
+                    ),
+                shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
+                    containerColor = Color.Transparent,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                    }
                     Spacer(Modifier.width(8.dp))
                     Text(text = "New Game", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
             }
+            //endregion
 
-            // ── Learning Mode button ── NEW ─────────────────────
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
+            //region Learning Mode Button
             OutlinedButton(
                 onClick = onLearningModeClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp),
+                    .height(64.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.tertiary
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 ),
                 border = BorderStroke(
-                    1.5.dp,
-                    MaterialTheme.colorScheme.tertiary
+                    0.dp,
+                    MaterialTheme.colorScheme.onSurface
                 )
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Help,
-                        contentDescription = null,
-                        modifier = Modifier.size(22.dp)
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.Help,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
                     Spacer(Modifier.width(8.dp))
                     Text(
                         text = stringResource(R.string.lbl_how_to_play),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+
+                        )
                 }
             }
-            // ── End Learning Mode button ────────────────────────
+            //endregion
         }
     }
+    //endregion
 }

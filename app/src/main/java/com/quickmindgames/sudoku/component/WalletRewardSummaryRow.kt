@@ -63,7 +63,7 @@ fun WalletRewardSummaryRow(
             Text(
                 text = "%,d".format(amount),
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
         }

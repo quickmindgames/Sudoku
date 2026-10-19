@@ -66,7 +66,7 @@ fun LearningCompleteDialog(
                         Text(
                             text = "Excellent Work!",
                             fontSize = 26.sp,
-                            fontWeight = FontWeight.ExtraBold,
+                            fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
                         Spacer(Modifier.height(4.dp))

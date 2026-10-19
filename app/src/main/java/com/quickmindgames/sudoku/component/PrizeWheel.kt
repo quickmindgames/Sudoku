@@ -28,16 +28,18 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.res.ResourcesCompat
 import com.quickmindgames.sudoku.R
 
 enum class PrizeType {
@@ -93,15 +95,24 @@ fun PrizeWheel(
     modifier: Modifier = Modifier
 ) {
     val prizes = PrizeWheelPrizes
-    val context = LocalContext.current
-    val boldTypeface = remember(context) { context.resources.getFont(R.font.bold) }
+    val resources = LocalResources.current
+    val boldTypeface = remember(resources) { resources.getFont(R.font.bold) }
+    val hintDrawable = remember(resources) {
+        requireNotNull(ResourcesCompat.getDrawable(resources, R.drawable.ic_hint, null)) {
+            "Hint drawable not found"
+        }.mutate()
+    }
+    val streakShieldDrawable = remember(resources) {
+        requireNotNull(ResourcesCompat.getDrawable(resources, R.drawable.ic_flame_raw, null)) {
+            "Shield drawable not found"
+        }.mutate()
+    }
+    val xDrawable = remember(resources) {
+        requireNotNull(ResourcesCompat.getDrawable(resources, R.drawable.ic_2x, null)) {
+            "2x drawable not found"
+        }.mutate().apply { setTint(android.graphics.Color.WHITE) }
+    }
 
-    /*val segmentColors = listOf(
-        MaterialTheme.colorScheme.primary,
-        MaterialTheme.colorScheme.tertiary,
-        MaterialTheme.colorScheme.secondary,
-        MaterialTheme.colorScheme.error
-    )*/
     val segmentColors = listOf(
         Color(0xFF263238), // blue grey
         Color(0xFF4A148C), // deep purple
@@ -137,7 +148,7 @@ fun PrizeWheel(
                 color = android.graphics.Color.WHITE
                 textAlign = Paint.Align.CENTER
                 // Adjust these relative sizes to scale the labels with the wheel.
-                textSize = radius * 0.17f
+                textSize = radius * 0.16f
                 typeface = boldTypeface
                 setShadowLayer(radius * 0.025f, 0f, radius * 0.018f, 0x99000000.toInt())
             }
@@ -177,17 +188,59 @@ fun PrizeWheel(
                     PrizeType.STREAK_SHIELD -> "SHIELD"
                 }
                 drawIntoCanvas { canvas ->
-                    canvas.nativeCanvas.drawText(
-                        prize.label,
-                        labelX,
-                        labelY - (labelPaint.ascent() + labelPaint.descent()) / 2f,
-                        labelPaint
-                    )
+                    val nativeCanvas = canvas.nativeCanvas
+
+                    when (prize.type) {
+                        PrizeType.HINTS -> {
+                            val iconSize = radius * 0.22f
+                            hintDrawable.setBounds(
+                                (labelX - iconSize / 2f).toInt(),
+                                (labelY - iconSize / 2f).toInt(),
+                                (labelX + iconSize / 2f).toInt(),
+                                (labelY + iconSize / 2f).toInt()
+                            )
+                            hintDrawable.draw(nativeCanvas)
+
+                        }
+
+                        PrizeType.STREAK_SHIELD -> {
+                            val iconSize = radius * 0.22f
+                            streakShieldDrawable.setBounds(
+                                (labelX - iconSize / 2.5f).toInt(),
+                                (labelY - iconSize / 2f).toInt(),
+                                (labelX + iconSize / 2.5f).toInt(),
+                                (labelY + iconSize / 2f).toInt()
+                            )
+                            streakShieldDrawable.draw(nativeCanvas)
+
+                        }
+
+                        PrizeType.BOOSTER -> {
+                            val iconSize = radius * 0.22f
+                            xDrawable.setBounds(
+                                (labelX - iconSize / 3f).toInt(),
+                                (labelY - iconSize / 3f).toInt(),
+                                (labelX + iconSize / 3f).toInt(),
+                                (labelY + iconSize / 3f).toInt()
+                            )
+                            xDrawable.draw(nativeCanvas)
+
+                        }
+
+                        else -> {
+                            nativeCanvas.drawText(
+                                prize.label,
+                                labelX,
+                                labelY - (labelPaint.ascent() + labelPaint.descent()) / 2f,
+                                labelPaint
+                            )
+                        }
+                    }
                     canvas.nativeCanvas.drawText(
                         prizeCaption,
                         labelX,
                         // This vertical offset controls the gap beneath the prize amount.
-                        labelY + radius * 0.18f,
+                        labelY + radius * 0.19f,
                         subtitlePaint
                     )
                 }
@@ -209,11 +262,6 @@ fun PrizeWheel(
             }
 
             // Soft radial overlay gives the flat segments a glossy highlight.
-            drawCircle(
-                color = Color.White.copy(alpha = 0.2f),
-                radius = radius * 0.94f,
-                style = Stroke(width = 1.dp.toPx())
-            )
             drawCircle(
                 color = outlineColor,
                 radius = radius,
@@ -292,14 +340,14 @@ fun PrizeWheel(
                     Text(
                         text = "Next Spin in",
                         color = Color(0xFF5D3100),
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.size(6.dp))
                     Text(
                         text = cooldownLabel,
                         color = Color(0xFF5D3100),
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center,
                         maxLines = 1
                     )

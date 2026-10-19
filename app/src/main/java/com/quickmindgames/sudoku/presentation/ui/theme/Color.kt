@@ -1,15 +1,23 @@
 package com.quickmindgames.sudoku.presentation.ui.theme
 
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 // Primary Colors - Modern Blue/Purple Gradient
 val Primary = Color(0xFF6366F1) // Indigo
+val LightPrimary = Color(0xFF8284F3) // Light Indigo
 val PrimaryVariant = Color(0xFF4F46E5)
 val Secondary = Color(0xFF8B5CF6) // Purple
 val SecondaryVariant = Color(0xFF7C3AED)
 
 // Background & Surface
 val Background = Color(0xFFF8FAFC)
+val BackgroundGradient = Brush.verticalGradient(
+    colors = listOf(Color(0xFFF8FAFC), Color(0xFFF3F3FC))
+)
+val DarkBackgroundGradient = Brush.verticalGradient(
+    colors = listOf(Color(0xFF23183D), Color(0xFF0E0D1B))
+)
 val Surface = Color(0xFFFFFFFF)
 val SurfaceVariant = Color(0xFFF1F5F9)
 
@@ -36,3 +44,4 @@ val Success = Color(0xFF10B981)
 val Error = Color(0xFFEF4444)
 val Warning = Color(0xFFF59E0B)
 val Info = Color(0xFF3B82F6)
+val StreakLockColor = Color(0xFFF59E0B)

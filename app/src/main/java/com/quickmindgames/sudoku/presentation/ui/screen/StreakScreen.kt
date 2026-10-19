@@ -1,5 +1,6 @@
 package com.quickmindgames.sudoku.presentation.ui.screen
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -15,9 +16,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,10 +33,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.quickmindgames.sudoku.R
 import com.quickmindgames.sudoku.component.StreakPath
 import com.quickmindgames.sudoku.presentation.viewmodel.StreakViewModel
 import com.quickmindgames.sudoku.utils.AnalyticsConstants
@@ -69,7 +74,7 @@ fun StreakScreen(
     val today = remember { LocalDate.now().toString() }
     val streakCount = streakState.streakCount
     val hasActiveToday = streakState.activeDate == today &&
-        streakState.activeGameStarted
+            streakState.activeGameStarted
     val completedToday = streakState.lastCompletedDate == today
     val cutter = MultipleEventsCutter.rememberMultipleEventsCutter()
     val statusText = when {
@@ -83,118 +88,122 @@ fun StreakScreen(
         completedToday -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
+
+    //region Main Design
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+        modifier = modifier.fillMaxSize()
     ) {
         // Compact header section
-        Column(
+        ElevatedCard(
+            shape = RoundedCornerShape(24.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(
-                    top = 12.dp
-                )
-                .padding(horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(start = 20.dp, end = 20.dp),
+            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 5.dp),
+            colors = CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
         ) {
-            // Compact header with inline streak count
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "🔥",
-                        fontSize = 32.sp
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Column {
-                        Text(
-                            text = "My Current Streak",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                // Compact header with inline streak count
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painterResource(id = R.drawable.ic_flame),
+                            contentDescription = "Flame icon"
                         )
-                        Text(
-                            text = statusText,
-                            fontSize = 13.sp,
-                            color = statusColor,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-
-                // Streak counter + share icon stacked
-                if (streakCount > 0) {
-                    Box(contentAlignment = Alignment.TopEnd) {
-                        // Compact streak counter
-                        Box(
-                            modifier = Modifier
-                                .size(56.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.primary,
-                                    CircleShape
-                                )
-                                .then(
-                                    Modifier.clickable(
-                                        indication = null,
-                                        interactionSource = remember { MutableInteractionSource() }
-                                    ) {
-                                        cutter.processEvent { context.shareStreak(streakCount) }
-                                    }
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Spacer(Modifier.width(8.dp))
+                        Column {
                             Text(
-                                text = "$streakCount",
-                                fontSize = when (streakCount.toString().length) {
-                                    1, 2 -> 24.sp
-                                    3 -> 17.sp
-                                    else -> 13.sp
-                                },
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimary
+                                text = "My Current Streak",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = statusText,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = statusColor,
+                                modifier = Modifier.padding(top = 4.dp)
                             )
                         }
+                    }
 
-                        // Tiny share badge pinned to top-end of the circle
-                        Box(
-                            modifier = Modifier
-                                .offset(x = 6.dp, y = (-6).dp)
-                                .size(22.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.secondaryContainer,
-                                    CircleShape
+                    // Streak counter + share icon stacked
+                    if (streakCount > 0) {
+                        Box(contentAlignment = Alignment.TopEnd) {
+                            // Compact streak counter
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.primary,
+                                        CircleShape
+                                    )
+                                    .then(
+                                        Modifier.clickable(
+                                            indication = null,
+                                            interactionSource = remember { MutableInteractionSource() }
+                                        ) {
+                                            cutter.processEvent { context.shareStreak(streakCount) }
+                                        }
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "$streakCount",
+                                    fontSize = when (streakCount.toString().length) {
+                                        1, 2 -> 24.sp
+                                        3 -> 17.sp
+                                        else -> 13.sp
+                                    },
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimary
                                 )
-                                .clickable {
-                                    cutter.processEvent { context.shareStreak(streakCount) }
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Share,
-                                contentDescription = "Share streak",
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.size(12.dp)
-                            )
+                            }
+
+                            // Tiny share badge pinned to top-end of the circle
+                            Box(
+                                modifier = Modifier
+                                    .offset(x = 4.dp, y = (-4).dp)
+                                    .size(20.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.secondaryContainer,
+                                        CircleShape
+                                    )
+                                    .clickable {
+                                        cutter.processEvent { context.shareStreak(streakCount) }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Share,
+                                    contentDescription = "Share streak",
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
                         }
                     }
                 }
             }
         }
-
-        // Divider
-        HorizontalDivider(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            thickness = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant
-        )
 
         // Journey path with more space
         StreakPath(
@@ -204,4 +213,5 @@ fun StreakScreen(
             onStart = { dayNumber -> onOpenStreak(dayNumber) }
         )
     }
+    //endregion
 }

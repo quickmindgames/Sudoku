@@ -31,8 +31,8 @@ fun LessonCardDefault(lesson: com.quickmindgames.sudoku.domain.model.LessonData,
 
         // Step badge
         Text(
-            text = "Lesson $stepNumber",
-            fontSize = 12.sp,
+            text = "• Lesson $stepNumber",
+            fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
             color = colors.primary,
             modifier = Modifier
@@ -42,20 +42,23 @@ fun LessonCardDefault(lesson: com.quickmindgames.sudoku.domain.model.LessonData,
                 )
                 .padding(horizontal = 12.dp, vertical = 4.dp)
         )
+
         Spacer(Modifier.height(8.dp))
 
         Text(
             text = lesson.title,
-            fontSize = 28.sp,
-            fontWeight = FontWeight.ExtraBold,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
             color = colors.onBackground,
             textAlign = TextAlign.Center,
             letterSpacing = 0.3.sp
         )
-        Spacer(Modifier.height(8.dp))
+
+        Spacer(Modifier.height(12.dp))
 
         // Visual grid representation
         VisualLessonGrid(grid = lesson.visualGrid)
+
         Spacer(Modifier.height(12.dp))
 
         // Body

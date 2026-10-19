@@ -44,7 +44,6 @@ fun StreakPath(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
     ) {
         Box(
             modifier = Modifier
@@ -94,7 +93,6 @@ fun StreakPath(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(vertical = 8.dp, horizontal = horizontalPadding)
                         .verticalScroll(scrollState)
                 ) {
                     nodeRows.forEach { (rowIndex, nodeIndices) ->
@@ -152,7 +150,7 @@ fun StreakPath(
                                             color = segColor,
                                             start = Offset(lineStart, lineY),
                                             end = Offset(lineEnd, lineY),
-                                            strokeWidth = 2.dp.toPx()
+                                            strokeWidth = 2.5.dp.toPx()
                                         )
                                     }
                                 }
@@ -168,7 +166,7 @@ fun StreakPath(
                                         color = topVertColor,
                                         start = Offset(leadingX, 0f),
                                         end = Offset(leadingX, lineY - nodeWidthPx / 2f),
-                                        strokeWidth = 2.dp.toPx()
+                                        strokeWidth = 2.5.dp.toPx()
                                     )
                                 }
 
@@ -183,7 +181,7 @@ fun StreakPath(
                                         color = botVertColor,
                                         start = Offset(trailingX, lineY + nodeWidthPx / 2f),
                                         end = Offset(trailingX, size.height),
-                                        strokeWidth = 2.dp.toPx()
+                                        strokeWidth = 2.5.dp.toPx()
                                     )
                                 }
                             }

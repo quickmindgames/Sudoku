@@ -27,9 +27,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -312,7 +312,7 @@ fun SudokuScreen(
                             modifier = Modifier.size(32.dp)
                         ) {
                             Icon(
-                                imageVector = if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                imageVector = if (isRunning) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                                 contentDescription = if (isRunning) "Pause" else "Resume",
                                 modifier = Modifier.size(18.dp),
                                 tint = colors.onPrimaryContainer
@@ -411,7 +411,7 @@ fun SudokuScreen(
                             .size(32.dp)
                     ) {
                         Icon(
-                            imageVector = if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            imageVector = if (isRunning) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                             contentDescription = if (isRunning) "Pause" else "Resume",
                             modifier = Modifier.size(18.dp),
                             tint = colors.onPrimaryContainer
@@ -464,7 +464,7 @@ fun SudokuScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.PlayArrow,
+                                imageVector = Icons.Rounded.PlayArrow,
                                 contentDescription = "Resume",
                                 tint = colors.primary,
                                 modifier = Modifier.size(40.dp)
@@ -565,7 +565,7 @@ fun SudokuScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Clear,
+                            imageVector = Icons.Rounded.Clear,
                             contentDescription = "Erase",
                             modifier = Modifier.size(22.dp)
                         )
@@ -755,7 +755,7 @@ fun SudokuScreen(
                                 Text(
                                     text = "Game Over",
                                     fontSize = 26.sp,
-                                    fontWeight = FontWeight.ExtraBold,
+                                    fontWeight = FontWeight.Bold,
                                     color = Color.White
                                 )
                                 Spacer(Modifier.height(4.dp))
@@ -870,7 +870,7 @@ fun SudokuScreen(
                                 Text(
                                     text = "You Win!",
                                     fontSize = 26.sp,
-                                    fontWeight = FontWeight.ExtraBold,
+                                    fontWeight = FontWeight.Bold,
                                     color = Color.White
                                 )
                                 Text(

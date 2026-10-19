@@ -82,10 +82,10 @@ fun StatisticsScreen(
         )
     }
 
+    //region Main Design
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
     ) {
         // Top Bar with Back Button and Title
         Row(
@@ -206,4 +206,5 @@ fun StatisticsScreen(
             }
         }
     }
+    //endregion
 }

@@ -3,7 +3,7 @@
     <string name="app_name_full">Sudoku – Classic Puzzle Game</string>
     <string name="lbl_puzzle">Classic Puzzle Game</string>
     <string name="lbl_lets_practice">Let\'s Practice</string>
-    <string name="streak_shield_wallet">Shield Wallet</string>
+    <string name="streak_shield_wallet">Streak Shield</string>
     <string name="streak_shield_prompt_title">Save Your Streak?</string>
     <string name="streak_shield_prompt_description">You missed playing a streak yesterday! Your %1$d-day streak is at risk.\n\n%2$s\n\nUse 1 shield to preserve your streak.</string>
     <plurals name="streak_shields_available">

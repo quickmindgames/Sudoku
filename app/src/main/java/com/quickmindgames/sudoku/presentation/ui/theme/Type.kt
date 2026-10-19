@@ -13,7 +13,8 @@ val customFontFamily = FontFamily(
     Font(R.font.regular, FontWeight.Normal),        // 400
     Font(R.font.medium, FontWeight.Medium),         // 500
     Font(R.font.semi_bold, FontWeight.SemiBold),              // 600
-    Font(R.font.bold, FontWeight.Bold)              // 600
+    Font(R.font.bold, FontWeight.Bold),         // 600
+    Font(R.font.extra_bold, FontWeight.ExtraBold)   // 800
 )
 
 // Material3 Typography using Poppins Font

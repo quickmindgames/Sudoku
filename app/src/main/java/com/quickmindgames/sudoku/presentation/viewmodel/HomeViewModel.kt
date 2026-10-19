@@ -24,6 +24,7 @@ import java.time.temporal.ChronoUnit
 data class HomeScreenState(
     val hasSavedGame: Boolean = false,
     val savedGameDifficulty: Difficulty? = null,
+    val savedGameTimeSeconds: Int = 0,
     val doublePointsBoosterWallet: Int = 0,
     val streakShieldWallet: Int = 0,
     val streakCount: Int = 0,
@@ -62,7 +63,8 @@ class HomeViewModel(context: Context) : ViewModel() {
                 _uiState.update {
                     it.copy(
                         hasSavedGame = savedGame != null,
-                        savedGameDifficulty = savedGame?.difficulty
+                        savedGameDifficulty = savedGame?.difficulty,
+                        savedGameTimeSeconds = savedGame?.timeSeconds ?: 0
                     )
                 }
             }

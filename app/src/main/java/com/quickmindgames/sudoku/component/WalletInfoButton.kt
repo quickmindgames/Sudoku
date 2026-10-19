@@ -2,7 +2,7 @@ package com.quickmindgames.sudoku.component
 
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -20,9 +20,9 @@ fun WalletInfoButton(
         modifier = Modifier.size(32.dp)
     ) {
         Icon(
-            imageVector = Icons.Default.Info,
+            imageVector = Icons.Rounded.Info,
             contentDescription = contentDescription,
-            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.3f),
             modifier = Modifier.size(24.dp)
         )
     }
