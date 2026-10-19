@@ -10,11 +10,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -29,13 +30,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.quickmindgames.sudoku.component.DifficultyStatsTab
 import com.quickmindgames.sudoku.component.OverallStatsTab
 import com.quickmindgames.sudoku.component.StreakStatsTab
@@ -47,13 +51,14 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun StatisticsScreen(
-    modifier: Modifier = Modifier,
-    viewModel: StatisticsViewModel,
     onBackClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val allStatistics by viewModel.allStatistics.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val statisticsViewModel: StatisticsViewModel = viewModel(
+        factory = remember(context) { StatisticsViewModel.factory(context) }
+    )
+    val allStatistics by statisticsViewModel.allStatistics.collectAsState()
+    val isLoading by statisticsViewModel.isLoading.collectAsState()
 
     val tabs = listOf("Overall", "Breeze", "Pulse", "Rage", "Elite", "Streak")
     val pagerState = rememberPagerState(pageCount = { tabs.size })
@@ -66,11 +71,11 @@ fun StatisticsScreen(
 
     // Refresh statistics when screen is focused
     LaunchedEffect(Unit) {
-        viewModel.refreshStatistics()
-        viewModel.hasLoadedStatistics.first { it }
+        statisticsViewModel.refreshStatistics()
+        statisticsViewModel.hasLoadedStatistics.first { it }
         AnalyticsUtils.logStatisticsViewed(
             context = context,
-            statistics = viewModel.allStatistics.value
+            statistics = statisticsViewModel.allStatistics.value
         )
     }
 
@@ -84,35 +89,28 @@ fun StatisticsScreen(
 
     //region Main Design
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
+            .systemBarsPadding()
     ) {
         // Top Bar with Back Button and Title
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(
-                    top = 12.dp,
-                    bottom = 12.dp,
-                    start = 12.dp,
-                    end = 12.dp
-                ),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(start = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
                 modifier = Modifier.weight(1f, fill = false),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    onClick = { onBackClick() },
-                    modifier = Modifier
-                        .size(32.dp)
+                    onClick = { onBackClick() }
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.primary
+                        contentDescription = "Exit",
+                        tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
 
@@ -120,42 +118,56 @@ fun StatisticsScreen(
 
                 Text(
                     text = "Statistics",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
         }
 
-        // Tab Row - synchronized with pager
+        // Scrollable pill tabs - synchronized with pager
         PrimaryScrollableTabRow(
             selectedTabIndex = pagerState.currentPage,
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface),
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.primary,
-            edgePadding = 16.dp
+                .padding(vertical = 8.dp),
+            containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            edgePadding = 10.dp,
+            indicator = {},
+            divider = {}
         ) {
             tabs.forEachIndexed { index, title ->
+                val selected = pagerState.currentPage == index
                 Tab(
-                    selected = pagerState.currentPage == index,
+                    selected = selected,
                     onClick = {
                         coroutineScope.launch {
                             pagerState.animateScrollToPage(index)
                         }
                     },
-                    text = {
-                        Text(
-                            text = title,
-                            fontSize = 14.sp,
-                            fontWeight = if (pagerState.currentPage == index) FontWeight.Bold else FontWeight.Normal,
-                            modifier = Modifier.padding(vertical = 12.dp)
-                        )
-                    },
-                    selectedContentColor = MaterialTheme.colorScheme.primary,
-                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                    modifier = Modifier
+                        .padding(horizontal = 6.dp)
+                        .background(
+                            color = if (selected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                            },
+                            shape = CircleShape
+                        ),
+                    selectedContentColor = MaterialTheme.colorScheme.onPrimary,
+                    unselectedContentColor = MaterialTheme.colorScheme.onSurface
+                ) {
+                    Text(
+                        text = title,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        fontSize = 14.sp,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                    )
+                }
             }
         }
 
@@ -190,7 +202,7 @@ fun StatisticsScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(16.dp)
+                        .padding(top = 8.dp, start = 16.dp, end = 16.dp)
                 ) {
                     when (pageIndex) {
                         0 -> OverallStatsTab(allStatistics)

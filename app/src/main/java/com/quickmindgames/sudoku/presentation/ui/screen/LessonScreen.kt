@@ -4,22 +4,21 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -74,7 +73,7 @@ fun LessonScreen(
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Exit",
-                    tint = MaterialTheme.colorScheme.onBackground
+                    tint = colors.onBackground
                 )
             }
             Text(
@@ -83,14 +82,14 @@ fun LessonScreen(
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 ),
-                color = MaterialTheme.colorScheme.onBackground
+                color = colors.onBackground
             )
         }
 
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
-                .padding(top = 8.dp)
+                .padding(start = 8.dp, end = 8.dp)
         ) {
 
             items(items = LESSONS, key = { lesson -> lesson.id }) { lesson ->
@@ -102,20 +101,6 @@ fun LessonScreen(
                 } else {
                     LessonCardDefault(lesson = lesson, stepNumber = index + 1)
                 }
-
-                // Add divider between lessons (except after last)
-                if (index < LESSONS.size - 1) {
-                    HorizontalDivider(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 24.dp),
-                        thickness = 4.dp,
-                        color = colors.onSurfaceVariant.copy(alpha = 0.1f)
-                    )
-                }
-            }
-            item {
-                Spacer(Modifier.height(24.dp))
             }
         }
 
@@ -123,7 +108,8 @@ fun LessonScreen(
             onClick = onLessonsComplete,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 24.dp)
+                .padding(horizontal = 24.dp)
+                .padding(top = 16.dp, bottom = 24.dp)
                 .height(56.dp)
                 .background(
                     brush = primaryGradientBrush(),
@@ -131,14 +117,23 @@ fun LessonScreen(
                 ), shape = RoundedCornerShape(24.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Transparent,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+                contentColor = colors.onPrimary
             )
         ) {
-            Text(
-                text = stringResource(R.string.lbl_lets_practice),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(R.string.lbl_lets_practice),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp)
+                )
+
+            }
         }
     }
     //endregion

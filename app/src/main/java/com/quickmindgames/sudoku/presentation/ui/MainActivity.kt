@@ -60,6 +60,7 @@ import com.quickmindgames.sudoku.presentation.ui.screen.HomeScreen
 import com.quickmindgames.sudoku.presentation.ui.screen.LessonScreen
 import com.quickmindgames.sudoku.presentation.ui.screen.RewardsScreen
 import com.quickmindgames.sudoku.presentation.ui.screen.SettingsScreen
+import com.quickmindgames.sudoku.presentation.ui.screen.StatisticsScreen
 import com.quickmindgames.sudoku.presentation.ui.screen.StreakScreen
 import com.quickmindgames.sudoku.presentation.ui.screen.SudokuScreen
 import com.quickmindgames.sudoku.presentation.ui.theme.SudoTheme
@@ -280,7 +281,10 @@ fun MainSudokuApp() {
                 SettingsScreen(
                     modifier = Modifier.padding(
                         tabPadding
-                    )
+                    ),
+                    onStatisticsClick = {
+                        navController.navigate("statistics")
+                    }
                 )
             }
 
@@ -295,6 +299,12 @@ fun MainSudokuApp() {
                     onExit = {
                         navController.popBackStack()
                     }
+                )
+            }
+
+            composable("statistics") {
+                StatisticsScreen(
+                    onBackClick = { navController.popBackStack() }
                 )
             }
 

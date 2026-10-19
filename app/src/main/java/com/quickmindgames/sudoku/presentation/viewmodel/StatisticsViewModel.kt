@@ -2,7 +2,10 @@ package com.quickmindgames.sudoku.presentation.viewmodel
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.quickmindgames.sudoku.data.repository.StatisticsRepository
 import com.quickmindgames.sudoku.domain.model.AllStatistics
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +19,14 @@ import kotlinx.coroutines.launch
  * Uses lazy repository initialization
  */
 class StatisticsViewModel(context: Context) : ViewModel() {
+
+    companion object {
+        fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                StatisticsViewModel(context)
+            }
+        }
+    }
 
     private val repository by lazy {
         StatisticsRepository(context)
