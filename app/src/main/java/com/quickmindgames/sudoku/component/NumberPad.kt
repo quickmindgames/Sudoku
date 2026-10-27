@@ -35,11 +35,12 @@ fun NumberPad(
 ) {
     // Count how many times each number (1–9) appears in the grid.
     val numberCounts = IntArray(10)
-    for (row in grid) for (cell in row) if (cell.value in 1..9) numberCounts[cell.value]++
+    for (row in grid) for ((value) in row) if (value in 1..9) numberCounts[value]++
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp),
+            .padding(horizontal = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         (1..9).forEach { number ->

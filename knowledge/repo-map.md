@@ -4623,7 +4623,7 @@ fun LearningCompleteDialog(
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = "You completed your learning puzzle!",
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             color = Color.White.copy(alpha = 0.85f)
                         )
                     }
@@ -4632,7 +4632,7 @@ fun LearningCompleteDialog(
                 // ── Encouragement text ─────────────────────────
                 Text(
                     text = "You've got the skills.\nLet's jump into a real game! \uD83D\uDE80",
-                    fontSize = 15.sp,
+                    fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     lineHeight = 22.sp,
@@ -5405,14 +5405,14 @@ val Typography = Typography(
     displayLarge = TextStyle(
         fontFamily = customFontFamily,
         fontWeight = FontWeight.Bold,
-        fontSize = 57.sp,
+        fontSize = 56.sp,
         lineHeight = 64.sp,
         letterSpacing = (-0.25).sp
     ),
     displayMedium = TextStyle(
         fontFamily = customFontFamily,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 45.sp,
+        fontSize = 46.sp,
         lineHeight = 52.sp,
         letterSpacing = 0.sp
     ),
@@ -6969,7 +6969,7 @@ fun OverallStatsTab(allStatistics: AllStatistics) {
                 )
                 Text(
                     text = feedback.caption,
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Medium
                 )
@@ -7291,7 +7291,7 @@ fun StreakSummaryCard(
                 )
                 Text(
                     text = statusText,
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     color = statusColor,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(top = 2.dp)
@@ -8417,7 +8417,7 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                                 ) {
                                     Text(
                                         text = "2X",
-                                        fontSize = 15.sp,
+                                        fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Spacer(Modifier.width(2.dp))
@@ -9079,7 +9079,7 @@ fun StreakScreen(
                         )
                         Text(
                             text = statusText,
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             color = statusColor,
                             fontWeight = FontWeight.Medium
                         )
@@ -9715,7 +9715,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             )
                             Text(
                                 text = "View your game statistics",
-                                fontSize = 13.sp,
+                                fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 2.dp)
                             )
@@ -9796,7 +9796,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         )
                         Text(
                             text = "Hide a number once all 9 of its cells are filled.",
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
                         )
@@ -9863,7 +9863,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         )
                         Text(
                             text = "When you select a number, matching numbers are highlighted across the board.",
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
                         )
@@ -9923,7 +9923,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         )
                         Text(
                             text = "Highlight the selected cell’s row, column, and 3×3 block.",
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
                         )
@@ -9983,7 +9983,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         )
                         Text(
                             text = "No Mistakes. No Points. Not for Streak Games.",
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
                         )
@@ -10058,7 +10058,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         )
                         Text(
                             text = "Sound effects and haptic feedback",
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
                         )
@@ -10130,7 +10130,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         )
                         Text(
                             text = if (settingsState.isDarkMode) "Enabled" else "Disabled",
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
                         )
@@ -10769,12 +10769,12 @@ fun HomeScreen(
                         )
                         Text(
                             text = "Available: ${homeState.doublePointsBoosterWallet} Boosters",
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = "Double the points earned from this game.",
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -10821,7 +10821,7 @@ fun HomeScreen(
 
             Text(
                 text = stringResource(R.string.lbl_puzzle),
-                fontSize = 15.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                 modifier = Modifier.padding(top = 4.dp)
@@ -10885,7 +10885,7 @@ fun HomeScreen(
                             homeState.savedGameDifficulty?.let { difficulty ->
                                 Text(
                                     text = difficulty.label,
-                                    fontSize = 13.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Normal,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(
                                         alpha = 0.7f
@@ -11362,7 +11362,7 @@ fun SudokuScreen(
                 ) {
                     Text(
                         text = formatTime(timeSeconds),
-                        fontSize = 15.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = colors.onSurfaceVariant
                     )
@@ -11642,7 +11642,7 @@ fun SudokuScreen(
                                 hintWallet == 0 -> "Wallet empty"
                                 else -> "Used $hintsUsed/$MAX_HINTS_PER_GAME"
                             },
-                            fontSize = 9.sp
+                            fontSize = 10.sp
                         )
                     }
                 }
@@ -11728,7 +11728,7 @@ fun SudokuScreen(
                                 Spacer(Modifier.height(4.dp))
                                 Text(
                                     text = "3 mistakes — better luck next time!",
-                                    fontSize = 13.sp,
+                                    fontSize = 12.sp,
                                     color = Color.White.copy(alpha = 0.8f)
                                 )
                             }
@@ -11842,7 +11842,7 @@ fun SudokuScreen(
                                 )
                                 Text(
                                     text = "Puzzle solved!",
-                                    fontSize = 13.sp,
+                                    fontSize = 12.sp,
                                     color = Color.White.copy(alpha = 0.8f)
                                 )
                                 if (hasDoublePointsBooster && !freePlayEnabled) {

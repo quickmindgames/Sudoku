@@ -15,18 +15,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.BasicAlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -42,7 +38,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -55,10 +50,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.quickmindgames.sudoku.R
+import com.quickmindgames.sudoku.component.CustomActionDialog
+import com.quickmindgames.sudoku.component.DialogAction
 import com.quickmindgames.sudoku.component.PrizeWheel
 import com.quickmindgames.sudoku.component.PrizeWheelPrizes
 import com.quickmindgames.sudoku.component.WalletInfoButton
-import com.quickmindgames.sudoku.component.WalletInfoSection
 import com.quickmindgames.sudoku.component.WalletRewardSummaryRow
 import com.quickmindgames.sudoku.data.preferences.AppPreferences
 import com.quickmindgames.sudoku.data.util.GameFeedback
@@ -107,6 +103,7 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
     val cooldownRemainingMillis = lastSpinMillis?.let {
         (it + AppPreferences.WHEEL_SPIN_COOLDOWN_MILLIS - currentTimeMillis).coerceAtLeast(0L)
     }
+    var showDialog by remember { mutableStateOf(true) }
     val canSpin = lastSpinMillis != Long.MIN_VALUE &&
             (cooldownRemainingMillis == null || cooldownRemainingMillis == 0L)
     val cooldownLabel = cooldownRemainingMillis
@@ -205,7 +202,7 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                             modifier = Modifier
                                 .weight(1f),
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
+                                containerColor = MaterialTheme.colorScheme.surface,
                             ),
                             border = BorderStroke(
                                 0.5.dp,
@@ -226,10 +223,14 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                                             fontWeight =
                                                 FontWeight.Bold
                                         ),
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(
+                                            alpha = 0.5f
+                                        ),
                                         modifier = Modifier.weight(1f),
                                         textAlign = TextAlign.Start
                                     )
                                     WalletInfoButton("About total points") {
+                                        showDialog = true
                                         selectedWalletInfo = WalletInfo.POINTS
                                     }
                                 }
@@ -287,10 +288,14 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                                             fontWeight =
                                                 FontWeight.Bold
                                         ),
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(
+                                            alpha = 0.5f
+                                        ),
                                         modifier = Modifier.weight(1f),
                                         textAlign = TextAlign.Start
                                     )
                                     WalletInfoButton("How to earn hints") {
+                                        showDialog = true
                                         selectedWalletInfo = WalletInfo.HINTS
                                     }
                                 }
@@ -349,10 +354,14 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                                             fontWeight =
                                                 FontWeight.Bold
                                         ),
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(
+                                            alpha = 0.5f
+                                        ),
                                         modifier = Modifier.weight(1f),
                                         textAlign = TextAlign.Start
                                     )
                                     WalletInfoButton("About the 2X Points Wallet") {
+                                        showDialog = true
                                         selectedWalletInfo = WalletInfo.BOOSTERS
                                     }
                                 }
@@ -408,10 +417,14 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                                             fontWeight =
                                                 FontWeight.Bold
                                         ),
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(
+                                            alpha = 0.5f
+                                        ),
                                         modifier = Modifier.weight(1f),
                                         textAlign = TextAlign.Start
                                     )
                                     WalletInfoButton("About the Shield Wallet") {
+                                        showDialog = true
                                         selectedWalletInfo = WalletInfo.SHIELDS
                                     }
                                 }
@@ -521,134 +534,325 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
             }
 
             if (showMigrationSummary) {
-                BasicAlertDialog(
-                    onDismissRequest = { rewardsViewModel.dismissMigrationSummary() }
-                ) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .widthIn(max = 420.dp),
-                        shape = RoundedCornerShape(28.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Box(
+
+                val hintGrantDetails = buildList {
+                    if (AppPreferences.HINT_WALLET_RELEASE_BONUS > 0) {
+                        add(
+                            context.getString(
+                                R.string.rewards_welcome_bonus_hints,
+                                AppPreferences.HINT_WALLET_RELEASE_BONUS
+                            )
+                        )
+                    }
+                }.joinToString(", ")
+
+                CustomActionDialog(
+                    icon = painterResource(R.drawable.ic_reward),
+                    title = stringResource(R.string.rewards_wallet_summary_title),
+                    description = stringResource(R.string.rewards_welcome_subtitle),
+                    content = {
+                        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                            WalletRewardSummaryRow(
+                                emoji = painterResource(R.drawable.ic_hint),
+                                title = stringResource(R.string.hint_wallet_info_title),
+                                amount = initialPointHints +
+                                        initialStreakHints +
+                                        AppPreferences.HINT_WALLET_RELEASE_BONUS,
+                                detail = hintGrantDetails
+                            )
+                            HorizontalDivider(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                            )
+                            WalletRewardSummaryRow(
+                                emoji = painterResource(R.drawable.ic_shield),
+                                title = stringResource(R.string.shield_wallet_info_title),
+                                amount = streakShieldWallet,
+                                detail = stringResource(
+                                    R.string.rewards_welcome_shields_detail,
+                                    AppPreferences.STREAK_SHIELD_WALLET_RELEASE_BONUS
+                                )
+                            )
+                        }
+                    },
+                    onDismissRequest = { rewardsViewModel.dismissMigrationSummary() },
+                    positiveButton = DialogAction(
+                        text = stringResource(R.string.rewards_welcome_button),
+                        onClick = { rewardsViewModel.dismissMigrationSummary() }
+                    ),
+                    negativeButton = null
+                )
+            }
+
+            if (selectedWalletInfo != null) {
+                val infoTitle = when (selectedWalletInfo) {
+                    WalletInfo.POINTS, null -> stringResource(R.string.points_wallet_info_title)
+                    WalletInfo.HINTS -> stringResource(R.string.hint_wallet_info_title)
+                    WalletInfo.BOOSTERS -> stringResource(R.string.booster_wallet_info_title)
+                    WalletInfo.SHIELDS -> stringResource(R.string.shield_wallet_info_title)
+                }
+                val infoDescription = when (selectedWalletInfo) {
+                    WalletInfo.POINTS, null -> "Track and accumulate total points from victories and prize wheel."
+                    WalletInfo.HINTS -> "Hints reveal the verified number for your currently focussed grid cell."
+                    WalletInfo.BOOSTERS -> "Double the points outcome of your next completed Sudoku challenge."
+                    WalletInfo.SHIELDS -> "Shields protect missed days and prevent your streak counter from wiping."
+                }
+                val infoIcon = when (selectedWalletInfo) {
+                    WalletInfo.POINTS, null -> painterResource(R.drawable.ic_score)
+                    WalletInfo.HINTS -> painterResource(R.drawable.ic_hint)
+                    WalletInfo.BOOSTERS -> painterResource(R.drawable.ic_2x)
+                    WalletInfo.SHIELDS -> painterResource(R.drawable.ic_shield)
+                }
+                val content = when (selectedWalletInfo) {
+                    WalletInfo.POINTS, null -> {
+                        @Composable {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(
-                                        brush = Brush.horizontalGradient(
-                                            listOf(Color(0xFF1565C0), Color(0xFF6A1B9A))
-                                        ),
-                                        shape = RoundedCornerShape(
-                                            topStart = 28.dp,
-                                            topEnd = 28.dp
-                                        )
-                                    )
-                                    .padding(horizontal = 20.dp, vertical = 24.dp),
-                                contentAlignment = Alignment.Center
+                                    .padding(horizontal = 12.dp, vertical = 12.dp)
                             ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text("🎁", fontSize = 44.sp)
-                                    Spacer(Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .background(
+                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                            shape = RoundedCornerShape(8.dp)
+                                        )
+                                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                                ) {
                                     Text(
-                                        text = stringResource(R.string.rewards_wallet_summary_title),
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White,
-                                        textAlign = TextAlign.Center
+                                        text = "EARN",
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.SemiBold
                                     )
+                                }
+                                Text(
+                                    text = "Earn points by completing games and spinning the prize wheel.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(all = 4.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    WalletInfo.HINTS -> {
+                        @Composable {
+                            Column(modifier = Modifier.padding(vertical = 12.dp)) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .background(
+                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
+                                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    ) {
+                                        Text(
+                                            text = "EARN",
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
                                     Text(
-                                        text = stringResource(R.string.rewards_welcome_subtitle),
+                                        text = stringResource(R.string.hint_wallet_earn_points) + "\n" + stringResource(
+                                            R.string.hint_wallet_earn_streak
+                                        ) + "\n" + stringResource(R.string.hint_wallet_earn_wheel),
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = Color.White.copy(alpha = 0.85f),
-                                        textAlign = TextAlign.Center
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(all = 4.dp)
+                                    )
+                                }
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 8.dp),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                                )
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .background(
+                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
+                                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    ) {
+                                        Text(
+                                            text = "USE",
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                    Text(
+                                        text = stringResource(R.string.hint_wallet_use),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(all = 4.dp)
                                     )
                                 }
                             }
+                        }
+                    }
 
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 18.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                val hintGrantDetails = buildList {
-                                    if (initialPointHints > 0) {
-                                        add(
-                                            context.getString(
-                                                R.string.rewards_welcome_points_hints,
-                                                initialPointHints
-                                            )
-                                        )
-                                    }
-                                    if (initialStreakHints > 0) {
-                                        add(
-                                            context.getString(
-                                                R.string.rewards_welcome_streak_hints,
-                                                initialStreakHints
-                                            )
-                                        )
-                                    }
-                                    if (AppPreferences.HINT_WALLET_RELEASE_BONUS > 0) {
-                                        add(
-                                            context.getString(
-                                                R.string.rewards_welcome_bonus_hints,
-                                                AppPreferences.HINT_WALLET_RELEASE_BONUS
-                                            )
-                                        )
-                                    }
-                                }.joinToString(" · ")
-
-                                WalletRewardSummaryRow(
-                                    emoji = "💡",
-                                    title = stringResource(R.string.hint_wallet_info_title),
-                                    amount = initialPointHints +
-                                            initialStreakHints +
-                                            AppPreferences.HINT_WALLET_RELEASE_BONUS,
-                                    detail = hintGrantDetails
-                                )
-                                WalletRewardSummaryRow(
-                                    emoji = "🔥",
-                                    title = stringResource(R.string.shield_wallet_info_title),
-                                    amount = streakShieldWallet,
-                                    detail = stringResource(
-                                        R.string.rewards_welcome_shields_detail,
-                                        AppPreferences.STREAK_SHIELD_WALLET_RELEASE_BONUS
-                                    )
-                                )
-                                Button(
-                                    onClick = { rewardsViewModel.dismissMigrationSummary() },
+                    WalletInfo.BOOSTERS -> {
+                        @Composable {
+                            Column(modifier = Modifier.padding(vertical = 12.dp)) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(50.dp),
-                                    shape = RoundedCornerShape(14.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary
-                                    )
+                                        .padding(horizontal = 12.dp)
                                 ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .background(
+                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
+                                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    ) {
+                                        Text(
+                                            text = "EARN",
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
                                     Text(
-                                        text = stringResource(R.string.rewards_welcome_button),
-                                        fontWeight = FontWeight.SemiBold
+                                        text = "Win 2X Boosters exclusively through the prize wheel.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(all = 4.dp)
+                                    )
+                                }
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 8.dp),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                                )
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .background(
+                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
+                                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    ) {
+                                        Text(
+                                            text = "USE",
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                    Text(
+                                        text = "Apply before launching a new game to double the points. 1 booster consumed per finished game.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(all = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    WalletInfo.SHIELDS -> {
+                        @Composable {
+                            Column(modifier = Modifier.padding(vertical = 12.dp)) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .background(
+                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
+                                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    ) {
+                                        Text(
+                                            text = "EARN",
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                    Text(
+                                        text = "Win streak shields exclusively through the prize wheel.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(all = 4.dp)
+                                    )
+                                }
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 8.dp),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                                )
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .background(
+                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
+                                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    ) {
+                                        Text(
+                                            text = "USE",
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                    Text(
+                                        text = "Use one streak shield to protect one missed day and keep your streak alive.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(all = 4.dp)
                                     )
                                 }
                             }
                         }
                     }
                 }
-            }
-
-            if (selectedWalletInfo != null) {
-                val infoTitle = when (selectedWalletInfo) {
-                    WalletInfo.POINTS -> stringResource(R.string.points_wallet_info_title)
-                    WalletInfo.HINTS -> stringResource(R.string.hint_wallet_info_title)
-                    WalletInfo.BOOSTERS -> stringResource(R.string.booster_wallet_info_title)
-                    WalletInfo.SHIELDS -> stringResource(R.string.shield_wallet_info_title)
-                    null -> ""
+                if (showDialog) {
+                    CustomActionDialog(
+                        icon = infoIcon,
+                        title = infoTitle,
+                        description = infoDescription,
+                        content = { content() },
+                        onDismissRequest = {
+                            selectedWalletInfo = null
+                            showDialog = false
+                        }
+                    )
                 }
-                BasicAlertDialog(
+                /*BasicAlertDialog(
                     onDismissRequest = { selectedWalletInfo = null }
                 ) {
                     Card(
@@ -755,7 +959,7 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                             }
                         }
                     }
-                }
+                }*/
             }
 
         }

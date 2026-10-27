@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.quickmindgames.sudoku.presentation.ui.theme.StreakLockColor
@@ -32,6 +33,7 @@ import com.quickmindgames.sudoku.presentation.ui.theme.StreakLockColor
  * Created by sagar.tahelyani on 04/03/26
  *
  */
+@Preview
 @Composable
 fun StreakNode(
     dayNumber: Int,

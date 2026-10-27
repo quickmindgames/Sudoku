@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,31 +13,30 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material3.BasicAlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -50,9 +50,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter.Companion.tint
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -62,12 +63,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.quickmindgames.sudoku.R
-import com.quickmindgames.sudoku.component.LearningCompleteDialog
+import com.quickmindgames.sudoku.component.CustomActionDialog
+import com.quickmindgames.sudoku.component.DialogAction
 import com.quickmindgames.sudoku.component.NumberPad
 import com.quickmindgames.sudoku.component.SudokuGridLevel
 import com.quickmindgames.sudoku.data.preferences.AppPreferences
@@ -230,25 +231,14 @@ fun SudokuScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.background)
-            .navigationBarsPadding()
-            .padding(
-                top = 12.dp
-            )
-            .padding(start = 6.dp, end = 6.dp, top = 6.dp, bottom = 32.dp), // Minimized margins
-        horizontalAlignment = Alignment.CenterHorizontally
+            .systemBarsPadding()
     ) {
 
         // Top Bar with Back Button and Title
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(
-                    top = WindowInsets.statusBars
-                        .asPaddingValues()
-                        .calculateTopPadding(),
-                    bottom = 12.dp, start = 12.dp, end = 12.dp
-                ),
+                .padding(end = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -257,27 +247,25 @@ fun SudokuScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    onClick = { onExit() },
-                    modifier = Modifier
-                        .size(32.dp)
+                    onClick = { onExit() }
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = colors.primary
+                        contentDescription = "Exit",
+                        tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
-
-                Spacer(Modifier.width(12.dp))
 
                 Text(
                     text = if (isLearningMode) stringResource(R.string.lbl_practice_mode)
                     else if (mode == "streak" && streakDay > 0) "${ordinalSuffix(streakDay)} Streak"
                     else if (mode == "streak") "Streak"
                     else currentDifficulty.label,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.primary
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
 
@@ -285,6 +273,7 @@ fun SudokuScreen(
 
             // Keep the timer in the scorecard position during free play.
             if (!isLearningMode && freePlayEnabled) {
+                //region Timer
                 Card(
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
@@ -307,20 +296,23 @@ fun SudokuScreen(
                             color = colors.onPrimaryContainer
                         )
                         IconButton(
-                            onClick = { gameViewModel.toggleTimer(!isLearningMode) },
+                            onClick = { gameViewModel.toggleTimer(true) },
                             enabled = !gameOver && !gameWon,
                             modifier = Modifier.size(32.dp)
                         ) {
                             Icon(
                                 imageVector = if (isRunning) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                                 contentDescription = if (isRunning) "Pause" else "Resume",
-                                modifier = Modifier.size(18.dp),
+                                modifier = Modifier.size(20.dp),
                                 tint = colors.onPrimaryContainer
                             )
                         }
                     }
                 }
+                //endregion
+
             } else if (!isLearningMode) {
+                //region Points
                 Card(
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
@@ -328,10 +320,15 @@ fun SudokuScreen(
                     )
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "⭐", fontSize = 16.sp)
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_score),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = Color.Unspecified
+                        )
                         Spacer(Modifier.width(4.dp))
                         Text(
                             text = "$score",
@@ -341,6 +338,7 @@ fun SudokuScreen(
                         )
                     }
                 }
+                //endregion
             }
         }
 
@@ -349,20 +347,20 @@ fun SudokuScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 4.dp)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 Row(
                     modifier = Modifier.align(Alignment.CenterStart),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Mistakes: ",
+                        text = "Mistakes",
                         fontSize = 14.sp,
                         color = colors.onSurface,
                         fontWeight = FontWeight.Medium
                     )
                     repeat(3) { index ->
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(4.dp))
                         Box(
                             modifier = Modifier
                                 .size(28.dp)
@@ -395,7 +393,7 @@ fun SudokuScreen(
                 ) {
                     Text(
                         text = formatTime(timeSeconds),
-                        fontSize = 15.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = colors.onSurfaceVariant
                     )
@@ -413,7 +411,7 @@ fun SudokuScreen(
                         Icon(
                             imageVector = if (isRunning) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                             contentDescription = if (isRunning) "Pause" else "Resume",
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(20.dp),
                             tint = colors.onPrimaryContainer
                         )
                     }
@@ -456,7 +454,7 @@ fun SudokuScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(72.dp)
+                                .size(64.dp)
                                 .background(
                                     color = colors.primaryContainer,
                                     shape = CircleShape
@@ -467,28 +465,25 @@ fun SudokuScreen(
                                 imageVector = Icons.Rounded.PlayArrow,
                                 contentDescription = "Resume",
                                 tint = colors.primary,
-                                modifier = Modifier.size(40.dp)
+                                modifier = Modifier.size(48.dp)
                             )
                         }
                         Spacer(Modifier.height(16.dp))
                         Text(
                             text = "Game Paused",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge,
                             color = colors.onBackground
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(
                             text = "Tap to resume",
-                            fontSize = 14.sp,
-                            color = colors.onSurfaceVariant
+                            style = MaterialTheme.typography.titleMedium,
+                            color = colors.onSurfaceVariant.copy(alpha = 0.6f)
                         )
                     }
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(20.dp))
 
         NumberPad(
             grid = userGrid,
@@ -511,12 +506,12 @@ fun SudokuScreen(
 
         if (!isLearningMode) {
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 //region Undo Button
@@ -524,10 +519,9 @@ fun SudokuScreen(
                     onClick = { gameViewModel.undoMove() },
                     enabled = gameViewModel.canUndo.value && isRunning && !gameOver && !gameWon,
                     modifier = Modifier
-                        .weight(1f)
-                        .height(64.dp),
+                        .weight(1f),
                     shape = RoundedCornerShape(14.dp),
-                    contentPadding = PaddingValues(4.dp)
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 16.dp)
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -536,7 +530,7 @@ fun SudokuScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Undo,
                             contentDescription = "Undo",
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
@@ -555,10 +549,9 @@ fun SudokuScreen(
                         (wrongCells.contains(r to c) || userGrid[r][c].notes.isNotEmpty())
                     } == true && !gameOver && !gameWon,
                     modifier = Modifier
-                        .weight(1f)
-                        .height(64.dp),
+                        .weight(1f),
                     shape = RoundedCornerShape(14.dp),
-                    contentPadding = PaddingValues(4.dp)
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 16.dp)
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -567,7 +560,7 @@ fun SudokuScreen(
                         Icon(
                             imageVector = Icons.Rounded.Clear,
                             contentDescription = "Erase",
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
@@ -584,22 +577,22 @@ fun SudokuScreen(
                     onClick = { gameViewModel.toggleNotes() },
                     enabled = isRunning && !gameOver && !gameWon,
                     modifier = Modifier
-                        .weight(1f)
-                        .height(64.dp),
+                        .weight(1f),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.filledTonalButtonColors(
                         containerColor = if (isNotesMode) colors.primary else colors.secondaryContainer,
                         contentColor = if (isNotesMode) colors.onPrimary else colors.onSecondaryContainer
                     ),
-                    contentPadding = PaddingValues(4.dp)
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 16.dp)
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text(
-                            text = "📝",
-                            fontSize = 16.sp
+                        Icon(
+                            imageVector = Icons.Rounded.EditNote,
+                            contentDescription = "Notes",
+                            modifier = Modifier.size(24.dp)
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
@@ -618,7 +611,7 @@ fun SudokuScreen(
                             return@FilledTonalButton
                         }
                         coroutineScope.launch {
-                            when (gameViewModel.processHint(isLearningMode, freePlayEnabled)) {
+                            when (gameViewModel.processHint(false, freePlayEnabled)) {
                                 HintResult.EMPTY_WALLET ->
                                     Toast.makeText(
                                         context,
@@ -650,32 +643,29 @@ fun SudokuScreen(
                     enabled = isRunning && !gameOver && !gameWon && canUseHint &&
                             !isHintProcessing,
                     modifier = Modifier
-                        .weight(1f)
-                        .height(64.dp),
+                        .weight(1f),
                     shape = RoundedCornerShape(14.dp),
-                    contentPadding = PaddingValues(4.dp)
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 16.dp)
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text(
-                            text = "💡",
-                            fontSize = 16.sp
+                        Image(
+                            painterResource(id = R.drawable.ic_hint),
+                            contentDescription = "Hint",
+                            Modifier.size(24.dp),
+                            colorFilter = tint(
+                                if (canUseHint) Color(0xFFf2ca00) else colors.onSurfaceVariant.copy(
+                                    alpha = 0.5f
+                                )
+                            )
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = "Hint ($availableHints)",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = when {
-                                hintsUsed >= MAX_HINTS_PER_GAME -> "Limit reached"
-                                hintWallet == 0 -> "Wallet empty"
-                                else -> "Used $hintsUsed/$MAX_HINTS_PER_GAME"
-                            },
-                            fontSize = 9.sp
                         )
                     }
                 }
@@ -726,101 +716,97 @@ fun SudokuScreen(
                     hintCount = hintsUsed
                 )
             }
-
-            BasicAlertDialog(onDismissRequest = {}) {
-                Card(
-                    shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = colors.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-
-                        // ── Gradient header ──────────────────────────────
+            CustomActionDialog(
+                icon = painterResource(R.drawable.ic_skull),
+                title = "Game Over",
+                description = "You've reached 3 mistakes - take a bath and try again! Practice makes perfection.",
+                content = {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Mistakes Limit Reached",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth()
                                 .background(
-                                    Brush.horizontalGradient(
-                                        listOf(Color(0xFFB71C1C), Color(0xFFE53935))
-                                    ),
-                                    RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+                                    color = colors.errorContainer,
+                                    shape = RoundedCornerShape(8.dp)
                                 )
-                                .padding(vertical = 32.dp),
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("💀", fontSize = 52.sp)
-                                Spacer(Modifier.height(10.dp))
-                                Text(
-                                    text = "Game Over",
-                                    fontSize = 26.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    text = "3 mistakes — better luck next time!",
-                                    fontSize = 13.sp,
-                                    color = Color.White.copy(alpha = 0.8f)
-                                )
-                            }
-                        }
-
-                        // ── Buttons ──────────────────────────────────────
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 24.dp, vertical = 24.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            // Try Again
-                            Button(
-                                onClick = {
-                                    coroutineScope.launch { gameViewModel.retryGame() }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(50.dp),
-                                shape = RoundedCornerShape(14.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFE53935)
-                                )
-                            ) { Text("Try Again", fontWeight = FontWeight.SemiBold) }
-
-                            // Exit
-                            FilledTonalButton(
-                                onClick = {
-                                    gameViewModel.dismissGameOver()
-                                    onExit()
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(50.dp),
-                                shape = RoundedCornerShape(14.dp)
-                            ) { Text("Exit", fontWeight = FontWeight.SemiBold) }
+                            Text(
+                                text = "3 / 3",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.error
+                            )
                         }
                     }
-                }
-            }
+                },
+                onDismissRequest = { },
+                positiveButton = DialogAction(
+                    text = "Try Again",
+                    onClick = {
+                        coroutineScope.launch { gameViewModel.retryGame() }
+                    }
+                ),
+                negativeButton = DialogAction(
+                    text = "Exit",
+                    onClick = {
+                        gameViewModel.dismissGameOver()
+                        onExit()
+                    }
+                )
+            )
         }
 
     } // end Column
 
     if (gameWon) {
         if (isLearningMode) {
-            // ── Learning mode: show LearningCompleteDialog ──
-            LearningCompleteDialog(
-                onTryNormalMode = {
-                    gameViewModel.dismissGameWon()
-                    onStartNormalGame() // Pop back to home — user can tap New Game
-                },
-                onBackToHome = {
-                    gameViewModel.dismissGameWon()
-                    onExit()
-                }
-            )
             AnalyticsUtils.logLearningCompleted(context)
+            CustomActionDialog(
+                icon = painterResource(R.drawable.ic_party),
+                title = "Excellent Work!",
+                description = "You've completed your learning puzzle and mastered cell intersections!",
+                content = {
+                    Text(
+                        text = "You've got the skills. Let's jump into a real rated challenge! \uD83D\uDE80",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 22.sp,
+                        modifier = Modifier.padding(vertical = 8.dp, horizontal = 12.dp)
+                    )
+                },
+                onDismissRequest = { },
+                positiveButton = DialogAction(
+                    text = "Start Game",
+                    onClick = {
+                        gameViewModel.dismissGameWon()
+                        onStartNormalGame() // Pop back to home — user can tap New Game
+                    }
+                ),
+                negativeButton = DialogAction(
+                    text = "Back to Home",
+                    onClick = {
+                        gameViewModel.dismissGameWon()
+                        onExit()
+                    }
+                )
+            )
+
         } else {
             // Persist score & streak state
             LaunchedEffect(Unit) {
@@ -836,79 +822,64 @@ fun SudokuScreen(
                     hintCount = hintsUsed
                 )
             }
-
-            BasicAlertDialog(onDismissRequest = {}) {
-                Card(
-                    shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = colors.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+            val doneAction = DialogAction(
+                text = "Done",
+                onClick = {
+                    gameViewModel.dismissGameWon()
+                    onExit()
+                }
+            )
+            val nextAction = DialogAction(
+                text = "Next Game",
+                onClick = {
+                    gameViewModel.createNextGame()
+                }
+            )
+            CustomActionDialog(
+                icon = painterResource(R.drawable.ic_party),
+                title = "You Win!",
+                description = "Congratulations! You've solved the puzzle.",
+                content = {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-
-                        // ── Gradient header ──────────────────────────────────
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(180.dp)
-                                .background(
-                                    Brush.horizontalGradient(
-                                        listOf(Color(0xFF1565C0), Color(0xFF6A1B9A))
-                                    ),
-                                    RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            LottieAnimation(
-                                composition = confettiComposition,
-                                progress = { confettiProgress },
-                                modifier = Modifier.fillMaxSize()
+                        if (hasDoublePointsBooster && !freePlayEnabled) {
+                            Text(
+                                text = "You've earned $score x 2 = $pointsToAward points!",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                             )
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("🎉", fontSize = 48.sp)
-                                Spacer(Modifier.height(8.dp))
-                                Text(
-                                    text = "You Win!",
-                                    fontSize = 26.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = "Puzzle solved!",
-                                    fontSize = 13.sp,
-                                    color = Color.White.copy(alpha = 0.8f)
-                                )
-                                if (hasDoublePointsBooster && !freePlayEnabled) {
-                                    Text(
-                                        text = "You've earned $score x 2 = $pointsToAward points!",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            }
+                            HorizontalDivider(
+                                modifier = Modifier
+                                    .fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                            )
                         }
-
-                        // ── Stats row ────────────────────────────────────────
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 24.dp, vertical = 20.dp),
+                                .padding(vertical = 16.dp),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
                             // Time
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Box(
                                     modifier = Modifier
-                                        .size(52.dp)
+                                        .size(42.dp)
                                         .background(
                                             colors.primaryContainer,
-                                            CircleShape
+                                            RoundedCornerShape(12.dp)
                                         ),
                                     contentAlignment = Alignment.Center
-                                ) { Text("⏱️", fontSize = 22.sp) }
-                                Spacer(Modifier.height(6.dp))
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_clock),
+                                        contentDescription = null,
+                                        tint = Color.Unspecified,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
                                 Text(
                                     text = formatTime(timeSeconds),
                                     fontWeight = FontWeight.Bold,
@@ -916,8 +887,9 @@ fun SudokuScreen(
                                     color = colors.onSurface
                                 )
                                 Text(
-                                    text = "Time",
-                                    fontSize = 12.sp,
+                                    text = "TIME",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
                                     color = colors.onSurfaceVariant
                                 )
                             }
@@ -926,14 +898,21 @@ fun SudokuScreen(
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Box(
                                         modifier = Modifier
-                                            .size(52.dp)
+                                            .size(42.dp)
                                             .background(
                                                 colors.primaryContainer,
-                                                CircleShape
+                                                RoundedCornerShape(12.dp)
                                             ),
                                         contentAlignment = Alignment.Center
-                                    ) { Text("⭐", fontSize = 22.sp) }
-                                    Spacer(Modifier.height(6.dp))
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_score),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp),
+                                            tint = Color.Unspecified
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(6.dp))
                                     Text(
                                         text = "$pointsToAward",
                                         fontWeight = FontWeight.Bold,
@@ -941,8 +920,9 @@ fun SudokuScreen(
                                         color = colors.onSurface
                                     )
                                     Text(
-                                        text = "Points",
-                                        fontSize = 12.sp,
+                                        text = "POINTS",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
                                         color = colors.onSurfaceVariant
                                     )
                                 }
@@ -950,13 +930,20 @@ fun SudokuScreen(
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Box(
                                         modifier = Modifier
-                                            .size(52.dp)
+                                            .size(42.dp)
                                             .background(
-                                                colors.primaryContainer,
-                                                CircleShape
+                                                if (mistakes == 0) colors.primaryContainer else colors.errorContainer,
+                                                RoundedCornerShape(12.dp)
                                             ),
                                         contentAlignment = Alignment.Center
-                                    ) { Text(if (mistakes == 0) "✅" else "❌", fontSize = 22.sp) }
+                                    ) {
+                                        Icon(
+                                            imageVector = if (mistakes == 0) Icons.Rounded.Check else Icons.Rounded.Close,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp),
+                                            tint = if (mistakes == 0) colors.primary else colors.error
+                                        )
+                                    }
                                     Spacer(Modifier.height(6.dp))
                                     Text(
                                         text = "$mistakes",
@@ -965,57 +952,25 @@ fun SudokuScreen(
                                         color = colors.onSurface
                                     )
                                     Text(
-                                        text = "Mistakes",
-                                        fontSize = 12.sp,
+                                        text = "MISTAKES",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
                                         color = colors.onSurfaceVariant
                                     )
                                 }
                             }
                         }
-
-                        // ── Buttons ──────────────────────────────────────────
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 24.dp)
-                                .padding(top = 12.dp, bottom = 24.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            // Next Game — only for non-streak mode
-                            if (mode != "streak") {
-                                Button(
-                                    onClick = {
-                                        gameViewModel.createNextGame()
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(50.dp),
-                                    shape = RoundedCornerShape(14.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFF1565C0)
-                                    )
-                                ) {
-                                    Text("Next Game", fontWeight = FontWeight.SemiBold)
-                                }
-                            }
-
-                            // Done
-                            FilledTonalButton(
-                                onClick = {
-                                    gameViewModel.dismissGameWon()
-                                    onExit()
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(50.dp),
-                                shape = RoundedCornerShape(14.dp)
-                            ) {
-                                Text("Done", fontWeight = FontWeight.SemiBold)
-                            }
-                        }
                     }
+                },
+                positiveButton = if (mode == "streak") {
+                    doneAction
+                } else nextAction,
+                negativeButton = if (mode == "streak") {
+                    null
+                } else {
+                    doneAction
                 }
-            }
+            )
         }
     }
 }

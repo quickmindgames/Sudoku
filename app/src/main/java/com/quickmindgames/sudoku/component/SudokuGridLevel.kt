@@ -47,7 +47,7 @@ fun SudokuGridLevel(
     SudokuBoardContainer(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(1f)
+            .aspectRatio(1f).padding(horizontal = 8.dp)
     ) { cellSizeDp, boardSizeDp ->
         LazyVerticalGrid(
             columns = GridCells.Fixed(9),

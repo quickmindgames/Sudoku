@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -52,6 +53,7 @@ import java.time.LocalDate
  * Created by sagar.tahelyani on 04/03/26
  *
  */
+@Preview
 @Composable
 fun StreakScreen(
     modifier: Modifier = Modifier,
@@ -107,40 +109,39 @@ fun StreakScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                    .padding(all = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // Compact header with inline streak count
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
+                        .fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Image(
                             painterResource(id = R.drawable.ic_flame),
-                            contentDescription = "Flame icon"
+                            contentDescription = "Flame icon", Modifier.size(56.dp)
                         )
                         Spacer(Modifier.width(8.dp))
                         Column {
                             Text(
                                 text = "My Current Streak",
                                 style = MaterialTheme.typography.titleLarge.copy(
-                                    fontSize = 18.sp,
+                                    fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold
                                 ),
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                             Text(
                                 text = statusText,
-                                style = MaterialTheme.typography.labelSmall.copy(
+                                style = MaterialTheme.typography.bodySmall.copy(
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium
                                 ),
                                 color = statusColor,
-                                modifier = Modifier.padding(top = 4.dp)
+                                modifier = Modifier.padding(top = 6.dp)
                             )
                         }
                     }

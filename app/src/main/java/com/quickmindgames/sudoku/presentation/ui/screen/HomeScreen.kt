@@ -52,6 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.quickmindgames.sudoku.R
+import com.quickmindgames.sudoku.component.CustomActionDialog
+import com.quickmindgames.sudoku.component.DialogAction
 import com.quickmindgames.sudoku.component.DifficultyCard
 import com.quickmindgames.sudoku.component.StreakSummaryCard
 import com.quickmindgames.sudoku.component.primaryGradientBrush
@@ -80,6 +82,7 @@ fun HomeScreen(
     onStreakClick: () -> Unit,
     onLearningModeClick: () -> Unit
 ) {
+    //region Variables
     var showSheet by remember { mutableStateOf(false) }
     var showNewGameConfirmation by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -89,69 +92,72 @@ fun HomeScreen(
     val homeState by homeViewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     var useDoublePointsBooster by remember { mutableStateOf(false) }
+    //endregion
 
-    // Show streak reminder dialog if needed
+    //region Streak Dialogs
+    //region streak reminder dialog
     if (homeState.streakDialog == HomeStreakDialog.REMINDER) {
         LaunchedEffect(homeState.streakDialog) {
             homeViewModel.onStreakReminderDialogShown()
         }
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { },
-            title = {
-                Text(
-                    text = "Streak At Risk!",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp
-                )
-            },
-            text = {
-                Text(
-                    text = "You missed playing yesterday! Play today to keep your streak alive.",
-                    fontSize = 16.sp
-                )
-            },
-            confirmButton = {
-                Button(onClick = {
+        CustomActionDialog(
+            icon = painterResource(id = R.drawable.ic_flame_raw),
+            title = "Streak At Risk!",
+            description = "You missed playing yesterday! Play today to keep your streak alive.",
+            onDismissRequest = { homeViewModel.dismissStreakDialog() },
+            positiveButton = DialogAction(
+                text = "Go to Streak",
+                onClick = {
                     homeViewModel.dismissStreakDialog()
                     onStreakClick() // Redirect to Streak Tab
-                }) {
-                    Text("Go to Streak")
                 }
-            },
-            shape = RoundedCornerShape(20.dp)
+            )
         )
     }
+    //endregion
 
+    //region streak shield protection dialog
     if (homeState.streakDialog == HomeStreakDialog.SHIELD) {
-        LaunchedEffect(homeState.streakDialog) {
-            homeViewModel.onStreakShieldDialogShown()
-        }
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { },
-            title = {
-                Text(
-                    text = stringResource(R.string.streak_shield_prompt_title),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp
-                )
+        val shieldsAvailable = pluralStringResource(
+            R.plurals.streak_shields_available,
+            homeState.streakShieldWallet,
+            homeState.streakShieldWallet
+        )
+        CustomActionDialog(
+            icon = painterResource(id = R.drawable.ic_shield),
+            title = "Save your streak?",
+            description = stringResource(
+                R.string.streak_shield_prompt_description,
+                homeState.streakCount,
+                shieldsAvailable
+            ),
+            content = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Streak shields available",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "${homeState.streakShieldWallet} left",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             },
-            text = {
-                val shieldsAvailable = pluralStringResource(
-                    R.plurals.streak_shields_available,
-                    homeState.streakShieldWallet,
-                    homeState.streakShieldWallet
-                )
-                Text(
-                    text = stringResource(
-                        R.string.streak_shield_prompt_description,
-                        homeState.streakCount,
-                        shieldsAvailable
-                    ),
-                    fontSize = 16.sp
-                )
-            },
-            confirmButton = {
-                Button(onClick = {
+            onDismissRequest = { homeViewModel.dismissStreakDialog() },
+            positiveButton = DialogAction(
+                text = "Use Shield",
+                onClick = {
                     coroutineScope.launch {
                         when (homeViewModel.protectStreak()) {
                             ProtectStreakResult.SHIELD_UNAVAILABLE -> Toast.makeText(
@@ -164,53 +170,41 @@ fun HomeScreen(
                             ProtectStreakResult.NO_LONGER_ELIGIBLE -> Unit
                         }
                     }
-                }) {
-                    Text(stringResource(R.string.streak_shield_use_one))
                 }
-            },
-            dismissButton = {
-                Button(onClick = {
+            ),
+            negativeButton = DialogAction(
+                text = "Restart Streak",
+                onClick = {
                     coroutineScope.launch {
                         homeViewModel.restartStreak()
                         onStreakClick()
                     }
-                }) {
-                    Text(stringResource(R.string.streak_shield_restart))
                 }
-            },
-            shape = RoundedCornerShape(20.dp)
+            )
         )
     }
+    //endregion
 
-    // Show streak broken dialog if needed
+    //region streak broken dialog
     if (homeState.streakDialog == HomeStreakDialog.BROKEN) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { },
-            title = {
-                Text(
-                    text = "Streak Broken!",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp
-                )
-            },
-            text = {
-                Text(
-                    text = "You missed a day and your streak has been reset. Start a new streak today!",
-                    fontSize = 16.sp
-                )
-            },
-            confirmButton = {
-                Button(onClick = {
+        CustomActionDialog(
+            icon = painterResource(R.drawable.ic_streak_broken),
+            title = "Streak Broken!",
+            description = "You missed a day and your streak has reset to 0. Don't worry, start a new streak today!",
+            onDismissRequest = { homeViewModel.dismissStreakDialog() },
+            positiveButton = DialogAction(
+                text = "Restart Streak",
+                onClick = {
                     homeViewModel.dismissStreakDialog()
                     onStreakClick() // Redirect to Streak Tab
-                }) {
-                    Text("Restart Streak")
                 }
-            },
-            shape = RoundedCornerShape(20.dp)
+            )
         )
     }
+    //endregion
+    //endregion
 
+    //region Analytics
     LaunchedEffect(Unit) {
         AnalyticsUtils.logScreenView(
             context,
@@ -218,39 +212,33 @@ fun HomeScreen(
             AnalyticsConstants.HOME_SCREEN
         )
     }
+    //endregion
 
+    //region Saved Game Lost Confirmation Dialog
     if (showNewGameConfirmation) {
-        androidx.compose.material3.AlertDialog(
+        CustomActionDialog(
+            icon = painterResource(R.drawable.ic_restart),
+            title = "Start a New Game?",
+            description = "Your current game progress will be lost. Are you sure you want to start a new game?",
+            //iconTint = MaterialTheme.colorScheme.primary,
             onDismissRequest = { showNewGameConfirmation = false },
-            title = {
-                Text(
-                    text = "Start a New Game?",
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Text("Your current game progress will be lost. Are you sure you want to start a new game?")
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { showNewGameConfirmation = false }) {
-                    Text("Cancel")
+            positiveButton = DialogAction(
+                text = "Start New Game",
+                onClick = {
+                    showNewGameConfirmation = false
+                    onNewGameClick()
+                    showSheet = true
                 }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showNewGameConfirmation = false
-                        onNewGameClick()
-                        showSheet = true
-                    }
-                ) {
-                    Text("Start a New Game")
-                }
-            },
-            shape = RoundedCornerShape(20.dp)
+            ),
+            negativeButton = DialogAction(
+                text = "Cancel",
+                onClick = { showNewGameConfirmation = false }
+            )
         )
     }
+    //endregion
 
+    //region Difficulty Selection for New Game
     if (showSheet) {
         ModalBottomSheet(
             onDismissRequest = { showSheet = false },
@@ -261,20 +249,18 @@ fun HomeScreen(
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp)
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
             ) {
                 // Header
                 Text(
                     text = "Choose Difficulty",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     text = "Select your challenge level",
-                    fontSize = 14.sp,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp)
                 )
 
                 Spacer(Modifier.height(20.dp))
@@ -330,11 +316,11 @@ fun HomeScreen(
                         enabled = homeState.doublePointsBoosterWallet > 0
                     )
                 }
-
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
             }
         }
     }
+    //endregion
 
     //region Main Design
     Column(
@@ -345,31 +331,38 @@ fun HomeScreen(
                 end = 20.dp
             )
     ) {
+        //region Streak Summary
         StreakSummaryCard(
             streakCount = homeState.streakCount,
             completedToday = homeState.completedToday,
             hasActiveToday = homeState.hasActiveToday,
             onClick = onStreakClick
         )
+        //endregion
 
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // App Logo
+            //region App Logo
             Image(
                 painter = painterResource(id = R.drawable.ic_launcher),
                 contentDescription = null,
                 modifier = Modifier.size(196.dp)
             )
+            //endregion
 
-            // Tag Line
+            //region Tagline
             Text(
                 text = stringResource(R.string.lbl_puzzle).uppercase(),
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                ),
                 color = MaterialTheme.colorScheme.primary
             )
+            //endregion
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -384,7 +377,7 @@ fun HomeScreen(
             ) {
                 Row(
                     modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
@@ -405,13 +398,13 @@ fun HomeScreen(
                     } else {
                         Text(
                             text = "Total Points: ",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
                             text = "%,d".format(homeState.totalScore),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -427,8 +420,7 @@ fun HomeScreen(
                 ElevatedButton(
                     onClick = onResume,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(76.dp),
+                        .fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
                     colors = ButtonDefaults.elevatedButtonColors(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -440,7 +432,9 @@ fun HomeScreen(
                     )
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Start,
                     ) {
@@ -464,8 +458,7 @@ fun HomeScreen(
                         Column(horizontalAlignment = Alignment.Start) {
                             Text(
                                 text = "Resume Game",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                             )
                             Row(
                                 modifier = Modifier.padding(top = 4.dp),
@@ -473,9 +466,8 @@ fun HomeScreen(
                             ) {
                                 Text(
                                     text = "In progress".uppercase(),
-                                    style = MaterialTheme.typography.titleSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontWeight = FontWeight.Bold
                                     ),
                                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(
                                         alpha = 0.7f
@@ -484,9 +476,8 @@ fun HomeScreen(
                                 homeState.savedGameDifficulty?.let { difficulty ->
                                     Text(
                                         text = " • ${difficulty.label}",
-                                        style = MaterialTheme.typography.titleSmall.copy(
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontSize = 13.sp
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontWeight = FontWeight.SemiBold
                                         ),
                                         color = MaterialTheme.colorScheme.onSecondaryContainer.copy(
                                             alpha = 0.5f
@@ -495,9 +486,8 @@ fun HomeScreen(
                                 }
                                 Text(
                                     text = " • ${formatTime(homeState.savedGameTimeSeconds)}",
-                                    style = MaterialTheme.typography.titleSmall.copy(
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 13.sp
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontWeight = FontWeight.SemiBold
                                     ),
                                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(
                                         alpha = 0.5f
@@ -523,7 +513,6 @@ fun HomeScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp)
                     .background(
                         brush = primaryGradientBrush(),
                         shape = RoundedCornerShape(24.dp)
@@ -534,7 +523,10 @@ fun HomeScreen(
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                ) {
                     Surface(
                         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
                         shape = RoundedCornerShape(24.dp),
@@ -553,7 +545,10 @@ fun HomeScreen(
 
                     }
                     Spacer(Modifier.width(8.dp))
-                    Text(text = "New Game", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "New Game",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
                 }
             }
             //endregion
@@ -564,8 +559,7 @@ fun HomeScreen(
             OutlinedButton(
                 onClick = onLearningModeClick,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp),
+                    .fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
                     containerColor = MaterialTheme.colorScheme.surface,
@@ -576,7 +570,10 @@ fun HomeScreen(
                     MaterialTheme.colorScheme.onSurface
                 )
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                ) {
                     Surface(
                         shape = RoundedCornerShape(24.dp),
                         modifier = Modifier.size(28.dp)
@@ -591,10 +588,8 @@ fun HomeScreen(
                     Spacer(Modifier.width(8.dp))
                     Text(
                         text = stringResource(R.string.lbl_how_to_play),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-
-                        )
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
                 }
             }
             //endregion

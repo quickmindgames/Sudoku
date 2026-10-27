@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -49,6 +50,7 @@ import com.quickmindgames.sudoku.utils.AnalyticsUtils
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
+@Preview
 @Composable
 fun StatisticsScreen(
     onBackClick: () -> Unit = {}
@@ -96,8 +98,7 @@ fun StatisticsScreen(
         // Top Bar with Back Button and Title
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 8.dp),
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
@@ -113,8 +114,6 @@ fun StatisticsScreen(
                         tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
-
-                Spacer(Modifier.width(12.dp))
 
                 Text(
                     text = "Statistics",

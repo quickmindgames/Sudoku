@@ -29,14 +29,16 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.quickmindgames.sudoku.domain.model.LessonData
 
+@Preview
 @Composable
 fun LessonCardColumn(lesson: LessonData, stepNumber: Int) {
     val colors = MaterialTheme.colorScheme
-    val cardShape = RoundedCornerShape(22.dp)
+    val cardShape = RoundedCornerShape(24.dp)
     val columnLabel = "Scan top to bottom — no repeats allowed in a column."
     val bodyText = lesson.body
         .replace(columnLabel, "")
@@ -101,7 +103,7 @@ fun LessonCardColumn(lesson: LessonData, stepNumber: Int) {
 
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
                         text = lesson.title,
@@ -165,6 +167,7 @@ fun LessonCardColumn(lesson: LessonData, stepNumber: Int) {
     }
 }
 
+@Preview
 @Composable
 private fun ColumnLessonIllustration(
     grid: List<List<Int>>,
@@ -234,7 +237,7 @@ private fun ColumnLessonIllustration(
                 Text(
                     text = if (digit == 0) "?" else digit.toString(),
                     color = if (highlighted) colors.onPrimary else colors.primary,
-                    fontSize = 15.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
             }

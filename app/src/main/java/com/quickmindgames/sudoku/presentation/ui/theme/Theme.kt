@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 
 private val DarkColorScheme = darkColorScheme(
     primary = Primary,
@@ -44,6 +45,7 @@ private val LightColorScheme = lightColorScheme(
     onError = Color.White
 )
 
+@Preview
 @Composable
 fun SudoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),

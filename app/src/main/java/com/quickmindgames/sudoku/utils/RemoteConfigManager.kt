@@ -25,7 +25,7 @@ object RemoteConfigManager {
     private const val DEFAULT_ELITE_MAX_CLUES = 26L
     const val KEY_ELITE_MIN_CLUES = "elite_min_clues"
     const val KEY_ELITE_MAX_CLUES = "elite_max_clues"
-    const val DEBUG_VALUE = 72
+    const val DEBUG_VALUE = 79
 
     /**
      * Initialize Remote Config with default values and settings.

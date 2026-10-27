@@ -3,22 +3,26 @@ package com.quickmindgames.sudoku.component
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 
 /**
  *
  * Created by sagar.tahelyani on 04/03/26
  *
  */
+@Preview
 @Composable
 fun SudokuGridCanvas(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val cellSize = size.width / 9f
         // Draw minor grid lines
         for (i in 1 until 9) {
-            val stroke = if (i % 3 == 0) 3f else 1f
+            val stroke = if (i % 3 == 0) 4f else 1f
             // Vertical
             drawLine(
                 color = Color.Gray,
@@ -35,11 +39,18 @@ fun SudokuGridCanvas(modifier: Modifier = Modifier) {
             )
         }
         // Draw outer border
-        drawRect(
+        /*drawRect(
             color = Color.Black,
             topLeft = Offset.Zero,
             size = size,
             style = Stroke(width = 3f)
+        )*/
+        drawRoundRect(
+            color = Color.Black,
+            topLeft = Offset.Zero,
+            size = size,
+            style = Stroke(width = 8f),
+            cornerRadius = CornerRadius(16.dp.toPx())
         )
     }
 }

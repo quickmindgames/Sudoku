@@ -10,6 +10,8 @@ import com.quickmindgames.sudoku.domain.model.GameStatistics
 import com.quickmindgames.sudoku.domain.model.StreakStatistics
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlin.math.roundToInt
 
 /**
  * Repository for managing game statistics
@@ -73,6 +75,8 @@ class StatisticsRepository(context: Context) {
             gameStatisticDao.getTotalGamesCount(),
             gameStatisticDao.getTotalWinsCount(),
             gameStatisticDao.getTotalLossesCount(),
+            gameStatisticDao.getTotalScoreOverall(),
+            gameStatisticDao.getAverageTimeOverall().map<Double?, Any?> { it },
             gameStatisticDao.getBestTimeOverall(),
             gameStatisticDao.getBestScoreOverall(),
             gameStatisticDao.getFlawFreeWinsCountOverall()
@@ -80,9 +84,11 @@ class StatisticsRepository(context: Context) {
             val totalGames = values[0] as Int
             val wins = values[1] as Int
             val losses = values[2] as Int
-            val bestTime = values[3]
-            val bestScore = values[4]
-            val flawFree = values[5] as Int
+            val totalScore = values[3] as Long
+            val averageTime = (values[4] as Double?)?.roundToInt()
+            val bestTime = values[5] as Int?
+            val bestScore = values[6] as Int?
+            val flawFree = values[7] as Int
 
             val winRatio = if (totalGames > 0) (wins.toDouble() / totalGames) * 100 else 0.0
             GameStatistics(
@@ -90,6 +96,8 @@ class StatisticsRepository(context: Context) {
                 totalWins = wins,
                 totalLosses = losses,
                 winRatioPercentage = winRatio,
+                totalScore = totalScore,
+                averageTime = averageTime,
                 bestTime = bestTime,
                 bestScore = bestScore,
                 flawFreeWins = flawFree
@@ -105,6 +113,8 @@ class StatisticsRepository(context: Context) {
             gameStatisticDao.getTotalGamesByDifficulty(difficulty),
             gameStatisticDao.getWinsCountByDifficulty(difficulty),
             gameStatisticDao.getLossesCountByDifficulty(difficulty),
+            gameStatisticDao.getTotalScoreByDifficulty(difficulty),
+            gameStatisticDao.getAverageTimeByDifficulty(difficulty).map<Double?, Any?> { it },
             gameStatisticDao.getBestTimeByDifficulty(difficulty),
             gameStatisticDao.getBestScoreByDifficulty(difficulty),
             gameStatisticDao.getFlawFreeWinsCountByDifficulty(difficulty)
@@ -112,9 +122,11 @@ class StatisticsRepository(context: Context) {
             val totalGames = values[0] as Int
             val wins = values[1] as Int
             val losses = values[2] as Int
-            val bestTime = values[3]
-            val bestScore = values[4]
-            val flawFree = values[5] as Int
+            val totalScore = values[3] as Long
+            val averageTime = (values[4] as Double?)?.roundToInt()
+            val bestTime = values[5] as Int?
+            val bestScore = values[6] as Int?
+            val flawFree = values[7] as Int
 
             val winRatio = if (totalGames > 0) (wins.toDouble() / totalGames) * 100 else 0.0
             DifficultyStatistics(
@@ -123,6 +135,8 @@ class StatisticsRepository(context: Context) {
                 wins = wins,
                 losses = losses,
                 winRatioPercentage = winRatio,
+                totalScore = totalScore,
+                averageTime = averageTime,
                 bestTime = bestTime,
                 bestScore = bestScore,
                 flawFreeWins = flawFree
@@ -152,6 +166,8 @@ class StatisticsRepository(context: Context) {
             streakGameDao.getTotalStreakGamesCount(),
             streakGameDao.getStreakWinsCount(),
             streakGameDao.getStreakLossesCount(),
+            streakGameDao.getTotalStreakScore(),
+            streakGameDao.getAverageStreakTime().map<Double?, Any?> { it },
             streakGameDao.getBestStreakTime(),
             streakGameDao.getBestStreakScore(),
             streakGameDao.getHighestStreakDay(),
@@ -160,10 +176,12 @@ class StatisticsRepository(context: Context) {
             val totalGames = values[0] as Int
             val wins = values[1] as Int
             val losses = values[2] as Int
-            val bestTime = values[3]
-            val bestScore = values[4]
-            val highestDay = values[5]
-            val consecutiveWins = values[6] as Int
+            val totalScore = values[3] as Long
+            val averageTime = (values[4] as Double?)?.roundToInt()
+            val bestTime = values[5] as Int?
+            val bestScore = values[6] as Int?
+            val highestDay = values[7] as Int?
+            val consecutiveWins = values[8] as Int
 
             val winRatio = if (totalGames > 0) (wins.toDouble() / totalGames) * 100 else 0.0
             StreakStatistics(
@@ -171,6 +189,8 @@ class StatisticsRepository(context: Context) {
                 totalWins = wins,
                 totalLosses = losses,
                 winRatioPercentage = winRatio,
+                totalScore = totalScore,
+                averageTime = averageTime,
                 bestTime = bestTime,
                 bestScore = bestScore,
                 highestStreakDay = highestDay ?: 0,
@@ -227,4 +247,3 @@ data class Quadruple<A, B, C, D>(
     val third: C,
     val fourth: D
 )
-

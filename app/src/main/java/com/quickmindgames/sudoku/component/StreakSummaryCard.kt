@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.quickmindgames.sudoku.R
@@ -37,6 +38,7 @@ import com.quickmindgames.sudoku.utils.shareStreak
  * Created by sagar.tahelyani on 04/03/26
  *
  */
+@Preview
 @Composable
 fun StreakSummaryCard(
     streakCount: Int,
@@ -71,13 +73,13 @@ fun StreakSummaryCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+                .padding(all = 20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Flame + streak count badge
             Image(
                 painterResource(id = R.drawable.ic_flame),
-                contentDescription = "Flame icon"
+                contentDescription = "Flame icon", Modifier.size(56.dp)
             )
 
             Spacer(Modifier.width(8.dp))
@@ -91,7 +93,7 @@ fun StreakSummaryCard(
                         else -> "$streakCount Days Streak"
                     },
                     style = MaterialTheme.typography.titleLarge.copy(
-                        fontSize = 18.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     ),
                     color = MaterialTheme.colorScheme.onSurface
@@ -103,7 +105,7 @@ fun StreakSummaryCard(
                         fontWeight = FontWeight.Medium
                     ),
                     color = statusColor,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 6.dp)
                 )
             }
 

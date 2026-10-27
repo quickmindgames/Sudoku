@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -58,6 +59,7 @@ import kotlinx.coroutines.launch
  * Created by sagar.tahelyani on 04/03/26
  *
  */
+@Preview
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit) {
     //region State and preference collection
@@ -92,7 +94,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
             color = MaterialTheme.colorScheme.onBackground
         )
         Text(
-            text = "Customise your sudoku experience",
+            text = "Customise your Sudoku experience",
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
         )
@@ -117,12 +119,12 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
+                            .padding(20.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
+                                .size(56.dp)
                                 .background(
                                     color = MaterialTheme.colorScheme.primaryContainer,
                                     shape = RoundedCornerShape(12.dp)
@@ -132,23 +134,25 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                             Icon(
                                 imageVector = Icons.Rounded.BarChart,
                                 contentDescription = null,
-                                modifier = Modifier.size(28.dp)
+                                modifier = Modifier.size(32.dp)
                             )
                         }
-                        Spacer(Modifier.width(16.dp))
+                        Spacer(Modifier.width(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Statistics",
-                                fontSize = 16.sp,
+                                fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = "View your win rates, streaks & best times",
-                                fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = MaterialTheme.typography.labelSmall.copy(lineHeight = 20.sp,  fontSize = 13.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 6.dp)
                             )
                         }
+                        Spacer(Modifier.width(8.dp))
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = null,
@@ -164,13 +168,12 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp),
+                        .padding(vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "GAMEPLAY ASSISTANCE",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
                     )
                     Spacer(Modifier.width(12.dp))
@@ -184,7 +187,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp, bottom = 12.dp),
+                        .padding(vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
@@ -226,7 +229,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                         )
                         Text(
                             text = "Hide a number once all 9 of its cells are filled.",
-                            fontSize = 13.sp,
+                            style = MaterialTheme.typography.labelSmall.copy(lineHeight = 20.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
                         )
@@ -262,7 +265,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp, bottom = 12.dp),
+                        .padding(vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
@@ -295,7 +298,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                         )
                         Text(
                             text = "When you select a number, matching numbers are highlighted across the board.",
-                            fontSize = 13.sp,
+                            style = MaterialTheme.typography.labelSmall.copy(lineHeight = 20.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
                         )
@@ -324,7 +327,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp, bottom = 12.dp),
+                        .padding(vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
@@ -357,7 +360,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                         )
                         Text(
                             text = "Highlight the selected cell’s row, column, and 3×3 block.",
-                            fontSize = 13.sp,
+                            style = MaterialTheme.typography.labelSmall.copy(lineHeight = 20.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
                         )
@@ -386,7 +389,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp, bottom = 12.dp),
+                        .padding(vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
@@ -419,7 +422,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                         )
                         Text(
                             text = "No Mistakes. No Points. Not for Streak Games.",
-                            fontSize = 13.sp,
+                            style = MaterialTheme.typography.labelSmall.copy(lineHeight = 20.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
                         )
@@ -463,7 +466,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp, bottom = 12.dp),
+                        .padding(vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
@@ -496,7 +499,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                         )
                         Text(
                             text = "Sound effects and haptic feedback",
-                            fontSize = 13.sp,
+                            style = MaterialTheme.typography.labelSmall.copy(lineHeight = 20.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
                         )
@@ -524,13 +527,12 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp),
+                        .padding(vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "APPEARANCE",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
                     )
                     Spacer(Modifier.width(12.dp))
@@ -543,7 +545,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp, bottom = 12.dp),
+                        .padding(vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
@@ -570,7 +572,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                         )
                         Text(
                             text = if (settingsState.isDarkMode) "Enabled" else "Disabled",
-                            fontSize = 13.sp,
+                            style = MaterialTheme.typography.labelSmall.copy(lineHeight = 20.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
                         )

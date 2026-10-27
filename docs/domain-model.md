@@ -68,6 +68,9 @@ classDiagram
   completed boosted game; credited points are doubled.
 - A Streak Shield protects one missed calendar day without incrementing the
   streak count. Regular and streak statistics remain separate.
+- Statistics derive total points and average completion time from completed
+  Room records; averages include both wins and losses and are unavailable when
+  no matching games have been recorded.
 - Debug builds use 72 clues. Non-debug clue ranges use Firebase Remote Config
   with defaults: Breeze 46–51, Pulse 32–37, Rage 26–31, Elite 22–26.
 - The Sudoku generator constructs a complete solution and removes cells; it

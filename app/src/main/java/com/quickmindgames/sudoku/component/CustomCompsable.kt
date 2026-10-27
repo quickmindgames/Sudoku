@@ -4,8 +4,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.tooling.preview.Preview
 import com.quickmindgames.sudoku.presentation.ui.theme.LightPrimary
 
+@Preview
 @Composable
 fun primaryGradientBrush(): Brush {
     val colorScheme = MaterialTheme.colorScheme

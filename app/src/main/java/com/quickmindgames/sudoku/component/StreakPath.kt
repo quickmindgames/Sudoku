@@ -22,6 +22,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.quickmindgames.sudoku.BuildConfig
 import kotlinx.coroutines.delay
@@ -32,6 +33,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * Created by sagar.tahelyani on 04/03/26
  *
  */
+@Preview
 @Composable
 fun StreakPath(
     streakCount: Int,

@@ -276,7 +276,7 @@ fun LearningCompleteDialog(
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = "You completed your learning puzzle!",
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             color = Color.White.copy(alpha = 0.85f)
                         )
                     }
@@ -285,7 +285,7 @@ fun LearningCompleteDialog(
                 // ── Encouragement text ─────────────────────────
                 Text(
                     text = "You're ready for a real challenge.\nTry a normal game mode!",
-                    fontSize = 15.sp,
+                    fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     lineHeight = 22.sp,

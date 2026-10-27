@@ -27,6 +27,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.quickmindgames.sudoku.domain.model.LessonData
@@ -34,7 +35,7 @@ import com.quickmindgames.sudoku.domain.model.LessonData
 @Composable
 fun LessonCardDefault(lesson: LessonData, stepNumber: Int) {
     val colors = MaterialTheme.colorScheme
-    val cardShape = RoundedCornerShape(22.dp)
+    val cardShape = RoundedCornerShape(24.dp)
 
     Card(
         modifier = Modifier
@@ -82,7 +83,7 @@ fun LessonCardDefault(lesson: LessonData, stepNumber: Int) {
                 }
             }
 
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(12.dp))
 
             Text(
                 text = lesson.title,
@@ -131,6 +132,7 @@ fun LessonCardDefault(lesson: LessonData, stepNumber: Int) {
     }
 }
 
+@Preview
 @Composable
 private fun LessonExamplePanel(lesson: LessonData) {
     val colors = MaterialTheme.colorScheme

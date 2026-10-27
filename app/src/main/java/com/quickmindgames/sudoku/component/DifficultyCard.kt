@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.quickmindgames.sudoku.domain.model.Difficulty
@@ -32,6 +34,7 @@ import com.quickmindgames.sudoku.domain.model.Difficulty
  * Created by sagar.tahelyani on 04/03/26
  *
  */
+@Preview
 @Composable
 fun DifficultyCard(
     difficulty: Difficulty,
@@ -39,11 +42,11 @@ fun DifficultyCard(
     isLocked: Boolean = false,
     onLockedClick: () -> Unit = {}
 ) {
-    val (emoji, description) = when (difficulty) {
-        Difficulty.Breeze -> Pair("🌤️", "Perfect for beginners")
-        Difficulty.Pulse -> Pair("⚡", "Moderate challenge")
-        Difficulty.Rage -> Pair("🔥", "Test your skills")
-        Difficulty.Elite -> Pair("💎", "For masters only")
+    val (emoji, level, description) = when (difficulty) {
+        Difficulty.Breeze -> Triple("🌤️", "EASY", "Perfect for beginners & casual play")
+        Difficulty.Pulse -> Triple("⚡", "MEDIUM", "Moderate challenge for daily thinkers")
+        Difficulty.Rage -> Triple("🔥", "HARD", "Test your skills with intricate patterns")
+        Difficulty.Elite -> Triple("💎", "MASTER", "Pure logic deduction for Sudoku masters")
     }
 
     val cardColor = when (difficulty) {
@@ -73,27 +76,28 @@ fun DifficultyCard(
                         onClick()
                     }
                 }
-            ),
-        shape = RoundedCornerShape(20.dp),
+            )
+            .padding(bottom = 4.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.elevatedCardColors(
             containerColor = cardColor
         ),
-        elevation = CardDefaults.elevatedCardElevation(
+        /*elevation = CardDefaults.elevatedCardElevation(
             defaultElevation = 2.dp,
             pressedElevation = if (isLocked) 0.dp else 8.dp
-        )
+        )*/
     ) {
         Box {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
+                    .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Emoji icon with background
                 Box(
                     modifier = Modifier
-                        .size(56.dp)
+                        .size(48.dp)
                         .background(
                             color = Color.White.copy(alpha = 0.5f),
                             shape = RoundedCornerShape(14.dp)
@@ -102,7 +106,7 @@ fun DifficultyCard(
                 ) {
                     Text(
                         text = emoji,
-                        fontSize = 32.sp
+                        fontSize = 28.sp
                     )
                 }
 
@@ -112,19 +116,40 @@ fun DifficultyCard(
                 Column(
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(
-                        text = difficulty.label,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = accentColor
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = difficulty.label,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = accentColor
+                        )
+                        Surface(
+                            color = accentColor.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.padding(start = 8.dp)
+                        ) {
+                            Text(
+                                text = level,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = accentColor, modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                        }
+                    }
                     Text(
                         text = description,
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
                         color = Color(0xFF475569),
-                        modifier = Modifier.padding(top = 4.dp)
+                        modifier = Modifier.padding(top = 4.dp),
+                        lineHeight = 20.sp
                     )
                 }
+
+                Spacer(Modifier.width(6.dp))
 
                 // Arrow indicator or lock icon
                 if (isLocked) {
@@ -146,7 +171,7 @@ fun DifficultyCard(
                         .matchParentSize()
                         .background(
                             color = Color.Black.copy(alpha = 0.1f),
-                            shape = RoundedCornerShape(20.dp)
+                            shape = RoundedCornerShape(24.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
