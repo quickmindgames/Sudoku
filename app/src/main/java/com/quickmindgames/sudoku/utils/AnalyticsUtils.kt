@@ -3,6 +3,7 @@ package com.quickmindgames.sudoku.utils
 import android.content.Context
 import android.os.Bundle
 import com.google.firebase.analytics.FirebaseAnalytics
+import com.quickmindgames.sudoku.domain.model.AllStatistics
 
 object AnalyticsUtils {
     /**
@@ -275,17 +276,112 @@ object AnalyticsUtils {
     }
 
     /**
-     * Logs a "statistics" event to Firebase Analytics when a statistics tab is viewed.
+     * Logs a "statistics" event to Firebase Analytics with statistics data.
      *
      * @param context The context from which the event is logged.
-     * @param tab The tab viewed in the statistics screen (e.g., "Overall", "Breeze", "Pulse", "Rage", "Elite", "Streak").
+     * @param statistics The statistics data to be included in the event.
      */
-    fun logStatisticsViewed(context: Context, tab: String) {
-        val firebaseAnalytics = FirebaseAnalytics.getInstance(context)
+    fun logStatisticsViewed(context: Context, statistics: AllStatistics) {
         val params = Bundle().apply {
-            putString(AnalyticsConstants.STREAK_TAB, tab)
+            putString(
+                AnalyticsConstants.OVERALL_STATS,
+                encodeStatistics(
+                    statistics.overallStats.totalGames,
+                    statistics.overallStats.totalWins,
+                    statistics.overallStats.totalLosses,
+                    statistics.overallStats.winRatioPercentage,
+                    statistics.overallStats.bestTime,
+                    statistics.overallStats.bestScore,
+                    statistics.overallStats.flawFreeWins
+                )
+            )
+            putString(
+                AnalyticsConstants.BREEZE_STATS,
+                encodeStatistics(
+                    statistics.breeze.totalGames,
+                    statistics.breeze.wins,
+                    statistics.breeze.losses,
+                    statistics.breeze.winRatioPercentage,
+                    statistics.breeze.bestTime,
+                    statistics.breeze.bestScore,
+                    statistics.breeze.flawFreeWins
+                )
+            )
+            putString(
+                AnalyticsConstants.PULSE_STATS,
+                encodeStatistics(
+                    statistics.pulse.totalGames,
+                    statistics.pulse.wins,
+                    statistics.pulse.losses,
+                    statistics.pulse.winRatioPercentage,
+                    statistics.pulse.bestTime,
+                    statistics.pulse.bestScore,
+                    statistics.pulse.flawFreeWins
+                )
+            )
+            putString(
+                AnalyticsConstants.RAGE_STATS,
+                encodeStatistics(
+                    statistics.rage.totalGames,
+                    statistics.rage.wins,
+                    statistics.rage.losses,
+                    statistics.rage.winRatioPercentage,
+                    statistics.rage.bestTime,
+                    statistics.rage.bestScore,
+                    statistics.rage.flawFreeWins
+                )
+            )
+            putString(
+                AnalyticsConstants.ELITE_STATS,
+                encodeStatistics(
+                    statistics.elite.totalGames,
+                    statistics.elite.wins,
+                    statistics.elite.losses,
+                    statistics.elite.winRatioPercentage,
+                    statistics.elite.bestTime,
+                    statistics.elite.bestScore,
+                    statistics.elite.flawFreeWins
+                )
+            )
+            putString(
+                AnalyticsConstants.STREAK_STATS,
+                encodeStatistics(
+                    statistics.streak.totalGames,
+                    statistics.streak.totalWins,
+                    statistics.streak.totalLosses,
+                    statistics.streak.winRatioPercentage,
+                    statistics.streak.bestTime,
+                    statistics.streak.bestScore,
+                    0, // Streak statistics don't track flaw-free wins.
+                    statistics.streak.highestStreakDay,
+                    statistics.streak.currentConsecutiveWins
+                )
+            )
         }
-        firebaseAnalytics.logEvent(AnalyticsConstants.STATISTICS_EVENT, params)
+
+        FirebaseAnalytics.getInstance(context)
+            .logEvent(AnalyticsConstants.STATISTICS_EVENT, params)
     }
+
+    private fun encodeStatistics(
+        totalGames: Int,
+        wins: Int,
+        losses: Int,
+        winRatioPercentage: Double,
+        bestTime: Int?,
+        bestScore: Int?,
+        flawFreeWins: Int,
+        vararg extraFields: Int
+    ): String = (
+            listOf(
+                totalGames.toString(),
+                wins.toString(),
+                losses.toString(),
+                winRatioPercentage.toString(),
+                bestTime?.toString() ?: "-1",
+                bestScore?.toString() ?: "-1",
+                flawFreeWins.toString()
+            ) + extraFields.map(Int::toString)
+            ).joinToString(",")
 
 }

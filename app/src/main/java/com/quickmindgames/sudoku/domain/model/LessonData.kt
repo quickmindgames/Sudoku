@@ -67,7 +67,7 @@ val LESSONS: List<LessonData> = listOf(
         illustrationEmoji = "🔍",
         // A row with 8 numbers and one empty (0)
         visualGrid = listOf(
-            listOf(1, 2, 3, 4, 5, 6, 7, 8, 0)
+            listOf(1, 2, 3, 4, 5, 6, 7, 8, 9)
         )
     ),
     LessonData(

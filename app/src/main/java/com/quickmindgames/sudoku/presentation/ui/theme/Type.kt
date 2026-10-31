@@ -13,7 +13,8 @@ val customFontFamily = FontFamily(
     Font(R.font.regular, FontWeight.Normal),        // 400
     Font(R.font.medium, FontWeight.Medium),         // 500
     Font(R.font.semi_bold, FontWeight.SemiBold),              // 600
-    Font(R.font.bold, FontWeight.Bold)              // 600
+    Font(R.font.bold, FontWeight.Bold),         // 600
+    Font(R.font.extra_bold, FontWeight.ExtraBold)   // 800
 )
 
 // Material3 Typography using Poppins Font
@@ -106,7 +107,7 @@ val Typography = Typography(
         fontFamily = customFontFamily,
         fontWeight = FontWeight.Light,
         fontSize = 12.sp,
-        lineHeight = 16.sp,
+        lineHeight = 18.sp,
         letterSpacing = 0.4.sp
     ),
 
@@ -122,14 +123,14 @@ val Typography = Typography(
         fontFamily = customFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
-        lineHeight = 16.sp,
+        lineHeight = 18.sp,
         letterSpacing = 0.5.sp
     ),
     labelSmall = TextStyle(
         fontFamily = customFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
-        lineHeight = 16.sp,
+        lineHeight = 18.sp,
         letterSpacing = 0.5.sp
     )
 )

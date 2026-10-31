@@ -7,12 +7,7 @@ import kotlinx.coroutines.tasks.await
 
 object RemoteConfigManager {
 
-    /**
-     * Remote Config keys and default values for clues and hints per difficulty level.
-     * These can be updated remotely via Firebase Console without requiring an app update.
-     * ✅ Code defaults (hardcoded fallbacks): 46–51, 32–37, 26–31, 22–26 with 1 hint each
-     * ✅ Firebase Remote Config (production values): 44–50 with 3 hints, 34–38 with 2 hints, 26–32 with 1 hint, 22–26 with 1 hint
-     */
+    /** Remote Config keys and defaults for clue counts by difficulty. */
 
     private const val DEFAULT_BREEZE_MIN_CLUES = 46L
     private const val DEFAULT_BREEZE_MAX_CLUES = 51L
@@ -30,15 +25,7 @@ object RemoteConfigManager {
     private const val DEFAULT_ELITE_MAX_CLUES = 26L
     const val KEY_ELITE_MIN_CLUES = "elite_min_clues"
     const val KEY_ELITE_MAX_CLUES = "elite_max_clues"
-    const val KEY_BREEZE_HINTS = "breeze_hints"
-    const val KEY_PULSE_HINTS = "pulse_hints"
-    const val KEY_RAGE_HINTS = "rage_hints"
-    const val KEY_ELITE_HINTS = "elite_hints"
-    const val DEFAULT_BREEZE_HINTS = 1
-    const val DEFAULT_PULSE_HINTS = 1
-    const val DEFAULT_RAGE_HINTS = 1
-    const val DEFAULT_ELITE_HINTS = 1
-    const val DEBUG_VALUE = 70
+    const val DEBUG_VALUE = 79
 
     /**
      * Initialize Remote Config with default values and settings.
@@ -58,11 +45,7 @@ object RemoteConfigManager {
             KEY_RAGE_MIN_CLUES to DEFAULT_RAGE_MIN_CLUES,
             KEY_RAGE_MAX_CLUES to DEFAULT_RAGE_MAX_CLUES,
             KEY_ELITE_MIN_CLUES to DEFAULT_ELITE_MIN_CLUES,
-            KEY_ELITE_MAX_CLUES to DEFAULT_ELITE_MAX_CLUES,
-            KEY_BREEZE_HINTS to DEFAULT_BREEZE_HINTS,
-            KEY_PULSE_HINTS to DEFAULT_PULSE_HINTS,
-            KEY_RAGE_HINTS to DEFAULT_RAGE_HINTS,
-            KEY_ELITE_HINTS to DEFAULT_ELITE_HINTS
+            KEY_ELITE_MAX_CLUES to DEFAULT_ELITE_MAX_CLUES
         )
         remoteConfig.setDefaultsAsync(defaults)
     }
@@ -143,16 +126,4 @@ object RemoteConfigManager {
             .getLong(KEY_ELITE_MAX_CLUES).toInt()
     }
 
-    /**
-     * Get the number of hints allowed for a given difficulty.
-     */
-    fun getHintsForDifficulty(difficulty: String): Int {
-        return when (difficulty) {
-            "breeze" -> FirebaseRemoteConfig.getInstance().getLong(KEY_BREEZE_HINTS).toInt()
-            "pulse" -> FirebaseRemoteConfig.getInstance().getLong(KEY_PULSE_HINTS).toInt()
-            "rage" -> FirebaseRemoteConfig.getInstance().getLong(KEY_RAGE_HINTS).toInt()
-            "elite" -> FirebaseRemoteConfig.getInstance().getLong(KEY_ELITE_HINTS).toInt()
-            else -> 0
-        }
-    }
 }

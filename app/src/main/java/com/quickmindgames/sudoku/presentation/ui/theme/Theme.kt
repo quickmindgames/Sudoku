@@ -1,15 +1,21 @@
 package com.quickmindgames.sudoku.presentation.ui.theme
 
 import android.os.Build
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 
 private val DarkColorScheme = darkColorScheme(
     primary = Primary,
@@ -39,6 +45,7 @@ private val LightColorScheme = lightColorScheme(
     onError = Color.White
 )
 
+@Preview
 @Composable
 fun SudoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -57,7 +64,22 @@ fun SudoTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+        typography = Typography
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = if (darkTheme) {
+                        //SolidColor(colorScheme.background)
+                        DarkBackgroundGradient
+                    } else {
+                        BackgroundGradient
+                    }
+                )
+        ) {
+            content()
+        }
+
+    }
 }

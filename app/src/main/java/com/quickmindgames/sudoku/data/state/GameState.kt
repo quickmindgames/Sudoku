@@ -18,7 +18,8 @@ data class GameState(
     val timeSeconds: Int,
     val selectedCell: Pair<Int, Int>?,
     val isNotesMode: Boolean = false,
-    val availableHints: Int = 1
+    val hintsUsed: Int = 0,
+    val hasDoublePointsBooster: Boolean = false
 ) {
     /**
      * Check if the game has been started (timer has ticked at least once)
@@ -72,7 +73,8 @@ data class GameState(
             // Selected Cell
             append("SELECTED:${selectedCell?.let { "${it.first},${it.second}" } ?: "null"}\n")
             append("NOTES_MODE:$isNotesMode\n") // NEW: persist notes mode
-            append("HINTS:").append(availableHints).append('\n')
+            append("HINTS_USED:").append(hintsUsed.coerceAtLeast(0)).append('\n')
+            append("DOUBLE_POINTS_BOOSTER:$hasDoublePointsBooster\n")
         }
     }
 
@@ -149,8 +151,19 @@ data class GameState(
                 val notesModeLine = lines[index++].substringAfter("NOTES_MODE:")
                 val isNotesMode = notesModeLine.toBooleanStrictOrNull() ?: false
 
-                // Parse availableHints
-                val hints = lines[index++].substringAfter("HINTS:").toIntOrNull() ?: 1
+                // HINTS_USED is optional so saves created before wallet hints remain readable.
+                // Old HINTS values are intentionally ignored because they represented free hints.
+                val hintsUsed = lines.drop(index)
+                    .firstOrNull { it.startsWith("HINTS_USED:") }
+                    ?.substringAfter("HINTS_USED:")
+                    ?.toIntOrNull()
+                    ?.coerceAtLeast(0)
+                    ?: 0
+                val hasDoublePointsBooster = lines.drop(index)
+                    .firstOrNull { it.startsWith("DOUBLE_POINTS_BOOSTER:") }
+                    ?.substringAfter("DOUBLE_POINTS_BOOSTER:")
+                    ?.toBooleanStrictOrNull()
+                    ?: false
                 GameState(
                     difficulty = difficulty,
                     originalGrid = originalGrid,
@@ -162,7 +175,8 @@ data class GameState(
                     timeSeconds = timeSeconds,
                     selectedCell = selectedCell,
                     isNotesMode = isNotesMode,
-                    availableHints = hints
+                    hintsUsed = hintsUsed,
+                    hasDoublePointsBooster = hasDoublePointsBooster
                 )
             } catch (e: Exception) {
                 null

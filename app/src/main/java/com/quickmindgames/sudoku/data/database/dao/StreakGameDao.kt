@@ -49,6 +49,18 @@ interface StreakGameDao {
     fun getStreakLossesCount(): Flow<Int>
 
     /**
+     * Get total score across all completed streak games
+     */
+    @Query("SELECT COALESCE(SUM(score), 0) FROM streak_games")
+    fun getTotalStreakScore(): Flow<Long>
+
+    /**
+     * Get average completion time across all streak games
+     */
+    @Query("SELECT AVG(time_seconds) FROM streak_games")
+    fun getAverageStreakTime(): Flow<Double?>
+
+    /**
      * Get best time in streak mode (across all days)
      */
     @Query("SELECT MIN(time_seconds) FROM streak_games WHERE is_won = 1")
@@ -81,4 +93,3 @@ interface StreakGameDao {
     @Query("DELETE FROM streak_games")
     suspend fun deleteAllStreakGames()
 }
-

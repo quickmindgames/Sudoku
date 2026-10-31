@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.quickmindgames.sudoku.data.state.StreakState
@@ -320,6 +321,7 @@ fun getWinRatioFeedback(winRatio: String): WinRatioFeedback {
     }
 }
 
+@Preview
 @Composable
 fun OverallStatsTab(allStatistics: AllStatistics) {
     Column {
@@ -346,7 +348,7 @@ fun OverallStatsTab(allStatistics: AllStatistics) {
                 )
                 Text(
                     text = feedback.caption,
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Medium
                 )
@@ -358,6 +360,7 @@ fun OverallStatsTab(allStatistics: AllStatistics) {
     }
 }
 
+@Preview
 @Composable
 fun OverallStatsCard(stats: GameStatistics) {
     Card(
@@ -372,12 +375,14 @@ fun OverallStatsCard(stats: GameStatistics) {
             StatisticRow("Total Games", stats.totalGames.toString())
             StatisticRow("Wins", stats.totalWins.toString(), MaterialTheme.colorScheme.primary)
             StatisticRow("Losses", stats.totalLosses.toString(), MaterialTheme.colorScheme.error)
+            StatisticRow("Total Points", "%,d".format(stats.totalScore))
             Spacer(modifier = Modifier.height(12.dp))
             HorizontalDivider()
             Spacer(modifier = Modifier.height(12.dp))
             StatisticRow("Win Ratio", stats.winRatio, MaterialTheme.colorScheme.secondary)
             StatisticRow("Best Time", stats.bestTime?.let { formatTime(it) } ?: "—")
-            StatisticRow("Best Points", stats.bestScore?.toString() ?: "—")
+            StatisticRow("Average Time", stats.averageTime?.let { formatTime(it) } ?: "—")
+            StatisticRow("Best Points", "%,d".format(stats.bestScore ?: 0))
             StatisticRow(
                 "Flaw-Free Wins",
                 stats.flawFreeWins.toString(),
@@ -387,6 +392,7 @@ fun OverallStatsCard(stats: GameStatistics) {
     }
 }
 
+@Preview
 @Composable
 fun DifficultyStatsTab(difficulty: DifficultyStatistics) {
     Column {
@@ -425,6 +431,7 @@ fun DifficultyStatsTab(difficulty: DifficultyStatistics) {
     }
 }
 
+@Preview
 @Composable
 fun DifficultyStatsCard(stats: DifficultyStatistics) {
     Card(
@@ -439,12 +446,14 @@ fun DifficultyStatsCard(stats: DifficultyStatistics) {
             StatisticRow("Total Games", stats.totalGames.toString())
             StatisticRow("Wins", stats.wins.toString(), MaterialTheme.colorScheme.primary)
             StatisticRow("Losses", stats.losses.toString(), MaterialTheme.colorScheme.error)
+            StatisticRow("Total Points", "%,d".format(stats.totalScore))
             Spacer(modifier = Modifier.height(12.dp))
             HorizontalDivider()
             Spacer(modifier = Modifier.height(12.dp))
             StatisticRow("Win Ratio", stats.winRatio, MaterialTheme.colorScheme.secondary)
             StatisticRow("Best Time", stats.bestTime?.let { formatTime(it) } ?: "—")
-            StatisticRow("Best Points", stats.bestScore?.toString() ?: "—")
+            StatisticRow("Average Time", stats.averageTime?.let { formatTime(it) } ?: "—")
+            StatisticRow("Best Points", stats.bestScore?.let { "%,d".format(it) } ?: "—")
             StatisticRow(
                 "Flaw-Free Wins",
                 stats.flawFreeWins.toString(),
@@ -454,6 +463,7 @@ fun DifficultyStatsCard(stats: DifficultyStatistics) {
     }
 }
 
+@Preview
 @Composable
 fun StreakStatsTab(stats: StreakStatistics) {
     Column {
@@ -492,6 +502,7 @@ fun StreakStatsTab(stats: StreakStatistics) {
     }
 }
 
+@Preview
 @Composable
 fun StreakStatsCard(stats: StreakStatistics) {
     val context = LocalContext.current
@@ -517,12 +528,14 @@ fun StreakStatsCard(stats: StreakStatistics) {
             StatisticRow("Total Streak Games", stats.totalGames.toString())
             StatisticRow("Wins", stats.totalWins.toString(), MaterialTheme.colorScheme.primary)
             StatisticRow("Losses", stats.totalLosses.toString(), MaterialTheme.colorScheme.error)
+            StatisticRow("Total Points", "%,d".format(stats.totalScore))
             Spacer(modifier = Modifier.height(12.dp))
             HorizontalDivider()
             Spacer(modifier = Modifier.height(12.dp))
             StatisticRow("Win Ratio", stats.winRatio, MaterialTheme.colorScheme.secondary)
             StatisticRow("Best Time", stats.bestTime?.let { formatTime(it) } ?: "—")
-            StatisticRow("Best Points", stats.bestScore?.toString() ?: "—")
+            StatisticRow("Average Time", stats.averageTime?.let { formatTime(it) } ?: "—")
+            StatisticRow("Best Points", stats.bestScore?.let { "%,d".format(it) } ?: "—")
             StatisticRow(
                 "Highest Streak Wins",
                 stats.highestStreakDay.toString(),
@@ -537,6 +550,7 @@ fun StreakStatsCard(stats: StreakStatistics) {
     }
 }
 
+@Preview
 @Composable
 fun StatisticRow(
     label: String,
@@ -573,4 +587,3 @@ fun formatTime(seconds: Int): String {
     val secs = seconds % 60
     return String.format(Locale.getDefault(), "%02d:%02d", minutes, secs)
 }
-

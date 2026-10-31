@@ -1,6 +1,8 @@
 package com.quickmindgames.sudoku.data.state
 
 import android.util.Base64
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 /**
  * Represents the state of the Streak (daily) challenge.
@@ -11,6 +13,14 @@ data class StreakState(
     val activeDate: String?,
     val activeGame: GameState?
 ) {
+    fun protectMissedDay(today: LocalDate): StreakState? {
+        val completedDate = lastCompletedDate?.let(LocalDate::parse) ?: return null
+        if (streakCount <= 0 || ChronoUnit.DAYS.between(completedDate, today) != 2L) {
+            return null
+        }
+        return copy(lastCompletedDate = completedDate.plusDays(1).toString())
+    }
+
     fun serialize(): String {
         val encodedGame = activeGame
             ?.serialize()

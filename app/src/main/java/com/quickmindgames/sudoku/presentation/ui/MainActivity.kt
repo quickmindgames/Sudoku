@@ -14,9 +14,23 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -29,8 +43,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
@@ -40,8 +61,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.quickmindgames.sudoku.R
+import com.quickmindgames.sudoku.component.CustomActionDialog
+import com.quickmindgames.sudoku.component.DialogAction
+import com.quickmindgames.sudoku.data.preferences.AppPreferences
 import com.quickmindgames.sudoku.data.preferences.ThemePreferences
 import com.quickmindgames.sudoku.data.repository.StatisticsRepository
+import com.quickmindgames.sudoku.data.score.TotalScoreManager
+import com.quickmindgames.sudoku.data.state.StreakStateManager
 import com.quickmindgames.sudoku.domain.model.Difficulty
 import com.quickmindgames.sudoku.presentation.navigation.AppNav
 import com.quickmindgames.sudoku.presentation.navigation.BottomScreen
@@ -49,14 +76,18 @@ import com.quickmindgames.sudoku.presentation.ui.screen.HomeScreen
 import com.quickmindgames.sudoku.presentation.ui.screen.LessonScreen
 import com.quickmindgames.sudoku.presentation.ui.screen.RewardsScreen
 import com.quickmindgames.sudoku.presentation.ui.screen.SettingsScreen
+import com.quickmindgames.sudoku.presentation.ui.screen.StatisticsScreen
 import com.quickmindgames.sudoku.presentation.ui.screen.StreakScreen
 import com.quickmindgames.sudoku.presentation.ui.screen.SudokuScreen
 import com.quickmindgames.sudoku.presentation.ui.theme.SudoTheme
 import com.quickmindgames.sudoku.utils.AnalyticsUtils
 import com.quickmindgames.sudoku.utils.RemoteConfigManager
 import com.quickmindgames.sudoku.utils.StreakReminderScheduler
+import com.quickmindgames.sudoku.utils.formatTime
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 class MainActivity : ComponentActivity() {
 
@@ -120,6 +151,42 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainSudokuApp() {
+    val context = LocalContext.current
+    val appPreferences = remember { AppPreferences.getInstance(context) }
+    val totalScoreManager = remember { TotalScoreManager.getInstance(context) }
+    val streakStateManager = remember { StreakStateManager.getInstance(context) }
+    var hintWalletInitialized by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        val lifetimePoints = totalScoreManager.totalScore.first()
+        val savedStreak = streakStateManager.getStreakState().first()
+        val currentStreakDays = savedStreak?.let { streak ->
+            val lastCompletedDate = streak.lastCompletedDate
+                ?.let(LocalDate::parse)
+                ?: return@let 0
+            val daysSinceCompletion = ChronoUnit.DAYS.between(
+                lastCompletedDate,
+                LocalDate.now()
+            )
+            if (daysSinceCompletion in 0..2) streak.streakCount else 0
+        } ?: 0
+        appPreferences.migrateHintWallet(lifetimePoints, currentStreakDays)
+        appPreferences.grantHintWalletReleaseBonusOnce()
+        appPreferences.grantStreakShieldReleaseBonusOnce()
+        appPreferences.reconcileHintMilestones(lifetimePoints, currentStreakDays)
+        hintWalletInitialized = true
+    }
+
+    if (!hintWalletInitialized) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
     val navController = rememberNavController()
     val screens = listOf(
         BottomScreen.Home,
@@ -134,13 +201,14 @@ fun MainSudokuApp() {
     val showBottomBar = currentRoute in bottomBarRoutes
 
     Scaffold(
+        containerColor = Color.Transparent,
         bottomBar = {
             AnimatedVisibility(
                 visible = showBottomBar, enter = fadeIn(tween(150)), exit = fadeOut(
                     tween(150)
                 )
             ) {
-                NavigationBar {
+                NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     screens.forEach { screen ->
                         NavigationBarItem(
                             selected = currentRoute == screen.route,
@@ -156,7 +224,12 @@ fun MainSudokuApp() {
                                 }
                             },
                             icon = { Icon(screen.icon, contentDescription = screen.title) },
-                            label = { Text(screen.title) }
+                            label = {
+                                Text(
+                                    screen.title,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
                         )
                     }
                 }
@@ -168,7 +241,10 @@ fun MainSudokuApp() {
         val currentBottom = padding.calculateBottomPadding()
         if (currentBottom > stableBottom) stableBottom = currentBottom
 
-        val tabPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = stableBottom)
+        val tabPadding = PaddingValues(
+            top = padding.calculateTopPadding() + 16.dp,
+            bottom = stableBottom + 16.dp
+        )
 
         NavHost(
             navController = navController,
@@ -179,8 +255,10 @@ fun MainSudokuApp() {
                 HomeScreen(
                     modifier = Modifier.padding(tabPadding),
                     onNewGameClick = { /* optional analytics, etc. */ },
-                    onDifficultySelected = { difficulty: Difficulty ->
-                        navController.navigate("play/new/${difficulty.name}/0")
+                    onDifficultySelected = { difficulty: Difficulty, useDoublePointsBooster ->
+                        navController.navigate(
+                            "play/new/${difficulty.name}/0?useDoublePointsBooster=$useDoublePointsBooster"
+                        )
                     },
                     onResume = {
                         navController.navigate("play/resume/none/0")
@@ -220,7 +298,10 @@ fun MainSudokuApp() {
                 SettingsScreen(
                     modifier = Modifier.padding(
                         tabPadding
-                    )
+                    ),
+                    onStatisticsClick = {
+                        navController.navigate("statistics")
+                    }
                 )
             }
 
@@ -238,18 +319,28 @@ fun MainSudokuApp() {
                 )
             }
 
+            composable("statistics") {
+                StatisticsScreen(
+                    onBackClick = { navController.popBackStack() }
+                )
+            }
+
             // ── PLAY SCREEN (Sudoku) ────────────────────────────
             composable(
-                route = "play/{mode}/{difficulty}/{streakDay}",
+                route = "play/{mode}/{difficulty}/{streakDay}?useDoublePointsBooster={useDoublePointsBooster}",
                 arguments = listOf(
                     navArgument("mode") { defaultValue = "new" },
                     navArgument("difficulty") { defaultValue = "none" },
-                    navArgument("streakDay") { defaultValue = "0" }
+                    navArgument("streakDay") { defaultValue = "0" },
+                    navArgument("useDoublePointsBooster") { defaultValue = "false" }
                 )
             ) { entry ->
                 val mode = entry.arguments?.getString("mode") ?: "new"
                 val diffStr = entry.arguments?.getString("difficulty") ?: "none"
                 val streakDay = entry.arguments?.getString("streakDay")?.toIntOrNull() ?: 0
+                val useDoublePointsBooster =
+                    entry.arguments?.getString("useDoublePointsBooster")?.toBooleanStrictOrNull()
+                        ?: false
                 val difficulty = diffStr
                     .takeIf { it != "none" }
                     ?.let { s ->
@@ -262,6 +353,7 @@ fun MainSudokuApp() {
                     mode = mode,
                     difficulty = difficulty,
                     streakDay = streakDay,
+                    useDoublePointsBooster = useDoublePointsBooster,
                     onExit = { navController.popBackStack() },
                     onStartNormalGame = {
                         navController.navigate("play/new/${Difficulty.Breeze.name}/0") {

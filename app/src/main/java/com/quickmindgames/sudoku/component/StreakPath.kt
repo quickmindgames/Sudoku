@@ -22,7 +22,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.quickmindgames.sudoku.BuildConfig
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -31,6 +33,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * Created by sagar.tahelyani on 04/03/26
  *
  */
+@Preview
 @Composable
 fun StreakPath(
     streakCount: Int,
@@ -43,7 +46,6 @@ fun StreakPath(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
     ) {
         Box(
             modifier = Modifier
@@ -93,7 +95,6 @@ fun StreakPath(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(vertical = 8.dp, horizontal = horizontalPadding)
                         .verticalScroll(scrollState)
                 ) {
                     nodeRows.forEach { (rowIndex, nodeIndices) ->
@@ -151,7 +152,7 @@ fun StreakPath(
                                             color = segColor,
                                             start = Offset(lineStart, lineY),
                                             end = Offset(lineEnd, lineY),
-                                            strokeWidth = 2.dp.toPx()
+                                            strokeWidth = 2.5.dp.toPx()
                                         )
                                     }
                                 }
@@ -167,7 +168,7 @@ fun StreakPath(
                                         color = topVertColor,
                                         start = Offset(leadingX, 0f),
                                         end = Offset(leadingX, lineY - nodeWidthPx / 2f),
-                                        strokeWidth = 2.dp.toPx()
+                                        strokeWidth = 2.5.dp.toPx()
                                     )
                                 }
 
@@ -182,7 +183,7 @@ fun StreakPath(
                                         color = botVertColor,
                                         start = Offset(trailingX, lineY + nodeWidthPx / 2f),
                                         end = Offset(trailingX, size.height),
-                                        strokeWidth = 2.dp.toPx()
+                                        strokeWidth = 2.5.dp.toPx()
                                     )
                                 }
                             }
@@ -199,8 +200,8 @@ fun StreakPath(
                                     val dayNumber = index + 1
                                     val isCompleted = dayNumber <= streakCount
                                     val isNext = dayNumber == streakCount + 1
-                                    val isLocked = dayNumber > streakCount + 1
-                                    val isPlayable = isNext && (hasActiveToday || !completedToday)
+                                    val isLocked = dayNumber > streakCount + 1 && !BuildConfig.DEBUG
+                                    val isPlayable = BuildConfig.DEBUG || isNext && (hasActiveToday || !completedToday)
                                     val isActive = isNext && hasActiveToday
                                     val isNextButCompletedToday =
                                         isNext && completedToday && !hasActiveToday

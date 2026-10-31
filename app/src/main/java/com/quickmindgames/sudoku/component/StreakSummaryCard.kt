@@ -1,6 +1,8 @@
 package com.quickmindgames.sudoku.component
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,7 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
@@ -22,9 +24,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.quickmindgames.sudoku.R
 import com.quickmindgames.sudoku.utils.MultipleEventsCutter
 import com.quickmindgames.sudoku.utils.shareStreak
 
@@ -33,6 +38,7 @@ import com.quickmindgames.sudoku.utils.shareStreak
  * Created by sagar.tahelyani on 04/03/26
  *
  */
+@Preview
 @Composable
 fun StreakSummaryCard(
     streakCount: Int,
@@ -58,7 +64,7 @@ fun StreakSummaryCard(
     ElevatedCard(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(24.dp),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 5.dp),
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -67,13 +73,16 @@ fun StreakSummaryCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+                .padding(all = 20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Flame + streak count badge
-            Text(text = "🔥", fontSize = 32.sp)
+            Image(
+                painterResource(id = R.drawable.ic_flame),
+                contentDescription = "Flame icon", Modifier.size(56.dp)
+            )
 
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(8.dp))
 
             // Text info
             Column(modifier = Modifier.weight(1f)) {
@@ -83,16 +92,20 @@ fun StreakSummaryCard(
                         1 -> "1 Day Streak"
                         else -> "$streakCount Days Streak"
                     },
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = statusText,
-                    fontSize = 13.sp,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
                     color = statusColor,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(top = 2.dp)
+                    modifier = Modifier.padding(top = 6.dp)
                 )
             }
 
@@ -108,11 +121,11 @@ fun StreakSummaryCard(
                         .size(40.dp)
                         .background(
                             MaterialTheme.colorScheme.secondaryContainer,
-                            RoundedCornerShape(12.dp)
+                            RoundedCornerShape(16.dp)
                         )
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Share,
+                        imageVector = Icons.Rounded.Share,
                         contentDescription = "Share streak",
                         tint = MaterialTheme.colorScheme.onSecondaryContainer,
                         modifier = Modifier.size(20.dp)

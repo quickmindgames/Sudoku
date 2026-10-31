@@ -8,8 +8,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,14 +23,17 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.quickmindgames.sudoku.presentation.ui.theme.StreakLockColor
 
 /**
  *
  * Created by sagar.tahelyani on 04/03/26
  *
  */
+@Preview
 @Composable
 fun StreakNode(
     dayNumber: Int,
@@ -170,17 +177,29 @@ fun StreakNode(
 
                     // Content: Icon or number
                     if (isCompleted) {
-                        Text(
+                        Icon(
+                            imageVector = Icons.Rounded.Check,
+                            contentDescription = "Completed",
+                            tint = textColor,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        /*Text(
                             text = "✓",
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold,
                             color = textColor
-                        )
+                        )*/
                     } else if (isLocked) {
-                        Text(
+                        Icon(
+                            imageVector = Icons.Filled.Lock,
+                            contentDescription = "Completed",
+                            tint = StreakLockColor,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        /*Text(
                             text = "🔒",
                             fontSize = 24.sp
-                        )
+                        )*/
                     } else {
                         val digits = dayNumber.toString().length
                         val nodeFontSize = when {

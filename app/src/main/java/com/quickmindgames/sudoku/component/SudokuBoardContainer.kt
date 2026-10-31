@@ -3,11 +3,15 @@ package com.quickmindgames.sudoku.component
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import kotlin.math.floor
 
@@ -36,7 +40,8 @@ fun SudokuBoardContainer(
         Box(
             modifier = Modifier
                 .requiredSize(boardDp)   // ✅ board is exact size
-                .clipToBounds()
+                //.clipToBounds()
+                .clip(RoundedCornerShape(16.dp))
         ) {
             content(cellDp, boardDp)
         }

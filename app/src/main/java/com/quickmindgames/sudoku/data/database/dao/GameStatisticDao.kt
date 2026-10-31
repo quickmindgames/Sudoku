@@ -49,6 +49,18 @@ interface GameStatisticDao {
     fun getLossesCountByDifficulty(difficulty: String): Flow<Int>
 
     /**
+     * Get total score across all completed games for a specific difficulty
+     */
+    @Query("SELECT COALESCE(SUM(score), 0) FROM game_statistics WHERE difficulty = :difficulty")
+    fun getTotalScoreByDifficulty(difficulty: String): Flow<Long>
+
+    /**
+     * Get average completion time for all games of a specific difficulty
+     */
+    @Query("SELECT AVG(time_seconds) FROM game_statistics WHERE difficulty = :difficulty")
+    fun getAverageTimeByDifficulty(difficulty: String): Flow<Double?>
+
+    /**
      * Get best (minimum) time for a specific difficulty
      */
     @Query("SELECT MIN(time_seconds) FROM game_statistics WHERE difficulty = :difficulty AND is_won = 1")
@@ -85,6 +97,18 @@ interface GameStatisticDao {
     fun getTotalLossesCount(): Flow<Int>
 
     /**
+     * Get total score across all completed games
+     */
+    @Query("SELECT COALESCE(SUM(score), 0) FROM game_statistics")
+    fun getTotalScoreOverall(): Flow<Long>
+
+    /**
+     * Get average completion time across all games
+     */
+    @Query("SELECT AVG(time_seconds) FROM game_statistics")
+    fun getAverageTimeOverall(): Flow<Double?>
+
+    /**
      * Get best (minimum) time across all games
      */
     @Query("SELECT MIN(time_seconds) FROM game_statistics WHERE is_won = 1")
@@ -108,4 +132,3 @@ interface GameStatisticDao {
     @Query("DELETE FROM game_statistics")
     suspend fun deleteAllGameStatistics()
 }
-

@@ -8,6 +8,8 @@ data class GameStatistics(
     val totalWins: Int = 0,
     val totalLosses: Int = 0,
     val winRatioPercentage: Double = 0.0,
+    val totalScore: Long = 0,
+    val averageTime: Int? = null,
     val bestTime: Int? = null,
     val bestScore: Int? = null,
     val flawFreeWins: Int = 0
@@ -24,6 +26,8 @@ data class DifficultyStatistics(
     val wins: Int = 0,
     val losses: Int = 0,
     val winRatioPercentage: Double = 0.0,
+    val totalScore: Long = 0,
+    val averageTime: Int? = null,
     val bestTime: Int? = null,
     val bestScore: Int? = null,
     val flawFreeWins: Int = 0
@@ -39,6 +43,8 @@ data class StreakStatistics(
     val totalWins: Int = 0,
     val totalLosses: Int = 0,
     val winRatioPercentage: Double = 0.0,
+    val totalScore: Long = 0,
+    val averageTime: Int? = null,
     val bestTime: Int? = null,
     val bestScore: Int? = null,
     val highestStreakDay: Int = 0,
@@ -58,4 +64,3 @@ data class AllStatistics(
     val elite: DifficultyStatistics = DifficultyStatistics("Elite"),
     val streak: StreakStatistics = StreakStatistics()
 )
-
