@@ -43,7 +43,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -59,7 +58,6 @@ import kotlinx.coroutines.launch
  * Created by sagar.tahelyani on 04/03/26
  *
  */
-@Preview
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit) {
     //region State and preference collection
@@ -147,7 +145,10 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                             )
                             Text(
                                 text = "View your win rates, streaks & best times",
-                                style = MaterialTheme.typography.labelSmall.copy(lineHeight = 20.sp,  fontSize = 13.sp),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    lineHeight = 20.sp,
+                                    fontSize = 13.sp
+                                ),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 6.dp)
                             )

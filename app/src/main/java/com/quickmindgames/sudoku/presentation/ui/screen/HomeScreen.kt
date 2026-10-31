@@ -24,6 +24,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -118,6 +119,9 @@ fun HomeScreen(
 
     //region streak shield protection dialog
     if (homeState.streakDialog == HomeStreakDialog.SHIELD) {
+        LaunchedEffect(homeState.streakDialog) {
+            homeViewModel.onStreakReminderDialogShown()
+        }
         val shieldsAvailable = pluralStringResource(
             R.plurals.streak_shields_available,
             homeState.streakShieldWallet,
@@ -132,31 +136,45 @@ fun HomeScreen(
                 shieldsAvailable
             ),
             content = {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Streak shields available",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Streak shields available",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "${homeState.streakShieldWallet} left",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                     )
                     Text(
-                        text = "${homeState.streakShieldWallet} left",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        text = "Your streak will reset tomorrow unless you play today or use a Streak Shield.",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
                     )
                 }
             },
             onDismissRequest = { homeViewModel.dismissStreakDialog() },
             positiveButton = DialogAction(
-                text = "Use Shield",
+                text = "Use Streak Shield",
                 onClick = {
                     coroutineScope.launch {
                         when (homeViewModel.protectStreak()) {
