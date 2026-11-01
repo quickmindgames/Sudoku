@@ -25,7 +25,8 @@ class AppPreferences internal constructor(
         // 4HR = 4 * 60 * 60 * 1000L
         // 20s = 20 * 1000L
         const val WHEEL_SPIN_COOLDOWN_MILLIS = 10 * 1000L
-        const val HINT_WALLET_RELEASE_BONUS = 10
+        const val HINT_WALLET_WELCOME_BONUS = 5
+        const val DOUBLE_POINTS_BOOSTER_WELCOME_BONUS = 1
         const val STREAK_SHIELD_WALLET_RELEASE_BONUS = 1
 
         @Volatile
@@ -51,8 +52,10 @@ class AppPreferences internal constructor(
     private val STREAK_SHIELD_WALLET_KEY = intPreferencesKey("streak_shield_wallet")
     private val STREAK_SHIELD_RELEASE_BONUS_CREDITED_KEY =
         booleanPreferencesKey("streak_shield_release_bonus_credited")
+    private val DOUBLE_POINTS_BOOSTER_WELCOME_BONUS_CREDITED_KEY =
+        booleanPreferencesKey("double_points_booster_welcome_bonus_credited")
     private val HINT_MIGRATION_COMPLETE_KEY = booleanPreferencesKey("hint_migration_complete")
-    private val HINT_MIGRATION_SUMMARY_SHOWN_KEY =
+    private val WELCOME_REWARDS_SUMMARY_SHOWN_KEY =
         booleanPreferencesKey("hint_migration_summary_shown")
     private val HINT_RELEASE_BONUS_CREDITED_KEY = booleanPreferencesKey("hint_release_bonus_credited")
     private val INITIAL_POINT_HINTS_KEY = intPreferencesKey("initial_point_hints")
@@ -83,6 +86,10 @@ class AppPreferences internal constructor(
 
     val initialStreakHints: Flow<Int> = dataStore.data.map { preferences ->
         preferences[INITIAL_STREAK_HINTS_KEY] ?: 0
+    }
+
+    val welcomeRewardsSummaryShown: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[WELCOME_REWARDS_SUMMARY_SHOWN_KEY] ?: false
     }
 
     val lastSpin: Flow<Long?> = dataStore.data.map { preferences ->
@@ -187,13 +194,13 @@ class AppPreferences internal constructor(
         )
     }
 
-    suspend fun grantHintWalletReleaseBonusOnce(): Boolean {
+    suspend fun grantHintWalletWelcomeBonusOnce(): Boolean {
         var granted = false
         dataStore.edit { preferences ->
             if (preferences[HINT_RELEASE_BONUS_CREDITED_KEY] != true) {
                 preferences[HINT_WALLET_KEY] = addWithoutOverflow(
                     preferences[HINT_WALLET_KEY] ?: 0,
-                    HINT_WALLET_RELEASE_BONUS
+                    HINT_WALLET_WELCOME_BONUS
                 )
                 preferences[HINT_RELEASE_BONUS_CREDITED_KEY] = true
                 granted = true
@@ -217,17 +224,25 @@ class AppPreferences internal constructor(
         return granted
     }
 
-    suspend fun claimHintMigrationSummaryOnce(): Boolean {
-        var shouldShow = false
+    suspend fun grantDoublePointsBoosterWelcomeBonusOnce(): Boolean {
+        var granted = false
         dataStore.edit { preferences ->
-            if (preferences[HINT_MIGRATION_COMPLETE_KEY] == true &&
-                preferences[HINT_MIGRATION_SUMMARY_SHOWN_KEY] != true
-            ) {
-                preferences[HINT_MIGRATION_SUMMARY_SHOWN_KEY] = true
-                shouldShow = true
+            if (preferences[DOUBLE_POINTS_BOOSTER_WELCOME_BONUS_CREDITED_KEY] != true) {
+                preferences[DOUBLE_POINTS_BOOSTER_WALLET_KEY] = addWithoutOverflow(
+                    preferences[DOUBLE_POINTS_BOOSTER_WALLET_KEY] ?: 0,
+                    DOUBLE_POINTS_BOOSTER_WELCOME_BONUS
+                )
+                preferences[DOUBLE_POINTS_BOOSTER_WELCOME_BONUS_CREDITED_KEY] = true
+                granted = true
             }
         }
-        return shouldShow
+        return granted
+    }
+
+    suspend fun markWelcomeRewardsSummaryShown() {
+        dataStore.edit { preferences ->
+            preferences[WELCOME_REWARDS_SUMMARY_SHOWN_KEY] = true
+        }
     }
 
     suspend fun reconcileHintMilestones(lifetimePoints: Int, currentStreakDays: Int) {

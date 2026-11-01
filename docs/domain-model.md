@@ -64,6 +64,9 @@ classDiagram
   streak mode. It cannot be changed while a saved game exists.
 - Hide Used Numbers hides a digit once all nine instances are placed.
 - Each regular or streak game can use at most three Hint Wallet hints.
+- Wallet setup grants five welcome hints, one 2X Points Booster, and one Streak
+  Shield once each. The welcome reward summary is shown once on the user's first
+  visit to Rewards, including when point-based migration grants are zero.
 - A selected 2X Booster is saved with an unfinished game and consumed on a
   completed boosted game; credited points are doubled.
 - A Streak Shield protects one missed calendar day without incrementing the

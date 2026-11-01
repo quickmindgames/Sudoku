@@ -49,7 +49,7 @@ fun WalletRewardSummaryRow(
                 tint = Color.Unspecified,
                 modifier = Modifier.size(28.dp)
             )
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
@@ -64,7 +64,7 @@ fun WalletRewardSummaryRow(
                     modifier = Modifier.padding(top = 2.dp)
                 )
             }
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(8.dp))
             Text(
                 text = "%,d".format(amount),
                 style = MaterialTheme.typography.titleLarge,

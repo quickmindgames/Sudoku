@@ -99,7 +99,7 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
     val soundAndVibrationEnabled = rewardsState.soundAndVibrationEnabled
     val lastSpinMillis = rewardsState.lastSpinMillis
     val isSpinning = rewardsState.isSpinning
-    val showMigrationSummary = rewardsState.showMigrationSummary
+    val showWelcomeRewardsSummary = rewardsState.showWelcomeRewardsSummary
     val cooldownRemainingMillis = lastSpinMillis?.let {
         (it + AppPreferences.WHEEL_SPIN_COOLDOWN_MILLIS - currentTimeMillis).coerceAtLeast(0L)
     }
@@ -533,14 +533,14 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            if (showMigrationSummary) {
+            if (showWelcomeRewardsSummary) {
 
                 val hintGrantDetails = buildList {
-                    if (AppPreferences.HINT_WALLET_RELEASE_BONUS > 0) {
+                    if (AppPreferences.HINT_WALLET_WELCOME_BONUS > 0) {
                         add(
                             context.getString(
                                 R.string.rewards_welcome_bonus_hints,
-                                AppPreferences.HINT_WALLET_RELEASE_BONUS
+                                AppPreferences.HINT_WALLET_WELCOME_BONUS
                             )
                         )
                     }
@@ -557,8 +557,21 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                                 title = stringResource(R.string.hint_wallet_info_title),
                                 amount = initialPointHints +
                                         initialStreakHints +
-                                        AppPreferences.HINT_WALLET_RELEASE_BONUS,
+                                        AppPreferences.HINT_WALLET_WELCOME_BONUS,
                                 detail = hintGrantDetails
+                            )
+                            HorizontalDivider(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                            )
+                            WalletRewardSummaryRow(
+                                emoji = painterResource(R.drawable.ic_2x),
+                                title = stringResource(R.string.booster_wallet_info_title),
+                                amount = AppPreferences.DOUBLE_POINTS_BOOSTER_WELCOME_BONUS,
+                                detail = stringResource(
+                                    R.string.rewards_welcome_booster_detail,
+                                    AppPreferences.DOUBLE_POINTS_BOOSTER_WELCOME_BONUS
+                                )
                             )
                             HorizontalDivider(
                                 modifier = Modifier.padding(vertical = 8.dp),
@@ -575,10 +588,10 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                             )
                         }
                     },
-                    onDismissRequest = { rewardsViewModel.dismissMigrationSummary() },
+                    onDismissRequest = { rewardsViewModel.dismissWelcomeRewardsSummary() },
                     positiveButton = DialogAction(
                         text = stringResource(R.string.rewards_welcome_button),
-                        onClick = { rewardsViewModel.dismissMigrationSummary() }
+                        onClick = { rewardsViewModel.dismissWelcomeRewardsSummary() }
                     ),
                     negativeButton = null
                 )
@@ -852,114 +865,6 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                         }
                     )
                 }
-                /*BasicAlertDialog(
-                    onDismissRequest = { selectedWalletInfo = null }
-                ) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .widthIn(max = 420.dp),
-                        shape = RoundedCornerShape(28.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
-                    ) {
-                        Column {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        brush = Brush.horizontalGradient(
-                                            listOf(Color(0xFF1565C0), Color(0xFF6A1B9A))
-                                        ),
-                                        shape = RoundedCornerShape(
-                                            topStart = 28.dp,
-                                            topEnd = 28.dp
-                                        )
-                                    )
-                                    .padding(start = 20.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = infoTitle,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 18.dp),
-                                verticalArrangement = Arrangement.spacedBy(18.dp)
-                            ) {
-                                when (selectedWalletInfo) {
-                                    WalletInfo.POINTS -> {
-                                        WalletInfoSection(
-                                            label = stringResource(R.string.wallet_info_earn_label),
-                                            details = listOf(
-                                                stringResource(R.string.points_wallet_earn)
-                                            )
-                                        )
-                                    }
-
-                                    WalletInfo.HINTS -> {
-                                        WalletInfoSection(
-                                            label = stringResource(R.string.wallet_info_earn_label),
-                                            details = listOf(
-                                                stringResource(R.string.hint_wallet_earn_points),
-                                                stringResource(R.string.hint_wallet_earn_streak),
-                                                stringResource(R.string.hint_wallet_earn_wheel)
-                                            )
-                                        )
-                                        WalletInfoSection(
-                                            label = stringResource(R.string.wallet_info_use_label),
-                                            details = listOf(
-                                                stringResource(R.string.hint_wallet_use)
-                                            )
-                                        )
-                                    }
-
-                                    WalletInfo.BOOSTERS -> {
-                                        WalletInfoSection(
-                                            label = stringResource(R.string.wallet_info_earn_label),
-                                            details = listOf(
-                                                stringResource(R.string.booster_wallet_earn)
-                                            )
-                                        )
-                                        WalletInfoSection(
-                                            label = stringResource(R.string.wallet_info_use_label),
-                                            details = listOf(
-                                                stringResource(R.string.booster_wallet_info)
-                                            )
-                                        )
-                                    }
-
-                                    WalletInfo.SHIELDS -> {
-                                        WalletInfoSection(
-                                            label = stringResource(R.string.wallet_info_earn_label),
-                                            details = listOf(
-                                                stringResource(R.string.shield_wallet_earn)
-                                            )
-                                        )
-                                        WalletInfoSection(
-                                            label = stringResource(R.string.wallet_info_use_label),
-                                            details = listOf(
-                                                stringResource(R.string.shield_wallet_info)
-                                            )
-                                        )
-                                    }
-
-                                    null -> Unit
-                                }
-                            }
-                        }
-                    }
-                }*/
             }
 
         }
