@@ -14,6 +14,7 @@ import com.quickmindgames.sudoku.data.preferences.AppPreferences
 import com.quickmindgames.sudoku.data.score.TotalScoreManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.random.Random
@@ -27,7 +28,7 @@ data class RewardsScreenState(
     val initialStreakHints: Int = 0,
     val soundAndVibrationEnabled: Boolean = true,
     val lastSpinMillis: Long? = Long.MIN_VALUE,
-    val showMigrationSummary: Boolean = false,
+    val showWelcomeRewardsSummary: Boolean = false,
     val isSpinning: Boolean = false
 )
 
@@ -95,8 +96,9 @@ class RewardsViewModel(context: Context) : ViewModel() {
             }
         }
         viewModelScope.launch {
+            val summaryShown = appPreferences.welcomeRewardsSummaryShown.first()
             _uiState.update {
-                it.copy(showMigrationSummary = appPreferences.claimHintMigrationSummaryOnce())
+                it.copy(showWelcomeRewardsSummary = !summaryShown)
             }
         }
     }
@@ -160,8 +162,11 @@ class RewardsViewModel(context: Context) : ViewModel() {
         _uiState.update { it.copy(isSpinning = false) }
     }
 
-    fun dismissMigrationSummary() {
-        _uiState.update { it.copy(showMigrationSummary = false) }
+    fun dismissWelcomeRewardsSummary() {
+        _uiState.update { it.copy(showWelcomeRewardsSummary = false) }
+        viewModelScope.launch {
+            appPreferences.markWelcomeRewardsSummaryShown()
+        }
     }
 
     companion object {

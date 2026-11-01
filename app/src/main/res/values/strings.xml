@@ -35,6 +35,7 @@
     <string name="rewards_welcome_points_hints">%1$d from points</string>
     <string name="rewards_welcome_streak_hints">%1$d from streak</string>
     <string name="rewards_welcome_bonus_hints">Includes +%1$d welcome bonus</string>
+    <string name="rewards_welcome_booster_detail">Includes +%1$d welcome bonus</string>
     <string name="rewards_welcome_shields_detail">Includes +%1$d welcome bonus</string>
     <string name="lbl_how_to_play">How to play?</string>
     <string name="lbl_tutorial">Tutorial</string>

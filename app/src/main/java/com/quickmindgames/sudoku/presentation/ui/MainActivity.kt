@@ -171,7 +171,8 @@ fun MainSudokuApp() {
             if (daysSinceCompletion in 0..2) streak.streakCount else 0
         } ?: 0
         appPreferences.migrateHintWallet(lifetimePoints, currentStreakDays)
-        appPreferences.grantHintWalletReleaseBonusOnce()
+        appPreferences.grantHintWalletWelcomeBonusOnce()
+        appPreferences.grantDoublePointsBoosterWelcomeBonusOnce()
         appPreferences.grantStreakShieldReleaseBonusOnce()
         appPreferences.reconcileHintMilestones(lifetimePoints, currentStreakDays)
         hintWalletInitialized = true
