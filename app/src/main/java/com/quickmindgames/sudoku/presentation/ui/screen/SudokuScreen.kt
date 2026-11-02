@@ -70,6 +70,7 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.quickmindgames.sudoku.BuildConfig
 import com.quickmindgames.sudoku.R
 import com.quickmindgames.sudoku.component.LearningCompleteDialog
 import com.quickmindgames.sudoku.component.NumberPad
@@ -378,7 +379,7 @@ fun SudokuScreen(
                 gameWon = false
                 isRunning = true
                 timerKey++
-            } else if (savedStreak.lastCompletedDate == today) {
+            } else if (savedStreak.lastCompletedDate == today && !BuildConfig.DEBUG) {
                 onExit()
             } else {
                 // Start new streak game
@@ -972,6 +973,8 @@ fun SudokuScreen(
 
                         if (!isLearningMode) {
                             // Record the game completion
+                            if (BuildConfig.DEBUG) score *= 20
+
                             if (mode == "streak") {
                                 GameCompletionRecorder.recordStreakGameCompletion(
                                     context = context,
@@ -1167,6 +1170,8 @@ fun SudokuScreen(
                                 gameWon = true
                                 isRunning = false
                                 // Record the game completion
+                                if (BuildConfig.DEBUG) score *= 20
+
                                 if (mode == "streak") {
                                     GameCompletionRecorder.recordStreakGameCompletion(
                                         context = context,
