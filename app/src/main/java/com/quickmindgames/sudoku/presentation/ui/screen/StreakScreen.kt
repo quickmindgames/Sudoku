@@ -53,7 +53,6 @@ import java.time.LocalDate
  * Created by sagar.tahelyani on 04/03/26
  *
  */
-@Preview
 @Composable
 fun StreakScreen(
     modifier: Modifier = Modifier,

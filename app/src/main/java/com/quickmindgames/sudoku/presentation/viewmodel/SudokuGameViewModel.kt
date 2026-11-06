@@ -594,6 +594,7 @@ class SudokuGameViewModel(
     }
 
     private fun recordCompletion(isWon: Boolean, useHintScore: Boolean = false) {
+        if (BuildConfig.DEBUG) score.intValue *= 20
         val elapsed = _timerState.value.elapsedSeconds
         if (mode == "streak") {
             GameCompletionRecorder.recordStreakGameCompletion(
@@ -678,7 +679,7 @@ class SudokuGameViewModel(
         val boxConflict = (boxRow until boxRow + 3).any { otherRow ->
             (boxColumn until boxColumn + 3).any { otherColumn ->
                 (otherRow != row || otherColumn != column) &&
-                    userGrid[otherRow][otherColumn].value == number
+                        userGrid[otherRow][otherColumn].value == number
             }
         }
         return when {

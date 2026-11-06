@@ -550,8 +550,6 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
 
             //endregion
 
-            Spacer(Modifier.height(12.dp))
-
             //region App information
             Column {
                 Text(

@@ -366,9 +366,11 @@ fun HomeScreen(
         ) {
             //region App Logo
             Image(
-                painter = painterResource(id = R.drawable.ic_launcher),
+                painter = painterResource(id = R.drawable.ic_home_launcher),
                 contentDescription = null,
-                modifier = Modifier.size(196.dp).shimmerLogo()
+                modifier = Modifier
+                    .size(196.dp)
+                    .shimmerLogo()
             )
             //endregion
 
