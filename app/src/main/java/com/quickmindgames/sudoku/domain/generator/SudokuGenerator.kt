@@ -155,6 +155,6 @@ class SudokuGenerator {
          * Singleton instance
          */
         val instance = SudokuGenerator()
-        const val DEBUG_VALUE = 79
+        const val DEBUG_VALUE = 75
     }
 }

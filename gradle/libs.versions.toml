@@ -1,5 +1,5 @@
 [versions]
-agp = "9.5.0"
+agp = "9.5.1"
 coreKtx = "1.19.1"
 datastorePreferences = "1.2.1"
 junit = "4.13.2"
@@ -20,6 +20,7 @@ firebase = "3.0.8"
 firebaseRemote = "23.1.0"
 sonarqube = "7.5.0.8588"
 googleservices = "4.5.0"
+coreSplashScreen = "1.2.0"
 
 [libraries]
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
@@ -50,6 +51,7 @@ firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashly
 firebase-remote-config = { group = "com.google.firebase", name = "firebase-config", version.ref = "firebaseRemote" }
 androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
 lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottie" }
+splash-screen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashScreen" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

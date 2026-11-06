@@ -360,7 +360,6 @@ fun OverallStatsTab(allStatistics: AllStatistics) {
     }
 }
 
-@Preview
 @Composable
 fun OverallStatsCard(stats: GameStatistics) {
     Card(
@@ -372,10 +371,10 @@ fun OverallStatsCard(stats: GameStatistics) {
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            StatisticRow("Total Games", stats.totalGames.toString())
+            StatisticRow("Games", stats.totalGames.toString())
             StatisticRow("Wins", stats.totalWins.toString(), MaterialTheme.colorScheme.primary)
             StatisticRow("Losses", stats.totalLosses.toString(), MaterialTheme.colorScheme.error)
-            StatisticRow("Total Points", "%,d".format(stats.totalScore))
+            StatisticRow("Play Points", "%,d".format(stats.totalScore))
             Spacer(modifier = Modifier.height(12.dp))
             HorizontalDivider()
             Spacer(modifier = Modifier.height(12.dp))
@@ -443,10 +442,10 @@ fun DifficultyStatsCard(stats: DifficultyStatistics) {
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            StatisticRow("Total Games", stats.totalGames.toString())
+            StatisticRow("Games", stats.totalGames.toString())
             StatisticRow("Wins", stats.wins.toString(), MaterialTheme.colorScheme.primary)
             StatisticRow("Losses", stats.losses.toString(), MaterialTheme.colorScheme.error)
-            StatisticRow("Total Points", "%,d".format(stats.totalScore))
+            StatisticRow("Play Points", "%,d".format(stats.totalScore))
             Spacer(modifier = Modifier.height(12.dp))
             HorizontalDivider()
             Spacer(modifier = Modifier.height(12.dp))
@@ -525,10 +524,10 @@ fun StreakStatsCard(stats: StreakStatistics) {
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            StatisticRow("Total Streak Games", stats.totalGames.toString())
+            StatisticRow("Streak Games", stats.totalGames.toString())
             StatisticRow("Wins", stats.totalWins.toString(), MaterialTheme.colorScheme.primary)
             StatisticRow("Losses", stats.totalLosses.toString(), MaterialTheme.colorScheme.error)
-            StatisticRow("Total Points", "%,d".format(stats.totalScore))
+            StatisticRow("Play Points", "%,d".format(stats.totalScore))
             Spacer(modifier = Modifier.height(12.dp))
             HorizontalDivider()
             Spacer(modifier = Modifier.height(12.dp))

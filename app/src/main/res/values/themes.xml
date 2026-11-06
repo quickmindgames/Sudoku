@@ -2,4 +2,11 @@
 <resources>
 
     <style name="Theme.Sudoku" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.Sudoku.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#ffffff</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
+        <item name="postSplashScreenTheme">@style/Theme.Sudoku</item>
+    </style>
+
 </resources>

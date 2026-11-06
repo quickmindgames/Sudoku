@@ -41,4 +41,6 @@
     <string name="lbl_tutorial">Tutorial</string>
     <string name="lbl_practice_mode">Practice Mode</string>
     <string name="lbl_got_it">Got it!</string>
+    <string name="switch_to_light_mode">Switch to light mode</string>
+    <string name="switch_to_dark_mode">Switch to dark mode</string>
 </resources>
