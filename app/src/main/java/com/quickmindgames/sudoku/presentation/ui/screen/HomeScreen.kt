@@ -60,6 +60,7 @@ import com.quickmindgames.sudoku.component.StreakSummaryCard
 import com.quickmindgames.sudoku.component.primaryGradientBrush
 import com.quickmindgames.sudoku.domain.model.Difficulty
 import com.quickmindgames.sudoku.presentation.ui.isDifficultyUnlocked
+import com.quickmindgames.sudoku.presentation.util.shimmerLogo
 import com.quickmindgames.sudoku.presentation.viewmodel.HomeStreakDialog
 import com.quickmindgames.sudoku.presentation.viewmodel.HomeViewModel
 import com.quickmindgames.sudoku.presentation.viewmodel.ProtectStreakResult
@@ -367,7 +368,7 @@ fun HomeScreen(
             Image(
                 painter = painterResource(id = R.drawable.ic_launcher),
                 contentDescription = null,
-                modifier = Modifier.size(196.dp)
+                modifier = Modifier.size(196.dp).shimmerLogo()
             )
             //endregion
 

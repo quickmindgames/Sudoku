@@ -117,4 +117,7 @@ dependencies {
 
     // Remote Config for dynamic feature flags
     implementation(libs.firebase.remote.config)
+
+    // Splash Screen
+    implementation(libs.splash.screen)
 }

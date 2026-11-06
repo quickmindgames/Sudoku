@@ -4,7 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
  */
 @Composable
 fun Modifier.shakeEffect(shouldShake: Boolean): Modifier {
-    var shakeOffset by remember(shouldShake) { mutableStateOf(0f) }
+    var shakeOffset by remember(shouldShake) { mutableFloatStateOf(0f) }
 
     if (shouldShake) {
         shakeOffset = (Math.random() * 20 - 10).toFloat()
