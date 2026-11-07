@@ -22,11 +22,21 @@ class StreakReminderWorker(
     context: Context,
     params: WorkerParameters
 ) : CoroutineWorker(context, params) {
+    var message = ""
+    var title = ""
     override suspend fun doWork(): Result {
         val streakStateManager = StreakStateManager.getInstance(applicationContext)
         val streakState = streakStateManager.getStreakState().first()
         val today = LocalDate.now().toString()
-        if (streakState?.lastCompletedDate != today) {
+        if (streakState?.streakCount == 0) {
+            title = "Start your streak!"
+            message = "Hey, you haven't started your streak yet, start your streak now!"
+            sendNotification()
+        }
+        if (streakState?.streakCount!! > 0 && streakState.lastCompletedDate != today) {
+            title = "Don't lose your streak!"
+            message =
+                "Hey, you haven't played streak for today, play now to keep it alive!"
             sendNotification()
         }
         return Result.success()
@@ -64,11 +74,8 @@ class StreakReminderWorker(
         )
         val notification = NotificationCompat.Builder(applicationContext, channelId)
             .setSmallIcon(R.mipmap.ic_launcher) // Use app launcher icon
-            .setContentTitle("Don't lose your streak!")
-            .setStyle(
-                NotificationCompat.BigTextStyle()
-                    .bigText("Hey, you haven't played streak for today, play now otherwise your streak will be lost.")
-            )
+            .setContentTitle(title)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
