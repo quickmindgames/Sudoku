@@ -55,6 +55,7 @@ import com.quickmindgames.sudoku.component.CustomActionDialog
 import com.quickmindgames.sudoku.component.DialogAction
 import com.quickmindgames.sudoku.component.PrizeWheel
 import com.quickmindgames.sudoku.component.PrizeWheelPrizes
+import com.quickmindgames.sudoku.component.PrizeType
 import com.quickmindgames.sudoku.component.WalletInfoButton
 import com.quickmindgames.sudoku.component.WalletRewardSummaryRow
 import com.quickmindgames.sudoku.data.preferences.AppPreferences
@@ -481,7 +482,28 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                                             easing = FastOutSlowInEasing
                                         )
                                     )
-                                    when (rewardsViewModel.creditPrize(spin)) {
+                                    val creditResult = rewardsViewModel.creditPrize(spin)
+                                    if (creditResult != PrizeCreditResult.ALREADY_CREDITED) {
+                                        val prizeType = when (spin.prize.type) {
+                                            PrizeType.POINTS -> AnalyticsConstants.PRIZE_POINTS
+                                            PrizeType.HINTS -> AnalyticsConstants.PRIZE_HINTS
+                                            PrizeType.BOOSTER -> AnalyticsConstants.PRIZE_BOOSTER
+                                            PrizeType.STREAK_SHIELD ->
+                                                AnalyticsConstants.PRIZE_STREAK_SHIELD
+                                        }
+                                        val walletBalances =
+                                            rewardsViewModel.currentWalletBalances()
+                                        AnalyticsUtils.logRewardSpinCompleted(
+                                            context = context,
+                                            prizeType = prizeType,
+                                            amount = spin.prize.amount,
+                                            totalPointsBalance = walletBalances.totalPoints,
+                                            hintWalletBalance = walletBalances.hints,
+                                            boosterWalletBalance = walletBalances.boosters,
+                                            streakShieldWalletBalance = walletBalances.streakShields
+                                        )
+                                    }
+                                    when (creditResult) {
                                         PrizeCreditResult.POINTS -> {
                                             animateNextPointsUpdate = true
                                             Toast.makeText(

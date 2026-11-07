@@ -38,6 +38,13 @@ data class RewardSpin(
     val spinId: String
 )
 
+data class RewardWalletBalances(
+    val totalPoints: Int,
+    val hints: Int,
+    val boosters: Int,
+    val streakShields: Int
+)
+
 enum class PrizeCreditResult {
     POINTS,
     HINTS_CREDITED,
@@ -157,6 +164,13 @@ class RewardsViewModel(context: Context) : ViewModel() {
                 PrizeCreditResult.ALREADY_CREDITED
             }
         }
+
+    suspend fun currentWalletBalances(): RewardWalletBalances = RewardWalletBalances(
+        totalPoints = totalScoreManager.totalScore.first(),
+        hints = appPreferences.hintWallet.first(),
+        boosters = appPreferences.doublePointsBoosterWallet.first(),
+        streakShields = appPreferences.streakShieldWallet.first()
+    )
 
     fun finishSpin() {
         _uiState.update { it.copy(isSpinning = false) }

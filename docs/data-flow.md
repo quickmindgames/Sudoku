@@ -49,7 +49,7 @@ sequenceDiagram
 | Integration | Purpose | Direction | Where used |
 |---|---|---|---|
 | Firebase Remote Config | Clue-count configuration | App fetches configuration | `RemoteConfigManager`, app startup, generator |
-| Firebase Analytics | Game, screen, settings, and notification events | App sends events | `AnalyticsUtils` |
+| Firebase Analytics | Game, screen, settings, reward wheel prize and post-credit wallet balance, and notification events | App sends events | `AnalyticsUtils` |
 | Firebase Crashlytics | Crash reporting | App reports crashes | `SudokuApp` initialization |
 | WorkManager | Schedule daily streak reminder work | App enqueues work; worker reads local state and posts platform notification | `StreakReminderScheduler`, `StreakReminderWorker` |
 | Android notification service | Display streak reminder | App posts notification | `StreakReminderWorker` |
