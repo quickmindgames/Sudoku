@@ -475,7 +475,7 @@ fun HomeScreen(
                                 )
                             }
                         }
-                        Spacer(Modifier.width(16.dp))
+                        Spacer(Modifier.width(12.dp))
                         Column(horizontalAlignment = Alignment.Start) {
                             Text(
                                 text = "Resume Game",

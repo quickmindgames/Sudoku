@@ -103,14 +103,14 @@ class RewardsViewModel(context: Context) : ViewModel() {
         }
     }
 
-    suspend fun beginSpin(): RewardSpin? {
+    suspend fun beginSpin(coolDownTotalMillis: Long): RewardSpin? {
         if (_uiState.value.isSpinning) return null
         val lastSpin = _uiState.value.lastSpinMillis
         val now = System.currentTimeMillis()
         if (
             lastSpin == Long.MIN_VALUE ||
             lastSpin != null &&
-            now < lastSpin + AppPreferences.WHEEL_SPIN_COOLDOWN_MILLIS
+            now < lastSpin + coolDownTotalMillis
         ) return null
 
         val prizeIndex = weightedPrizeIndex(PrizeWheelPrizes, Random)

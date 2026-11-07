@@ -132,7 +132,7 @@ fun CustomActionDialog(
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.surfaceVariant,
                                         contentColor = MaterialTheme.colorScheme.onSurface
-                                    )
+                                    ), border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
                                 ) {
                                     Text(
                                         text = action.text,

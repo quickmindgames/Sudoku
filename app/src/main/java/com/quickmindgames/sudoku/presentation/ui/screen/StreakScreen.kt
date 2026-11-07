@@ -123,7 +123,7 @@ fun StreakScreen(
                             painterResource(id = R.drawable.ic_flame),
                             contentDescription = "Flame icon", Modifier.size(56.dp)
                         )
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(12.dp))
                         Column {
                             Text(
                                 text = "My Current Streak",

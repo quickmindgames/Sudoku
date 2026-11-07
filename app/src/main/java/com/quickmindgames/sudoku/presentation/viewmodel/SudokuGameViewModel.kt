@@ -23,6 +23,7 @@ import com.quickmindgames.sudoku.data.util.GameCompletionRecorder
 import com.quickmindgames.sudoku.domain.generator.SudokuGenerator
 import com.quickmindgames.sudoku.domain.model.Difficulty
 import com.quickmindgames.sudoku.utils.AnalyticsUtils
+import com.quickmindgames.sudoku.utils.DebugOptions
 import com.quickmindgames.sudoku.utils.isWin
 import com.quickmindgames.sudoku.utils.recomputeWrongCells
 import kotlinx.coroutines.Job
@@ -594,7 +595,7 @@ class SudokuGameViewModel(
     }
 
     private fun recordCompletion(isWon: Boolean, useHintScore: Boolean = false) {
-        if (BuildConfig.DEBUG) score.intValue *= 20
+        if (BuildConfig.DEBUG) score.intValue *= DebugOptions.SCORE_MULTIPLIER
         val elapsed = _timerState.value.elapsedSeconds
         if (mode == "streak") {
             GameCompletionRecorder.recordStreakGameCompletion(

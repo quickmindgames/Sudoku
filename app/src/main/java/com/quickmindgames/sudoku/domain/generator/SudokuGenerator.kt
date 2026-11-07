@@ -3,6 +3,7 @@ package com.quickmindgames.sudoku.domain.generator
 import android.util.Log
 import com.quickmindgames.sudoku.BuildConfig
 import com.quickmindgames.sudoku.domain.model.Difficulty
+import com.quickmindgames.sudoku.utils.DebugOptions
 import com.quickmindgames.sudoku.utils.RemoteConfigManager
 import kotlin.random.Random
 
@@ -102,7 +103,7 @@ class SudokuGenerator {
         val puzzle = solution.map { it.clone() }.toTypedArray()
 
         // Determine number of clues based on difficulty
-        val clues = if (BuildConfig.DEBUG) DEBUG_VALUE else when (difficulty) {
+        val clues = if (BuildConfig.DEBUG) DebugOptions.DEBUG_CLUES else when (difficulty) {
             Difficulty.Breeze -> {
                 val minBreezeClues = RemoteConfigManager.getBreezeMinClues()
                 val maxBreezeClues = RemoteConfigManager.getBreezeMaxClues()
@@ -155,6 +156,5 @@ class SudokuGenerator {
          * Singleton instance
          */
         val instance = SudokuGenerator()
-        const val DEBUG_VALUE = 75
     }
 }

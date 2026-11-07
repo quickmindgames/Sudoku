@@ -49,6 +49,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.quickmindgames.sudoku.BuildConfig
 import com.quickmindgames.sudoku.R
 import com.quickmindgames.sudoku.component.CustomActionDialog
 import com.quickmindgames.sudoku.component.DialogAction
@@ -62,6 +63,7 @@ import com.quickmindgames.sudoku.presentation.viewmodel.PrizeCreditResult
 import com.quickmindgames.sudoku.presentation.viewmodel.RewardsViewModel
 import com.quickmindgames.sudoku.utils.AnalyticsConstants
 import com.quickmindgames.sudoku.utils.AnalyticsUtils
+import com.quickmindgames.sudoku.utils.DebugOptions
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -100,9 +102,10 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
     val lastSpinMillis = rewardsState.lastSpinMillis
     val isSpinning = rewardsState.isSpinning
     val showWelcomeRewardsSummary = rewardsState.showWelcomeRewardsSummary
-    val cooldownRemainingMillis = lastSpinMillis?.let {
-        (it + AppPreferences.WHEEL_SPIN_COOLDOWN_MILLIS - currentTimeMillis).coerceAtLeast(0L)
-    }
+    val coolDownTotalMillis =
+        if (BuildConfig.DEBUG) DebugOptions.WHEEL_SPIN_COOLDOWN_MILLIS else AppPreferences.WHEEL_SPIN_COOLDOWN_MILLIS
+    val cooldownRemainingMillis =
+        lastSpinMillis?.let { (it + coolDownTotalMillis - currentTimeMillis).coerceAtLeast(0L) }
     var showDialog by remember { mutableStateOf(true) }
     val canSpin = lastSpinMillis != Long.MIN_VALUE &&
             (cooldownRemainingMillis == null || cooldownRemainingMillis == 0L)
@@ -121,8 +124,7 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
         while (lastSpinMillis != Long.MIN_VALUE) {
             currentTimeMillis = System.currentTimeMillis()
             val previousSpin = lastSpinMillis ?: break
-            val remainingMillis =
-                previousSpin + AppPreferences.WHEEL_SPIN_COOLDOWN_MILLIS - currentTimeMillis
+            val remainingMillis = previousSpin + coolDownTotalMillis - currentTimeMillis
             if (remainingMillis <= 0L) break
             delay(remainingMillis.coerceAtMost(1_000L))
             currentTimeMillis = System.currentTimeMillis()
@@ -462,7 +464,7 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                         onSpin = {
                             if (!canSpin || isSpinning) return@PrizeWheel
                             coroutineScope.launch {
-                                val spin = rewardsViewModel.beginSpin() ?: return@launch
+                                val spin = rewardsViewModel.beginSpin(coolDownTotalMillis) ?: return@launch
                                 try {
                                     val segmentAngle = 360f / PrizeWheelPrizes.size
                                     val targetRotation =
