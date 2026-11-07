@@ -57,6 +57,41 @@ object AnalyticsUtils {
     }
 
     /**
+     * Logs a completed reward wheel spin with the credited prize details.
+     *
+     * @param context The context from which the event is logged.
+     * @param prizeType The stable prize category (e.g., "points" or "hints").
+     * @param amount The amount of the prize credited.
+     * @param totalPointsBalance The total points balance after the prize was credited.
+     * @param hintWalletBalance The hint wallet balance after the prize was credited.
+     * @param boosterWalletBalance The booster wallet balance after the prize was credited.
+     * @param streakShieldWalletBalance The streak shield wallet balance after the prize was credited.
+     */
+    fun logRewardSpinCompleted(
+        context: Context,
+        prizeType: String,
+        amount: Int,
+        totalPointsBalance: Int,
+        hintWalletBalance: Int,
+        boosterWalletBalance: Int,
+        streakShieldWalletBalance: Int
+    ) {
+        val params = Bundle().apply {
+            putString(AnalyticsConstants.PRIZE_TYPE, prizeType)
+            putLong(AnalyticsConstants.PRIZE_AMOUNT, amount.toLong())
+            putLong(AnalyticsConstants.TOTAL_POINTS_BALANCE, totalPointsBalance.toLong())
+            putLong(AnalyticsConstants.HINT_WALLET_BALANCE, hintWalletBalance.toLong())
+            putLong(AnalyticsConstants.BOOSTER_WALLET_BALANCE, boosterWalletBalance.toLong())
+            putLong(
+                AnalyticsConstants.STREAK_SHIELD_WALLET_BALANCE,
+                streakShieldWalletBalance.toLong()
+            )
+        }
+        FirebaseAnalytics.getInstance(context)
+            .logEvent(AnalyticsConstants.REWARD_SPIN_COMPLETED, params)
+    }
+
+    /**
      * Logs a "streak_game" event to Firebase Analytics.
      *
      * @param context The context from which the event is logged.
