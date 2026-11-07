@@ -126,7 +126,7 @@ fun StreakScreen(
                         Spacer(Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "My Current Streak",
+                                text = "Current Streak",
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold
@@ -135,8 +135,7 @@ fun StreakScreen(
                             )
                             Text(
                                 text = statusText,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontSize = 13.sp,
+                                style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Medium
                                 ),
                                 color = statusColor,

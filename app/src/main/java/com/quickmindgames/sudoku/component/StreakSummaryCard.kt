@@ -101,15 +101,12 @@ fun StreakSummaryCard(
                 Text(
                     text = statusText,
                     style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     ),
                     color = statusColor,
                     modifier = Modifier.padding(top = 6.dp)
                 )
             }
-
-            Spacer(Modifier.width(12.dp))
 
             // Share icon button — only shown when there is an active streak
             if (streakCount > 0) {
