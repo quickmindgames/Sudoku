@@ -24,14 +24,14 @@ fun Modifier.shimmerLogo(): Modifier {
         targetValue = 1000f,
         animationSpec = infiniteRepeatable(
             animation = keyframes {
-                durationMillis = 5000 // Total duration of one full cycle (movement + pause)
+                durationMillis = 4000 // Total duration of one full cycle (movement + pause)
 
                 // 1. Move across the logo over 1500ms
                 0f at 0 using LinearEasing
                 1000f at 2000 using LinearEasing
 
                 // 2. Hold/pause the animation at the end position for the remaining 2500ms
-                1000f at 5000
+                1000f at 4000
             },
             repeatMode = RepeatMode.Restart
         ),

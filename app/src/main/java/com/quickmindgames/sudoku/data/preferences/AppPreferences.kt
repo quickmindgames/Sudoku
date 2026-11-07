@@ -24,7 +24,7 @@ class AppPreferences internal constructor(
     companion object {
         // 4HR = 4 * 60 * 60 * 1000L
         // 20s = 20 * 1000L
-        const val WHEEL_SPIN_COOLDOWN_MILLIS = 10 * 1000L
+        const val WHEEL_SPIN_COOLDOWN_MILLIS = 4 * 60 * 60 * 1000L
         const val HINT_WALLET_WELCOME_BONUS = 5
         const val DOUBLE_POINTS_BOOSTER_WELCOME_BONUS = 1
         const val STREAK_SHIELD_WALLET_RELEASE_BONUS = 1

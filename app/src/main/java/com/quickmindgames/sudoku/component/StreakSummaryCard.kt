@@ -82,7 +82,7 @@ fun StreakSummaryCard(
                 contentDescription = "Flame icon", Modifier.size(56.dp)
             )
 
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(12.dp))
 
             // Text info
             Column(modifier = Modifier.weight(1f)) {
@@ -109,7 +109,7 @@ fun StreakSummaryCard(
                 )
             }
 
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(12.dp))
 
             // Share icon button — only shown when there is an active streak
             if (streakCount > 0) {
@@ -120,14 +120,14 @@ fun StreakSummaryCard(
                     modifier = Modifier
                         .size(40.dp)
                         .background(
-                            MaterialTheme.colorScheme.secondaryContainer,
+                            MaterialTheme.colorScheme.primaryContainer,
                             RoundedCornerShape(16.dp)
                         )
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Share,
                         contentDescription = "Share streak",
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(20.dp)
                     )
                 }

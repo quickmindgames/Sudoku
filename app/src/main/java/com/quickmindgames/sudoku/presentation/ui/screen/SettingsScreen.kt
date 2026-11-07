@@ -150,7 +150,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(56.dp)
+                            .size(48.dp)
                             .background(
                                 color = MaterialTheme.colorScheme.primaryContainer,
                                 shape = RoundedCornerShape(12.dp)
@@ -160,14 +160,14 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                         Icon(
                             imageVector = Icons.Rounded.BarChart,
                             contentDescription = null,
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(26.dp)
                         )
                     }
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Statistics",
-                            fontSize = 20.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -178,10 +178,10 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                                 fontSize = 13.sp
                             ),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 6.dp)
+                            modifier = Modifier.padding(top = 4.dp)
                         )
                     }
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(12.dp))
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = null,
@@ -244,7 +244,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                         )
                     }
                 }
-                Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(12.dp))
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -313,7 +313,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                         modifier = Modifier.size(26.dp)
                     )
                 }
-                Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(12.dp))
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -375,7 +375,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                         modifier = Modifier.size(26.dp)
                     )
                 }
-                Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(12.dp))
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -437,7 +437,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                         modifier = Modifier.size(26.dp)
                     )
                 }
-                Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(12.dp))
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -514,7 +514,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                         modifier = Modifier.size(26.dp)
                     )
                 }
-                Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(12.dp))
                 Column(
                     modifier = Modifier
                         .weight(1f)
