@@ -63,12 +63,12 @@ data class PrizeWheelPrize(
 
 val PrizeWheelPrizes = listOf(
     PrizeWheelPrize(label = "+10", type = PrizeType.POINTS, amount = 10, weight = 4),
-    PrizeWheelPrize(label = "+20", type = PrizeType.POINTS, amount = 20, 3),
+    PrizeWheelPrize(label = "🔥", type = PrizeType.STREAK_SHIELD, amount = 1),
     PrizeWheelPrize(label = "+50", type = PrizeType.POINTS, amount = 50, weight = 2),
+    PrizeWheelPrize(label = "2X", type = PrizeType.BOOSTER, amount = 1),
     PrizeWheelPrize(label = "+100", type = PrizeType.POINTS, amount = 100),
     PrizeWheelPrize(label = "💡", type = PrizeType.HINTS, amount = 1),
-    PrizeWheelPrize(label = "2X", type = PrizeType.BOOSTER, amount = 1),
-    PrizeWheelPrize(label = "🔥", type = PrizeType.STREAK_SHIELD, amount = 1)
+    PrizeWheelPrize(label = "+20", type = PrizeType.POINTS, amount = 20, 3)
 )
 
 fun weightedPrizeIndex(
@@ -108,9 +108,9 @@ fun PrizeWheel(
         }.mutate()
     }
     val xDrawable = remember(resources) {
-        requireNotNull(ResourcesCompat.getDrawable(resources, R.drawable.ic_2x, null)) {
+        requireNotNull(ResourcesCompat.getDrawable(resources, R.drawable.ic_booster, null)) {
             "2x drawable not found"
-        }.mutate().apply { setTint(android.graphics.Color.WHITE) }
+        }.mutate()
     }
 
     val segmentColors = listOf(
@@ -148,7 +148,7 @@ fun PrizeWheel(
                 color = android.graphics.Color.WHITE
                 textAlign = Paint.Align.CENTER
                 // Adjust these relative sizes to scale the labels with the wheel.
-                textSize = radius * 0.16f
+                textSize = radius * 0.14f
                 typeface = boldTypeface
                 setShadowLayer(radius * 0.025f, 0f, radius * 0.018f, 0x99000000.toInt())
             }
@@ -192,7 +192,7 @@ fun PrizeWheel(
 
                     when (prize.type) {
                         PrizeType.HINTS -> {
-                            val iconSize = radius * 0.22f
+                            val iconSize = radius * 0.18f
                             hintDrawable.setBounds(
                                 (labelX - iconSize / 2f).toInt(),
                                 (labelY - iconSize / 2f).toInt(),
@@ -204,7 +204,7 @@ fun PrizeWheel(
                         }
 
                         PrizeType.STREAK_SHIELD -> {
-                            val iconSize = radius * 0.22f
+                            val iconSize = radius * 0.18f
                             streakShieldDrawable.setBounds(
                                 (labelX - iconSize / 2.5f).toInt(),
                                 (labelY - iconSize / 2f).toInt(),
@@ -216,7 +216,7 @@ fun PrizeWheel(
                         }
 
                         PrizeType.BOOSTER -> {
-                            val iconSize = radius * 0.22f
+                            val iconSize = radius * 0.23f
                             xDrawable.setBounds(
                                 (labelX - iconSize / 3f).toInt(),
                                 (labelY - iconSize / 3f).toInt(),
