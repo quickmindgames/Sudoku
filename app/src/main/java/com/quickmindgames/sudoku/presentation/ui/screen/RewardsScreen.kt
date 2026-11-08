@@ -373,7 +373,7 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Image(
-                                        painterResource(id = R.drawable.ic_2x),
+                                        painterResource(id = R.drawable.ic_booster),
                                         contentDescription = "2x icon",
                                         Modifier.size(24.dp)
                                     )
@@ -589,7 +589,7 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                             )
                             WalletRewardSummaryRow(
-                                emoji = painterResource(R.drawable.ic_2x),
+                                emoji = painterResource(R.drawable.ic_booster),
                                 title = stringResource(R.string.booster_wallet_info_title),
                                 amount = AppPreferences.DOUBLE_POINTS_BOOSTER_WELCOME_BONUS,
                                 detail = stringResource(
@@ -637,7 +637,7 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                 val infoIcon = when (selectedWalletInfo) {
                     WalletInfo.POINTS, null -> painterResource(R.drawable.ic_score)
                     WalletInfo.HINTS -> painterResource(R.drawable.ic_hint)
-                    WalletInfo.BOOSTERS -> painterResource(R.drawable.ic_2x)
+                    WalletInfo.BOOSTERS -> painterResource(R.drawable.ic_booster)
                     WalletInfo.SHIELDS -> painterResource(R.drawable.ic_shield)
                 }
                 val content = when (selectedWalletInfo) {

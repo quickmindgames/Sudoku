@@ -9,6 +9,7 @@ val LightPrimary = Color(0xFF8284F3) // Light Indigo
 val PrimaryVariant = Color(0xFF4F46E5)
 val Secondary = Color(0xFF8B5CF6) // Purple
 val SecondaryVariant = Color(0xFF7C3AED)
+val OrangeColor = Color(0xFFFFA500)
 
 // Background & Surface
 val Background = Color(0xFFF8FAFC)

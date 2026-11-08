@@ -656,7 +656,7 @@ fun SudokuScreen(
                             contentDescription = "Hint",
                             Modifier.size(24.dp),
                             colorFilter = tint(
-                                if (canUseHint) Color(0xFFF97316) else colors.onSurfaceVariant.copy(
+                                if (canUseHint) Color(0xFFFFA500) else colors.onSurfaceVariant.copy(
                                     alpha = 0.5f
                                 )
                             )
