@@ -1346,7 +1346,7 @@ package com.quickmindgames.sudoku.presentation.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Primary Colors - Modern Blue/Purple Gradient
-val Primary = Color(0xFF6366F1) // Indigo
+val Primary = Color(0xFF4F51C0) // Indigo
 val PrimaryVariant = Color(0xFF4F46E5)
 val Secondary = Color(0xFF8B5CF6) // Purple
 val SecondaryVariant = Color(0xFF7C3AED)
@@ -3208,7 +3208,7 @@ fun ordinalSuffix(n: Int): String {
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#6366F1</color>
+    <color name="ic_launcher_background">#4F51C0</color>
 </resources>
 ```
 

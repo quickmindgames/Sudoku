@@ -109,10 +109,13 @@ fun CustomActionDialog(
                                     onClick = action.onClick,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(52.dp),
-                                    shape = RoundedCornerShape(16.dp),
+                                        .height(52.dp)
+                                        .background(
+                                            brush = primaryGradientBrush(),
+                                            shape = RoundedCornerShape(16.dp)
+                                        ),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = primaryButtonColor
+                                        containerColor = Color.Transparent
                                     )
                                 ) {
                                     Text(
@@ -132,7 +135,11 @@ fun CustomActionDialog(
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.surfaceVariant,
                                         contentColor = MaterialTheme.colorScheme.onSurface
-                                    ), border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                                    ),
+                                    border = BorderStroke(
+                                        0.5.dp,
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                    )
                                 ) {
                                     Text(
                                         text = action.text,
