@@ -4,8 +4,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 // Primary Colors - Modern Blue/Purple Gradient
-val Primary = Color(0xFF6366F1) // Indigo
-val LightPrimary = Color(0xFF8284F3) // Light Indigo
+val Primary = Color(0xFF4F51C0) // Indigo
+val LightPrimary = Color(0xFF6366F1) // Light Indigo
 val PrimaryVariant = Color(0xFF4F46E5)
 val Secondary = Color(0xFF8B5CF6) // Purple
 val SecondaryVariant = Color(0xFF7C3AED)

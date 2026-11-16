@@ -1,5 +1,3 @@
-// This file has been moved to data/state/GameState.kt
-
 package com.quickmindgames.sudoku.data.state
 
 import com.quickmindgames.sudoku.domain.model.Difficulty

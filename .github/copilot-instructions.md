@@ -36,12 +36,15 @@ Consult the relevant document before making non-trivial changes:
 ## Data and networking rules
 
 - Reuse existing domain models, repository interfaces/implementations, DataStore managers, Room DAOs, and Firebase helpers.
+- Repository contracts live in `domain/repository` with implementations in `data/repository` (`GameRepository`/`GameRepositoryImpl`, `ThemeRepository`/`ThemeRepositoryImpl`). `StatisticsRepository` is a concrete class in `data/repository` with no domain interface; do not add interfaces for it unless explicitly requested.
 - There is no application REST/GraphQL API. Do not add network APIs, accounts, or cloud sync unless explicitly requested.
-- Keep regular-game and streak state/statistics separate. Preserve serialized `GameState` compatibility and idempotent wallet credit/consumption behavior.
+- Keep regular-game and streak state/statistics separate. Preserve idempotent wallet credit/consumption behavior.
+- `GameState` (`data/state/GameState.kt`) is persisted by `GameStateManager` to Preferences DataStore via `GameState.serialize()`/`GameState.deserialize()`. Keep that format backward compatible so previously saved games still load; give new fields defaults.
 - Route analytics through `AnalyticsUtils` and `AnalyticsConstants`; do not log sensitive data.
 
 ## Android safety rules
 
+- Current manifest permissions are `POST_NOTIFICATIONS` (streak reminders; runtime permission on Android 13+), `com.google.android.gms.permission.AD_ID`, and `VIBRATE`.
 - Add manifest permissions only when required by the feature and handle runtime permission behavior where Android requires it.
 - Never add secrets, credentials, Firebase configuration, signing values, or local environment values to documentation or tracked source.
 - Consider manifest/exported-component, deep-link, file-access, and release shrinking behavior when the relevant surface changes; follow the existing project configuration.
@@ -49,8 +52,9 @@ Consult the relevant document before making non-trivial changes:
 ## Testing rules
 
 - Add or update focused tests for changed game rules, state serialization, repositories, ViewModels, persistence, and critical UI behavior.
-- Follow the existing JUnit and AndroidX test source sets and naming patterns.
-- Run the relevant project test task before proposing completion.
+- Use the existing source sets: JVM unit tests in `app/src/test` (JUnit) and instrumentation tests in `app/src/androidTest` (AndroidX Test).
+- Place new tests under the app package `com.quickmindgames.sudoku`, mirroring the package of the code under test, and name them `<ClassUnderTest>Test`. The existing `ExampleUnitTest`/`ExampleInstrumentedTest` stubs under `com.gamestudio.sudo` are template leftovers; do not follow their package.
+- Run unit tests with `.\gradlew.bat test` (Windows) or `./gradlew test` before proposing completion; run `connectedAndroidTest` on a device/emulator when instrumentation tests change. See [Onboarding](../docs/onboarding.md) for other build commands.
 
 ## Documentation maintenance
 
