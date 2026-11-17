@@ -8,3 +8,11 @@
 .cxx
 local.properties
 /.idea
+# Signing keys and release artifacts (never commit)
+*.jks
+*.keystore
+/release key/
+/app/release/
+*.aab
+*.apk
+./CLAUDE.local.md

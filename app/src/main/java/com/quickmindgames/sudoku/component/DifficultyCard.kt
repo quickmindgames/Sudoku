@@ -66,7 +66,7 @@ fun DifficultyCard(
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .alpha(if (isLocked) 0.5f else 1f)
+            .alpha(if (isLocked) 0.6f else 1f)
             .clickable(
                 enabled = true,
                 onClick = {

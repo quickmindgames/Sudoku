@@ -378,45 +378,36 @@ fun HomeScreen(
             Text(
                 text = stringResource(R.string.lbl_puzzle).uppercase(),
                 style = MaterialTheme.typography.titleSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp
+                    fontWeight = FontWeight.Bold
                 ),
                 color = MaterialTheme.colorScheme.primary
             )
             //endregion
 
-            Spacer(modifier = Modifier.height(8.dp))
-
             //region Total Points
-            Surface(
-                shape = RoundedCornerShape(36.dp),
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(
-                    0.dp,
-                    MaterialTheme.colorScheme.tertiary
-                )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_score),
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = Color.Unspecified
+            if (homeState.totalScore > 0) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Surface(
+                    shape = RoundedCornerShape(36.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(
+                        0.dp,
+                        MaterialTheme.colorScheme.tertiary
                     )
-                    Spacer(Modifier.width(4.dp))
-                    if (homeState.totalScore == 0) {
-                        Text(
-                            text = "No points yet — play a game!",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_score),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = Color.Unspecified
                         )
-                    } else {
+                        Spacer(Modifier.width(4.dp))
                         Text(
                             text = "Total Points: ",
                             style = MaterialTheme.typography.titleSmall,
@@ -432,6 +423,7 @@ fun HomeScreen(
                     }
                 }
             }
+
             //endregion
 
             Spacer(modifier = Modifier.height(16.dp))
