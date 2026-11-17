@@ -366,7 +366,7 @@ fun HomeScreen(
         ) {
             //region App Logo
             Image(
-                painter = painterResource(id = R.drawable.ic_home_launcher),
+                painter = painterResource(id = R.drawable.sudoku_icon),
                 contentDescription = null,
                 modifier = Modifier
                     .size(196.dp)
