@@ -10414,7 +10414,6 @@ lottie = "6.7.1"
 firebaseBom = "34.19.0"
 firebase = "3.0.8"
 firebaseRemote = "23.1.0"
-sonarqube = "7.5.0.8588"
 googleservices = "4.5.0"
 
 [libraries]
@@ -10453,7 +10452,6 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 googleservices = { id = "com.google.gms.google-services", version.ref = "googleservices" }
 firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebase" }
-sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }
 ```
 
 ## File: app/src/main/java/com/quickmindgames/sudoku/presentation/ui/screen/HomeScreen.kt
@@ -11996,7 +11994,6 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.googleservices)
     alias(libs.plugins.firebase.crashlytics)
-    alias(libs.plugins.sonarqube)
 }
 
 android {
@@ -12016,9 +12013,9 @@ android {
     signingConfigs {
         create("quickmind") {
             keyAlias = "quickmindgames"
-            keyPassword = "QMG#126gma"
+            keyPassword = "<redacted>"
             storeFile = file("../release key/quickmind.jks")
-            storePassword = "QMG#126gma"
+            storePassword = "<redacted>"
         }
     }
 
@@ -12041,20 +12038,7 @@ android {
         compose = true
         buildConfig = true
     }
-    sonarqube {
-        properties {
-            property("sonar.projectKey", "QMG_Sudoku")
-            property("sonar.projectName", "QMG_Sudoku")
-            property("sonar.host.url", "http://localhost:9000")
-            property("sonar.token", "sqp_ddd475b0a749cedebd2516f23400cc8d3927fcfb")
-            property("sonar.language", "kotlin")
-            property("sonar.sourceEncoding", "UTF-8")
-            property("sonar.android.resourceFiles.skip", "true")
-        }
-    }
-    tasks.matching { it.name == "sonarResolver" }.configureEach {
-        dependsOn(tasks.matching { it.name.contains("generate") && it.name.contains("ResValues") })
-    }
+  
 }
 
 kotlin {

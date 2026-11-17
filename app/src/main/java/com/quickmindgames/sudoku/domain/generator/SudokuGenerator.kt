@@ -9,14 +9,13 @@ import kotlin.random.Random
 
 /**
  * Sudoku Generator
- * Generates random valid Sudoku puzzles based on difficulty
+ * Generates random Sudoku puzzles that always have exactly one solution.
  * Created by sagar.tahelyani on 22/02/26
  */
 class SudokuGenerator {
 
     private val size = 9
     private val boxSize = 3
-    private val TAG = "SudokuGenerator"
 
     /**
      * Generate a Sudoku puzzle with solution
@@ -24,39 +23,89 @@ class SudokuGenerator {
      * @return Pair of (puzzle grid, solution grid)
      */
     fun generate(difficulty: Difficulty): Pair<Array<IntArray>, Array<IntArray>> {
-        // Generate a complete valid Sudoku grid
-        val solution = generateCompleteGrid()
+        val targetClues = cluesFor(difficulty)
+        val result = generate(targetClues)
+        val actualClues = result.first.sumOf { row -> row.count { it != 0 } }
+        Log.d(
+            TAG,
+            "Created ${difficulty.label} puzzle: target clues $targetClues, actual clues $actualClues"
+        )
+        return result
+    }
 
-        // Create puzzle by removing numbers based on difficulty
-        val puzzle = createPuzzle(solution, difficulty)
+    /**
+     * Generate a puzzle with a unique solution and as close to [targetClues] clues as possible.
+     *
+     * Cells are removed one at a time and a removal is kept only if the puzzle still has
+     * exactly one solution. Very low targets (around 22) are not always reachable from a
+     * given grid, so a few grids are tried and the one with the fewest clues is returned.
+     */
+    internal fun generate(
+        targetClues: Int,
+        random: Random = Random.Default
+    ): Pair<Array<IntArray>, Array<IntArray>> {
+        val target = targetClues.coerceIn(MIN_CLUES, size * size)
+        var best: Pair<Array<IntArray>, Array<IntArray>>? = null
+        var bestClues = Int.MAX_VALUE
 
-        return Pair(puzzle, solution)
+        repeat(MAX_ATTEMPTS) {
+            val solution = generateCompleteGrid(random)
+            val puzzle = createUniquePuzzle(solution, target, random)
+            val clues = puzzle.sumOf { row -> row.count { it != 0 } }
+            if (clues < bestClues) {
+                best = puzzle to solution
+                bestClues = clues
+            }
+            if (clues <= target) return puzzle to solution
+        }
+        return best!!
+    }
+
+    /**
+     * Number of clues for the difficulty, from Remote Config (or the debug override).
+     */
+    private fun cluesFor(difficulty: Difficulty): Int {
+        if (BuildConfig.DEBUG) return DebugOptions.DEBUG_CLUES
+        val range = when (difficulty) {
+            Difficulty.Breeze ->
+                RemoteConfigManager.getBreezeMinClues()..RemoteConfigManager.getBreezeMaxClues()
+
+            Difficulty.Pulse ->
+                RemoteConfigManager.getPulseMinClues()..RemoteConfigManager.getPulseMaxClues()
+
+            Difficulty.Rage ->
+                RemoteConfigManager.getRageMinClues()..RemoteConfigManager.getRageMaxClues()
+
+            Difficulty.Elite ->
+                RemoteConfigManager.getEliteMinClues()..RemoteConfigManager.getEliteMaxClues()
+        }
+        return range.random(Random.Default)
     }
 
     /**
      * Generate a complete valid Sudoku grid
      */
-    private fun generateCompleteGrid(): Array<IntArray> {
+    private fun generateCompleteGrid(random: Random): Array<IntArray> {
         val grid = Array(size) { IntArray(size) { 0 } }
-        fillGrid(grid)
+        fillGrid(grid, random)
         return grid
     }
 
     /**
      * Fill the grid using backtracking
      */
-    private fun fillGrid(grid: Array<IntArray>): Boolean {
+    private fun fillGrid(grid: Array<IntArray>, random: Random): Boolean {
         for (row in 0 until size) {
             for (col in 0 until size) {
                 if (grid[row][col] == 0) {
                     // Create a shuffled list of numbers 1-9
-                    val numbers = (1..9).shuffled(Random.Default)
+                    val numbers = (1..9).shuffled(random)
 
                     for (num in numbers) {
                         if (isValid(grid, row, col, num)) {
                             grid[row][col] = num
 
-                            if (fillGrid(grid)) {
+                            if (fillGrid(grid, random)) {
                                 return true
                             }
 
@@ -97,64 +146,120 @@ class SudokuGenerator {
     }
 
     /**
-     * Create a puzzle by removing numbers from the complete grid
+     * Remove cells one at a time (in random order), keeping a removal only if the puzzle
+     * still has exactly one solution. Stops once [targetClues] is reached or no further
+     * cell can be removed.
      */
-    private fun createPuzzle(solution: Array<IntArray>, difficulty: Difficulty): Array<IntArray> {
+    private fun createUniquePuzzle(
+        solution: Array<IntArray>,
+        targetClues: Int,
+        random: Random
+    ): Array<IntArray> {
         val puzzle = solution.map { it.clone() }.toTypedArray()
+        var clues = size * size
 
-        // Determine number of clues based on difficulty
-        val clues = if (BuildConfig.DEBUG) DebugOptions.DEBUG_CLUES else when (difficulty) {
-            Difficulty.Breeze -> {
-                val minBreezeClues = RemoteConfigManager.getBreezeMinClues()
-                val maxBreezeClues = RemoteConfigManager.getBreezeMaxClues()
-                (minBreezeClues..maxBreezeClues).random(Random.Default)
-            }
-
-            Difficulty.Pulse -> {
-                val minPulseClues = RemoteConfigManager.getPulseMinClues()
-                val maxPulseClues = RemoteConfigManager.getPulseMaxClues()
-                (minPulseClues..maxPulseClues).random(Random.Default)
-            }
-
-            Difficulty.Rage -> {
-                val minRageClues = RemoteConfigManager.getRageMinClues()
-                val maxRageClues = RemoteConfigManager.getRageMaxClues()
-                (minRageClues..maxRageClues).random(Random.Default)
-            }
-
-            Difficulty.Elite -> {
-                val minEliteClues = RemoteConfigManager.getEliteMinClues()
-                val maxEliteClues = RemoteConfigManager.getEliteMaxClues()
-                (minEliteClues..maxEliteClues).random(Random.Default)
+        val positions = (0 until size * size).shuffled(random)
+        for (index in positions) {
+            if (clues <= targetClues) break
+            val row = index / size
+            val col = index % size
+            val value = puzzle[row][col]
+            puzzle[row][col] = 0
+            if (countSolutions(puzzle, limit = 2) == 1) {
+                clues--
+            } else {
+                puzzle[row][col] = value
             }
         }
-        Log.d(TAG, "Creating puzzle with difficulty: ${difficulty.label}, clues: $clues")
-
-        // Calculate how many cells to remove
-        val cellsToRemove = 81 - clues
-
-        // Get all cell positions
-        val positions = mutableListOf<Pair<Int, Int>>()
-        for (r in 0 until size) {
-            for (c in 0 until size) {
-                positions.add(Pair(r, c))
-            }
-        }
-
-        // Shuffle and remove cells
-        positions.shuffle(Random.Default)
-        for (i in 0 until cellsToRemove) {
-            val (r, c) = positions[i]
-            puzzle[r][c] = 0
-        }
-
         return puzzle
     }
 
     companion object {
+        /** 17 is the proven minimum number of clues for a uniquely solvable Sudoku. */
+        private const val MIN_CLUES = 17
+        private const val MAX_ATTEMPTS = 5
+        private const val ALL_DIGITS = 0x3FE // bits 1..9
+
         /**
          * Singleton instance
          */
         val instance = SudokuGenerator()
+
+        /**
+         * Count the solutions of [grid] (0 = empty cell), stopping once [limit] is reached.
+         * Returns 0 if the givens already conflict. [grid] is not modified.
+         */
+        internal fun countSolutions(grid: Array<IntArray>, limit: Int = 2): Int {
+            val cells = IntArray(81)
+            val rows = IntArray(9)
+            val cols = IntArray(9)
+            val boxes = IntArray(9)
+            for (r in 0 until 9) for (c in 0 until 9) {
+                val value = grid[r][c]
+                if (value == 0) continue
+                val bit = 1 shl value
+                val box = (r / 3) * 3 + c / 3
+                if ((rows[r] or cols[c] or boxes[box]) and bit != 0) return 0
+                cells[r * 9 + c] = value
+                rows[r] = rows[r] or bit
+                cols[c] = cols[c] or bit
+                boxes[box] = boxes[box] or bit
+            }
+            return search(cells, rows, cols, boxes, limit)
+        }
+
+        private fun search(
+            cells: IntArray,
+            rows: IntArray,
+            cols: IntArray,
+            boxes: IntArray,
+            limit: Int
+        ): Int {
+            // Pick the empty cell with the fewest candidates.
+            var bestIndex = -1
+            var bestMask = 0
+            var bestCount = 10
+            for (i in 0 until 81) {
+                if (cells[i] != 0) continue
+                val r = i / 9
+                val c = i % 9
+                val box = (r / 3) * 3 + c / 3
+                val mask = ALL_DIGITS and (rows[r] or cols[c] or boxes[box]).inv()
+                val count = Integer.bitCount(mask)
+                if (count == 0) return 0
+                if (count < bestCount) {
+                    bestIndex = i
+                    bestMask = mask
+                    bestCount = count
+                    if (count == 1) break
+                }
+            }
+            if (bestIndex == -1) return 1 // grid full: one solution found
+
+            val r = bestIndex / 9
+            val c = bestIndex % 9
+            val box = (r / 3) * 3 + c / 3
+            var found = 0
+            var remaining = bestMask
+            while (remaining != 0) {
+                val bit = remaining and -remaining
+                remaining = remaining xor bit
+                cells[bestIndex] = Integer.numberOfTrailingZeros(bit)
+                rows[r] = rows[r] or bit
+                cols[c] = cols[c] or bit
+                boxes[box] = boxes[box] or bit
+
+                found += search(cells, rows, cols, boxes, limit - found)
+
+                cells[bestIndex] = 0
+                rows[r] = rows[r] xor bit
+                cols[c] = cols[c] xor bit
+                boxes[box] = boxes[box] xor bit
+                if (found >= limit) break
+            }
+            return found
+        }
+
+        private val TAG = "SudokuGenerator"
     }
 }

@@ -18,7 +18,6 @@ lottie = "6.7.1"
 firebaseBom = "34.19.0"
 firebase = "3.0.8"
 firebaseRemote = "23.1.0"
-sonarqube = "7.5.0.8588"
 googleservices = "4.5.0"
 coreSplashScreen = "1.2.0"
 
@@ -59,4 +58,3 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 googleservices = { id = "com.google.gms.google-services", version.ref = "googleservices" }
 firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebase" }
-sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }

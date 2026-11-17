@@ -1,10 +1,40 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.googleservices)
     alias(libs.plugins.firebase.crashlytics)
-    alias(libs.plugins.sonarqube)
+}
+
+// Release signing values are never committed. They are read from local.properties
+// (git-ignored, for local builds) or from environment variables (CI), using the same names:
+//   RELEASE_STORE_FILE      path to the keystore (relative to the project root, or absolute)
+//   RELEASE_STORE_PASSWORD
+//   RELEASE_KEY_ALIAS
+//   RELEASE_KEY_PASSWORD
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
+fun signingSecret(name: String): String? =
+    (localProperties.getProperty(name) ?: providers.environmentVariable(name).orNull)
+        ?.takeIf { it.isNotBlank() }
+
+val releaseStoreFile = signingSecret("RELEASE_STORE_FILE")?.let { rootProject.file(it) }
+val releaseStorePassword = signingSecret("RELEASE_STORE_PASSWORD")
+val releaseKeyAlias = signingSecret("RELEASE_KEY_ALIAS")
+val releaseKeyPassword = signingSecret("RELEASE_KEY_PASSWORD")
+val hasReleaseSigning = releaseStoreFile?.exists() == true &&
+    releaseStorePassword != null && releaseKeyAlias != null && releaseKeyPassword != null
+
+if (!hasReleaseSigning) {
+    logger.warn(
+        "Release signing is not configured (RELEASE_STORE_FILE / RELEASE_STORE_PASSWORD / " +
+            "RELEASE_KEY_ALIAS / RELEASE_KEY_PASSWORD). Release builds will be unsigned."
+    )
 }
 
 android {
@@ -22,11 +52,13 @@ android {
     }
 
     signingConfigs {
-        create("quickmind") {
-            keyAlias = "quickmindgames"
-            keyPassword = "QMG#126gma"
-            storeFile = file("../release key/quickmind.jks")
-            storePassword = "QMG#126gma"
+        if (hasReleaseSigning) {
+            create("quickmind") {
+                storeFile = releaseStoreFile
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
         }
     }
 
@@ -38,7 +70,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("quickmind")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("quickmind")
+            }
         }
     }
     compileOptions {
@@ -48,20 +82,6 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
-    }
-    sonarqube {
-        properties {
-            property("sonar.projectKey", "QMG_Sudoku")
-            property("sonar.projectName", "QMG_Sudoku")
-            property("sonar.host.url", "http://localhost:9000")
-            property("sonar.token", "sqp_ddd475b0a749cedebd2516f23400cc8d3927fcfb")
-            property("sonar.language", "kotlin")
-            property("sonar.sourceEncoding", "UTF-8")
-            property("sonar.android.resourceFiles.skip", "true")
-        }
-    }
-    tasks.matching { it.name == "sonarResolver" }.configureEach {
-        dependsOn(tasks.matching { it.name.contains("generate") && it.name.contains("ResValues") })
     }
 }
 

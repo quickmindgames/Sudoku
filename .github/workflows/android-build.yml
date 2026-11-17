@@ -40,8 +40,36 @@ jobs:
           echo "Extracted Version: $VERSION_NAME"
           echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_OUTPUT
 
+      # The keystore is stored as a base64 GitHub secret, never in the repository.
+      # Create it with:  base64 -w0 quickmind.jks
+      - name: Decode Release Keystore
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$RELEASE_KEYSTORE_BASE64" ]; then
+            echo "::error::Secret RELEASE_KEYSTORE_BASE64 is not set"
+            exit 1
+          fi
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+          echo "RELEASE_STORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
       - name: Build Signed Release App Bundle
-        run: ./gradlew bundleRelease
+        env:
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          for name in RELEASE_STORE_PASSWORD RELEASE_KEY_ALIAS RELEASE_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Secret $name is not set"
+              exit 1
+            fi
+          done
+          ./gradlew bundleRelease
+
+      - name: Remove Release Keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
 
       # Task 1: Create GitHub Release and Tag
       - name: Create GitHub Release
