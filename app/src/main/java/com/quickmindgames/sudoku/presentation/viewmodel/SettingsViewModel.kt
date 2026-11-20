@@ -27,9 +27,8 @@ data class SettingsScreenState(
     val soundAndVibration: Boolean = true
 )
 
-data class FreePlayChangeResult(
-    val blockedBySavedGame: Boolean = false,
-    val disabledHideUsedNumbers: Boolean = false
+data class ToggleChangeResult(
+    val blockedBySavedGame: Boolean = false
 )
 
 class SettingsViewModel(context: Context) : ViewModel() {
@@ -43,7 +42,6 @@ class SettingsViewModel(context: Context) : ViewModel() {
 
     init {
         viewModelScope.launch {
-            appPreferences.normalizeGameplayOptions()
             combine(
                 appPreferences.hideUsedNumbers,
                 appPreferences.freePlay
@@ -77,21 +75,20 @@ class SettingsViewModel(context: Context) : ViewModel() {
         }
     }
 
-    suspend fun setHideUsedNumbers(enabled: Boolean): Boolean {
-        val disabledFreePlay = appPreferences.setHideUsedNumbers(enabled)
+    suspend fun setHideUsedNumbers(enabled: Boolean): ToggleChangeResult {
+        // Hide Used Numbers is a gameplay option, so it can't be changed while a
+        // saved game is in progress — same rule as Free Play.
+        if (gameStateManager.getSavedGameState().first() != null) {
+            return ToggleChangeResult(blockedBySavedGame = true)
+        }
+
+        appPreferences.setHideUsedNumbers(enabled)
         AnalyticsUtils.logSettingsOptionChanged(
             appContext,
             AnalyticsConstants.HIDE_USED_NUMBERS,
             enabled
         )
-        if (disabledFreePlay) {
-            AnalyticsUtils.logSettingsOptionChanged(
-                appContext,
-                AnalyticsConstants.FREE_PLAY,
-                false
-            )
-        }
-        return disabledFreePlay
+        return ToggleChangeResult()
     }
 
     suspend fun setHighlightSameNumbers(enabled: Boolean) {
@@ -112,25 +109,18 @@ class SettingsViewModel(context: Context) : ViewModel() {
         )
     }
 
-    suspend fun setFreePlay(enabled: Boolean): FreePlayChangeResult {
+    suspend fun setFreePlay(enabled: Boolean): ToggleChangeResult {
         if (gameStateManager.getSavedGameState().first() != null) {
-            return FreePlayChangeResult(blockedBySavedGame = true)
+            return ToggleChangeResult(blockedBySavedGame = true)
         }
 
-        val disabledHideUsedNumbers = appPreferences.setFreePlay(enabled)
+        appPreferences.setFreePlay(enabled)
         AnalyticsUtils.logSettingsOptionChanged(
             appContext,
             AnalyticsConstants.FREE_PLAY,
             enabled
         )
-        if (disabledHideUsedNumbers) {
-            AnalyticsUtils.logSettingsOptionChanged(
-                appContext,
-                AnalyticsConstants.HIDE_USED_NUMBERS,
-                false
-            )
-        }
-        return FreePlayChangeResult(disabledHideUsedNumbers = disabledHideUsedNumbers)
+        return ToggleChangeResult()
     }
 
     suspend fun setSoundAndVibration(enabled: Boolean) {

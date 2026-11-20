@@ -161,7 +161,7 @@ fun SudokuScreen(
     val isLearningMode = mode == "learn"
     val remainingGameHints = (MAX_HINTS_PER_GAME - hintsUsed).coerceAtLeast(0)
     val availableHints = minOf(hintWallet, remainingGameHints)
-    val canUseHint = !isLearningMode && availableHints > 0
+    val canUseHint = !isLearningMode && !freePlayEnabled && availableHints > 0
     val pointsToAward = gameViewModel.pointsToAward(freePlayEnabled)
     val learningHint by gameViewModel.learningHint
     val colors = MaterialTheme.colorScheme
@@ -604,8 +604,8 @@ fun SudokuScreen(
                 }
                 //endregion
 
-                //region Hint Button
-                FilledTonalButton(
+                //region Hint Button (hidden in Free Play — no hints)
+                if (!freePlayEnabled) FilledTonalButton(
                     onClick = {
                         if (!isRunning || gameOver || gameWon || !canUseHint || isHintProcessing) {
                             return@FilledTonalButton

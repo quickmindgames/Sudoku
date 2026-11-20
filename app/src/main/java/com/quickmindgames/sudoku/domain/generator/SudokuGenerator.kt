@@ -66,20 +66,27 @@ class SudokuGenerator {
      */
     private fun cluesFor(difficulty: Difficulty): Int {
         if (BuildConfig.DEBUG) return DebugOptions.DEBUG_CLUES
-        val range = when (difficulty) {
-            Difficulty.Breeze ->
-                RemoteConfigManager.getBreezeMinClues()..RemoteConfigManager.getBreezeMaxClues()
+        return when (difficulty) {
+            Difficulty.Breeze -> pickClues(
+                RemoteConfigManager.getBreezeMinClues(),
+                RemoteConfigManager.getBreezeMaxClues()
+            )
 
-            Difficulty.Pulse ->
-                RemoteConfigManager.getPulseMinClues()..RemoteConfigManager.getPulseMaxClues()
+            Difficulty.Pulse -> pickClues(
+                RemoteConfigManager.getPulseMinClues(),
+                RemoteConfigManager.getPulseMaxClues()
+            )
 
-            Difficulty.Rage ->
-                RemoteConfigManager.getRageMinClues()..RemoteConfigManager.getRageMaxClues()
+            Difficulty.Rage -> pickClues(
+                RemoteConfigManager.getRageMinClues(),
+                RemoteConfigManager.getRageMaxClues()
+            )
 
-            Difficulty.Elite ->
-                RemoteConfigManager.getEliteMinClues()..RemoteConfigManager.getEliteMaxClues()
+            Difficulty.Elite -> pickClues(
+                RemoteConfigManager.getEliteMinClues(),
+                RemoteConfigManager.getEliteMaxClues()
+            )
         }
-        return range.random(Random.Default)
     }
 
     /**
@@ -184,6 +191,16 @@ class SudokuGenerator {
          * Singleton instance
          */
         val instance = SudokuGenerator()
+
+        /**
+         * Pick a clue count from a Remote Config range without ever throwing: a reversed
+         * range (min > max) is swapped, and both ends are clamped to [MIN_CLUES]..81.
+         */
+        internal fun pickClues(min: Int, max: Int, random: Random = Random.Default): Int {
+            val low = minOf(min, max).coerceIn(MIN_CLUES, 81)
+            val high = maxOf(min, max).coerceIn(MIN_CLUES, 81)
+            return (low..high).random(random)
+        }
 
         /**
          * Count the solutions of [grid] (0 = empty cell), stopping once [limit] is reached.

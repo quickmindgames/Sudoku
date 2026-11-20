@@ -24,13 +24,19 @@ for setup and [Domain model](domain-model.md) for state and entity details.
   twice.
 - A selected 2X Points Booster is part of the saved game; a completed boosted
   game consumes one booster and doubles points credited.
-- Free Play removes mistakes and points in regular games, is ignored in streak
-  mode, and is mutually exclusive with Hide Used Numbers. Free Play cannot be
-  changed while a saved game exists.
+- Free Play removes mistakes and points in regular games and is ignored in streak
+  mode. Free Play and Hide Used Numbers are independent settings (toggling one has
+  no effect on the other). Neither gameplay option can be changed while a saved
+  game exists — the Settings toggle is blocked with a "finish your game" message.
+  Free Play games are not recorded in `game_statistics`, so they never count
+  toward difficulty unlocks or win-rate, average-time and best-time statistics.
 - Hide Used Numbers hides a digit after all nine instances are placed.
 - Streak progress and streak game results are stored separately from regular
   game state and statistics. A Streak Shield can protect a missed day without
   increasing the streak count.
+- Home and Streak status compare against `CurrentDateProvider.today`, which
+  refreshes on screen resume and at local midnight. Never cache
+  `LocalDate.now()` in a ViewModel or `remember`.
 - The reminder is scheduled for 10 p.m. local time and skips a day already
   completed. Android 13+ requires notification permission to display it.
 - UI copy uses “Points”; score-oriented code, persistence, and analytics names

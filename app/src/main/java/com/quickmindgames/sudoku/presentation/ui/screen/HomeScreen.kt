@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -51,6 +52,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.quickmindgames.sudoku.R
 import com.quickmindgames.sudoku.component.CustomActionDialog
@@ -92,6 +94,10 @@ fun HomeScreen(
         factory = remember(context) { HomeViewModel.factory(context) }
     )
     val homeState by homeViewModel.uiState.collectAsState()
+    LifecycleResumeEffect(homeViewModel) {
+        homeViewModel.refreshDate()
+        onPauseOrDispose { }
+    }
     val coroutineScope = rememberCoroutineScope()
     var useDoublePointsBooster by remember { mutableStateOf(false) }
     //endregion
@@ -268,12 +274,12 @@ fun HomeScreen(
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
+                    .padding(horizontal = 20.dp)
             ) {
                 // Header
                 Text(
                     text = "Choose Difficulty",
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
@@ -282,7 +288,7 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(16.dp))
 
                 // Difficulty cards
                 Difficulty.entries.forEach { difficulty ->

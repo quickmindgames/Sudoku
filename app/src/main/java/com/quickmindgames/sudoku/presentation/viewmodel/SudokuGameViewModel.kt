@@ -497,6 +497,9 @@ class SudokuGameViewModel(
     }
 
     suspend fun useHint(isLearningMode: Boolean, freePlay: Boolean): HintResult {
+        // Free Play credits no points, so it must never debit a hint from the
+        // wallet. The button is hidden in Free Play; this is a defensive no-op.
+        if (freePlay) return HintResult.CELL_NOT_SELECTED
         if (isLearningMode || gameOver.value || gameWon.value || !_timerState.value.isRunning) {
             return HintResult.CELL_ALREADY_CORRECT
         }
@@ -625,10 +628,12 @@ class SudokuGameViewModel(
                     )
                 }
             }
-        } else {
-            val resultScore = if (isWon && !useHintScore &&
-                hasDoublePointsBooster.value && preferences.value.freePlay.not()
-            ) {
+        } else if (!preferences.value.freePlay) {
+            // Free Play games are never recorded, so they can't count toward
+            // difficulty unlocks or win-rate/time statistics. The live preference
+            // is reliable here: gameplay options are locked while a saved game
+            // exists, so Free Play can't change mid-game.
+            val resultScore = if (isWon && !useHintScore && hasDoublePointsBooster.value) {
                 (score.intValue.toLong() * 2L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
             } else score.intValue
             GameCompletionRecorder.recordGameCompletion(

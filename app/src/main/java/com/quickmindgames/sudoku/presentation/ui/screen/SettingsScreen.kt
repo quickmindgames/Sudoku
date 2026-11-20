@@ -46,6 +46,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -61,6 +62,8 @@ import kotlinx.coroutines.launch
  * Created by sagar.tahelyani on 04/03/26
  *
  */
+
+@Preview
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit) {
     //region State and preference collection
@@ -90,11 +93,11 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
             )
     ) {
         //region Top Bar
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Settings",
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
@@ -145,7 +148,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp),
+                        .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
@@ -167,7 +170,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Statistics",
-                            fontSize = 18.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -252,25 +255,28 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                 ) {
                     Text(
                         text = "Hide used numbers",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.SemiBold, fontSize = 15.sp,
+                            lineHeight = 20.sp
+                        ),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "Hide a number once all 9 of its cells are filled.",
                         style = MaterialTheme.typography.labelSmall.copy(lineHeight = 20.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
                 Switch(
                     checked = settingsState.hideUsedNumbers,
                     onCheckedChange = { enabled ->
                         coroutineScope.launch {
-                            if (settingsViewModel.setHideUsedNumbers(enabled)) {
+                            val result = settingsViewModel.setHideUsedNumbers(enabled)
+                            if (result.blockedBySavedGame) {
                                 Toast.makeText(
                                     context,
-                                    "Free Play is now off because Hide used numbers is enabled.",
+                                    "Finish your current game or start a new one to change gameplay options.",
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
@@ -321,15 +327,17 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                 ) {
                     Text(
                         text = "Highlight same numbers",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.SemiBold, fontSize = 15.sp,
+                            lineHeight = 20.sp
+                        ),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "When you select a number, matching numbers are highlighted across the board.",
                         style = MaterialTheme.typography.labelSmall.copy(lineHeight = 20.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
                 Switch(
@@ -383,15 +391,17 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                 ) {
                     Text(
                         text = "Highlight the region",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.SemiBold, fontSize = 15.sp,
+                            lineHeight = 20.sp
+                        ),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "Highlight the selected cell’s row, column, and 3×3 block.",
                         style = MaterialTheme.typography.labelSmall.copy(lineHeight = 20.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
                 Switch(
@@ -445,15 +455,17 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                 ) {
                     Text(
                         text = "Free Play",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.SemiBold, fontSize = 15.sp,
+                            lineHeight = 20.sp
+                        ),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "No Mistakes. No Points. Not for Streak Games.",
+                        text = "No Mistakes. No Points. Not saved to stats. Not for Streak Games.",
                         style = MaterialTheme.typography.labelSmall.copy(lineHeight = 20.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
                 Switch(
@@ -465,14 +477,6 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                                 Toast.makeText(
                                     context,
                                     "Finish your current game or start a new one to change gameplay options.",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                return@launch
-                            }
-                            if (result.disabledHideUsedNumbers) {
-                                Toast.makeText(
-                                    context,
-                                    "Hide used numbers is now off because Free Play is enabled.",
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
@@ -522,15 +526,17 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
                 ) {
                     Text(
                         text = "Sound & Vibration",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.SemiBold, fontSize = 15.sp,
+                            lineHeight = 20.sp
+                        ),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "Sound effects and haptic feedback",
                         style = MaterialTheme.typography.labelSmall.copy(lineHeight = 20.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
                 Switch(

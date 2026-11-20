@@ -12,6 +12,7 @@ import com.quickmindgames.sudoku.data.state.GameStateManager
 import com.quickmindgames.sudoku.data.state.StreakState
 import com.quickmindgames.sudoku.data.state.StreakStateManager
 import com.quickmindgames.sudoku.domain.model.Difficulty
+import com.quickmindgames.sudoku.utils.CurrentDateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -52,7 +53,7 @@ class HomeViewModel(context: Context) : ViewModel() {
     private val streakStateManager = StreakStateManager.getInstance(appContext)
     private val totalScoreManager = TotalScoreManager.getInstance(appContext)
     private val appPreferences = AppPreferences.getInstance(appContext)
-    private val today = LocalDate.now().toString()
+    private val currentDateProvider = CurrentDateProvider()
 
     private val _uiState = MutableStateFlow(HomeScreenState())
     val uiState = _uiState.asStateFlow()
@@ -83,20 +84,41 @@ class HomeViewModel(context: Context) : ViewModel() {
             combine(
                 streakStateManager.getReminderShown(),
                 streakStateManager.getStreakState(),
-                appPreferences.streakShieldWallet
-            ) { reminderShown, savedStreak, shieldWallet ->
-                Triple(reminderShown, savedStreak, shieldWallet)
-            }.collect { (reminderShown, savedStreak, shieldWallet) ->
-                updateStreakState(reminderShown, savedStreak, shieldWallet)
+                appPreferences.streakShieldWallet,
+                currentDateProvider.today
+            ) { reminderShown, savedStreak, shieldWallet, today ->
+                StreakInputs(reminderShown, savedStreak, shieldWallet, today)
+            }.collect { inputs ->
+                updateStreakState(
+                    inputs.reminderShown,
+                    inputs.savedStreak,
+                    inputs.shieldWallet,
+                    inputs.today
+                )
             }
         }
+        viewModelScope.launch { currentDateProvider.tickAtMidnight() }
     }
+
+    /** Re-reads the current date, e.g. when the screen resumes after midnight. */
+    fun refreshDate() {
+        currentDateProvider.refresh()
+    }
+
+    private data class StreakInputs(
+        val reminderShown: Boolean,
+        val savedStreak: StreakState?,
+        val shieldWallet: Int,
+        val today: LocalDate
+    )
 
     private suspend fun updateStreakState(
         reminderShown: Boolean,
         savedStreak: StreakState?,
-        shieldWallet: Int
+        shieldWallet: Int,
+        currentDate: LocalDate
     ) {
+        val today = currentDate.toString()
         val streak = savedStreak ?: StreakState(0, null, null, null)
         var streakDialog = _uiState.value.streakDialog
         var resetBrokenStreak = false
@@ -105,7 +127,7 @@ class HomeViewModel(context: Context) : ViewModel() {
             val lastCompletedDate = LocalDate.parse(streak.lastCompletedDate)
             val daysDifference = ChronoUnit.DAYS.between(
                 lastCompletedDate,
-                LocalDate.now()
+                currentDate
             ).toInt()
 
             when {

@@ -144,6 +144,37 @@ class SudokuGeneratorTest {
         }
     }
 
+    @Test
+    fun pickClues_reversedRange_doesNotThrowAndStaysInRange() {
+        val random = Random(7)
+        repeat(100) {
+            assertTrue(SudokuGenerator.pickClues(51, 46, random) in 46..51)
+        }
+    }
+
+    @Test
+    fun pickClues_validRange_staysInRange() {
+        val random = Random(8)
+        repeat(100) {
+            assertTrue(SudokuGenerator.pickClues(32, 37, random) in 32..37)
+        }
+    }
+
+    @Test
+    fun pickClues_equalBounds_returnsThatValue() {
+        assertEquals(30, SudokuGenerator.pickClues(30, 30))
+    }
+
+    @Test
+    fun pickClues_outOfRangeValues_areClamped() {
+        assertEquals(17, SudokuGenerator.pickClues(-5, 0))
+        assertEquals(81, SudokuGenerator.pickClues(90, 200))
+        val random = Random(9)
+        repeat(100) {
+            assertTrue(SudokuGenerator.pickClues(200, -10, random) in 17..81)
+        }
+    }
+
     private fun isCompleteValidGrid(g: Array<IntArray>): Boolean {
         val all = (1..9).toSet()
         for (i in 0..8) {

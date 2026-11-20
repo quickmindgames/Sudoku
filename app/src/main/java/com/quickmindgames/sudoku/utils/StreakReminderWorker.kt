@@ -22,27 +22,32 @@ class StreakReminderWorker(
     context: Context,
     params: WorkerParameters
 ) : CoroutineWorker(context, params) {
-    var message = ""
-    var title = ""
     override suspend fun doWork(): Result {
         val streakStateManager = StreakStateManager.getInstance(applicationContext)
         val streakState = streakStateManager.getStreakState().first()
         val today = LocalDate.now().toString()
-        if (streakState?.streakCount == 0) {
-            title = "Start your streak!"
-            message = "Hey, you haven't started your streak yet, start your streak now!"
-            sendNotification()
-        }
-        if (streakState?.streakCount!! > 0 && streakState.lastCompletedDate != today) {
-            title = "Don't lose your streak!"
-            message =
-                "Hey, you haven't played streak for today, play now to keep it alive!"
-            sendNotification()
+        // A null state (fresh install, never played a streak) is treated as
+        // streak 0, so these users still get the "Start your streak!" nudge
+        // instead of the worker crashing with an NPE.
+        when {
+            streakState == null || streakState.streakCount == 0 -> {
+                sendNotification(
+                    title = "Start your streak!",
+                    message = "Hey, you haven't started your streak yet, start your streak now!"
+                )
+            }
+
+            streakState.lastCompletedDate != today -> {
+                sendNotification(
+                    title = "Don't lose your streak!",
+                    message = "Hey, you haven't played streak for today, play now to keep it alive!"
+                )
+            }
         }
         return Result.success()
     }
 
-    private fun sendNotification() {
+    private fun sendNotification(title: String, message: String) {
         val channelId = "streak_reminder"
         val manager =
             applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

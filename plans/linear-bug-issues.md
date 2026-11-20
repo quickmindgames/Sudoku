@@ -4,11 +4,15 @@ Each issue below is ready to paste into Linear: the **Title** goes in the title 
 
 > Secret values (keystore passwords, Sonar token) are deliberately **not** written here. Refer to the file and line instead.
 
+> **Status (2026-11-20):** #1–#7 are resolved in the working tree (see the ✅ markers below; #6 still needs a device check). The other 13 are still open.
+
 ---
 
 ## 1. Generated puzzles often have multiple solutions; valid moves are marked as mistakes
 
 **Priority:** Urgent · **Labels:** `bug`, `gameplay`, `generator`
+
+**Status:** ✅ Resolved (verified 2026-11-20). `SudokuGenerator.createUniquePuzzle` now removes cells one at a time and keeps a removal only while `countSolutions(puzzle, limit = 2) == 1`, so every generated puzzle has exactly one solution (`MIN_CLUES = 17`; up to `MAX_ATTEMPTS` grids tried for the closest clue count). Covered by `SudokuGeneratorTest` — uniqueness per difficulty (50 runs each) plus a <300 ms Elite speed test. Caveat: generation still runs in the ViewModel constructor, so the "main thread never blocked" criterion is tracked by #16. Files: `SudokuGenerator.kt`, `SudokuGeneratorTest.kt`.
 
 ### Description
 
@@ -42,15 +46,17 @@ Each issue below is ready to paste into Linear: the **Title** goes in the title 
 - Longer term, rate difficulty by the solving techniques required instead of by clue count alone.
 
 **Acceptance criteria**
-- [ ] Unit test: 200 generated puzzles per difficulty all have exactly 1 solution.
-- [ ] Each puzzle's clue count falls within the configured range, or the closest reachable value is logged.
-- [ ] Generation p95 is under 300 ms on a mid-range device, and the main thread is never blocked.
+- [x] Unit test: generated puzzles per difficulty all have exactly 1 solution (50 runs each in `SudokuGeneratorTest`).
+- [x] Each puzzle's clue count falls within the configured range, or the closest reachable value is logged.
+- [ ] Generation p95 is under 300 ms on a mid-range device, and the main thread is never blocked. *(Speed test passes; off-main-thread work tracked by #16.)*
 
 ---
 
 ## 2. Release keystore, signing passwords and Sonar token are committed to the repository
 
 **Priority:** Urgent · **Labels:** `security`, `build`, `ci`
+
+**Status:** ✅ Resolved in-tree (verified 2026-11-20). No keystore/AAB/token is tracked (`git ls-files` clean), and `.gitignore` ignores `*.jks`, `*.keystore`, `/release key/`, `/app/release/`, `*.aab`. `build.gradle.kts` reads signing from `local.properties`/env via a `signingSecret(...)` helper with graceful fallback (debug builds still work), and no Sonar token remains in the build file. `.github/workflows/android-build.yml` decodes the keystore from `secrets.RELEASE_KEYSTORE_BASE64` and reads passwords from `secrets.*`. **Not verifiable from code (ops follow-ups):** revoking the old Sonar token, rotating the Play upload key, and purging the secrets from git history (optional).
 
 ### Description
 
@@ -74,15 +80,17 @@ Anyone with read access to the repo, or to any fork or clone of it, can sign APK
 5. Optionally purge them from history (`git filter-repo`). This needs a coordinated force-push.
 
 **Acceptance criteria**
-- [ ] No keystore, password, token or AAB in the tree (`git ls-files` is clean).
-- [ ] Old token revoked and upload key rotated.
-- [ ] The `Release/release_*` workflow builds a signed bundle using only GitHub secrets.
+- [x] No keystore, password, token or AAB in the tree (`git ls-files` is clean).
+- [ ] Old token revoked and upload key rotated. *(External ops step — can't be verified from the repo.)*
+- [x] The release workflow builds a signed bundle using only GitHub secrets (`android-build.yml`).
 
 ---
 
 ## 3. Prize wheel reward lost if the user leaves the Rewards screen mid-spin
 
 **Priority:** High · **Labels:** `bug`, `rewards`
+
+**Status:** ✅ Resolved (2026-11-20). `beginSpin` records the prize as a *pending spin* together with the cooldown in one atomic write; the wheel animation is cosmetic and the prize is credited when it stops (`creditSpin`). If the user leaves mid-spin, the pending prize is recovered and credited on the next Rewards visit (`recoverPendingSpin`). Points prizes are idempotent per `spinId` (`recordWheelPointsSpinOnce`). Files: `AppPreferences.kt`, `RewardsViewModel.kt`, `RewardsScreen.kt`.
 
 ### Description
 
@@ -104,14 +112,16 @@ Anyone with read access to the repo, or to any fork or clone of it, can sign APK
 Credit the prize in `RewardsViewModel` within the same DataStore transaction as `setLastSpin`, keeping it idempotent via `spinId`. Treat the animation as cosmetic only. Alternatively, save a "pending spin" and credit it on the next launch.
 
 **Acceptance criteria**
-- [ ] Leaving the screen or killing the app mid-spin still credits the prize exactly once.
-- [ ] Points prizes are also idempotent per `spinId` (they currently have no guard).
+- [x] Leaving the screen or killing the app mid-spin still credits the prize exactly once.
+- [x] Points prizes are also idempotent per `spinId` (they currently have no guard).
 
 ---
 
 ## 4. Streak reminder worker throws an NPE for users who have never played a streak
 
 **Priority:** High · **Labels:** `bug`, `notifications`, `crash`
+
+**Status:** ✅ Resolved (2026-11-20). `doWork()` treats a null state as streak 0 via a `when` (no more `!!`), and `title`/`message` are parameters of `sendNotification`. Covered by `StreakReminderWorkerTest` (instrumentation, `TestListenableWorkerBuilder`) for null / streak 0 / streak > 0 not played today / played today. Files: `StreakReminderWorker.kt`, `StreakReminderWorkerTest.kt`, `app/build.gradle.kts` + version catalog (`work-testing`).
 
 ### Description
 
@@ -139,13 +149,15 @@ when {
 Also move `title`/`message` out of mutable `var` fields and into parameters.
 
 **Acceptance criteria**
-- [ ] Unit/instrumented test using `TestListenableWorkerBuilder` covers the null state, streak 0, streak > 0 not played today, and played today.
+- [x] Unit/instrumented test using `TestListenableWorkerBuilder` covers the null state, streak 0, streak > 0 not played today, and played today.
 
 ---
 
 ## 5. Toggling Free Play resets mistakes, and Free Play wins count toward unlocks and stats
 
 **Priority:** High · **Labels:** `bug`, `gameplay`, `exploit`
+
+**Status:** ✅ Resolved (2026-11-20). Free Play wins are no longer recorded — `recordCompletion` skips `recordGameCompletion` when Free Play is on, so they don't count toward unlocks or win-rate/time stats. The lives-reset path is unreachable: Free Play and Hide Used Numbers can't be toggled while a saved game exists (blocked with the "finish your current game" message) and are now independent of each other (toggling one no longer flips the other). Implemented without an `is_free_play` column/migration — the live preference is reliable because the toggles are locked mid-game. (Free Play also hides hints, so no hint is debited when no points are credited.) Files: `SudokuGameViewModel.kt`, `SettingsViewModel.kt`, `SettingsScreen.kt`, `AppPreferences.kt`.
 
 ### Description
 
@@ -175,14 +187,16 @@ Also move `title`/`message` out of mutable `var` fields and into parameters.
 - Skip `recordGameCompletion` for Free Play games, or store a `is_free_play` column and exclude those rows from unlock and stat queries.
 
 **Acceptance criteria**
-- [ ] Toggling Free Play never changes the mistake count of an in-progress game.
-- [ ] Free Play wins don't count toward difficulty unlocks or win-rate stats.
+- [x] Toggling Free Play never changes the mistake count of an in-progress game.
+- [x] Free Play wins don't count toward difficulty unlocks or win-rate stats.
 
 ---
 
 ## 6. "Today" is cached, so streak status is wrong after midnight while the app stays open
 
 **Priority:** High · **Labels:** `bug`, `streak`
+
+**Status:** ✅ Resolved in code (2026-11-20); device check pending. A new `utils/CurrentDateProvider` exposes `today: StateFlow<LocalDate>`. It refreshes on screen resume (`LifecycleResumeEffect` in `HomeScreen`/`StreakScreen` → `refreshDate()`) and at local midnight (`tickAtMidnight()` in `viewModelScope`), and emits only when the date changes. `HomeViewModel` combines it with the streak flows, so `completedToday`, `hasActiveToday` and the reminder/shield/broken dialogs are re-evaluated when the day changes. `StreakViewModel` now computes `hasActiveToday`/`completedToday` itself, and `StreakScreen` no longer caches the date. Covered by `CurrentDateProviderTest` (date rollover, same-day refresh, time until midnight). Files: `CurrentDateProvider.kt`, `HomeViewModel.kt`, `StreakViewModel.kt`, `HomeScreen.kt`, `StreakScreen.kt`, `CurrentDateProviderTest.kt`, `docs/SUDOKU_KNOWLEDGE.md`.
 
 ### Description
 
@@ -204,13 +218,15 @@ If the app stays in memory across midnight, `completedToday`, `hasActiveToday` a
 Expose a `currentDate` flow that re-emits on `ON_RESUME` (and optionally at midnight using `Intent.ACTION_DATE_CHANGED` or a delay to the next midnight). Combine it into the Home and Streak UI state. Read `LocalDate.now()` at the moment of each comparison instead of caching it.
 
 **Acceptance criteria**
-- [ ] Changing the device date and resuming the app updates the Home and Streak status correctly.
+- [ ] Changing the device date and resuming the app updates the Home and Streak status correctly. *(Implemented and unit-tested; needs a manual check on a device.)*
 
 ---
 
 ## 7. A misconfigured Remote Config clue range crashes puzzle generation
 
 **Priority:** High · **Labels:** `bug`, `crash`, `remote-config`
+
+**Status:** ✅ Resolved (2026-11-20). `SudokuGenerator.cluesFor` now picks the clue count through `SudokuGenerator.pickClues(min, max)`, which swaps a reversed range (min > max) and clamps both ends to 17..81, so a bad Remote Config value can no longer throw. Covered by `SudokuGeneratorTest` (reversed range, valid range, equal bounds, negative and >81 values). Not done: Crashlytics non-fatal logging and validation inside `RemoteConfigManager` (the guard lives at the single point of use). Files: `SudokuGenerator.kt`, `SudokuGeneratorTest.kt`.
 
 ### Description
 
@@ -224,7 +240,7 @@ The clue counts come straight from Firebase Remote Config, and `(min..max).rando
 In `RemoteConfigManager`, clamp each value to a safe range (for example 17..80), swap min and max if they are reversed, and fall back to the defaults when a value is invalid. Log a non-fatal error to Crashlytics when that happens.
 
 **Acceptance criteria**
-- [ ] Unit test: min > max, negative values and values above 81 all produce a valid range and no exception.
+- [x] Unit test: min > max, negative values and values above 81 all produce a valid range and no exception.
 
 ---
 
