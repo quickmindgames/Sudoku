@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.quickmindgames.sudoku.R
 import com.quickmindgames.sudoku.component.StreakPath
@@ -46,7 +47,6 @@ import com.quickmindgames.sudoku.utils.AnalyticsConstants
 import com.quickmindgames.sudoku.utils.AnalyticsUtils
 import com.quickmindgames.sudoku.utils.MultipleEventsCutter
 import com.quickmindgames.sudoku.utils.shareStreak
-import java.time.LocalDate
 
 /**
  *
@@ -72,11 +72,14 @@ fun StreakScreen(
         )
     }
 
-    val today = remember { LocalDate.now().toString() }
+    LifecycleResumeEffect(streakViewModel) {
+        streakViewModel.refreshDate()
+        onPauseOrDispose { }
+    }
+
     val streakCount = streakState.streakCount
-    val hasActiveToday = streakState.activeDate == today &&
-            streakState.activeGameStarted
-    val completedToday = streakState.lastCompletedDate == today
+    val hasActiveToday = streakState.hasActiveToday
+    val completedToday = streakState.completedToday
     val cutter = MultipleEventsCutter.rememberMultipleEventsCutter()
     val statusText = when {
         hasActiveToday -> "Streak in progress..."

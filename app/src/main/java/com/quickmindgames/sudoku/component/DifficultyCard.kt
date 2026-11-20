@@ -66,7 +66,7 @@ fun DifficultyCard(
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .alpha(if (isLocked) 0.6f else 1f)
+            .alpha(if (isLocked) 0.5f else 1f)
             .clickable(
                 enabled = true,
                 onClick = {
@@ -76,16 +76,11 @@ fun DifficultyCard(
                         onClick()
                     }
                 }
-            )
-            .padding(bottom = 4.dp),
+            ),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.elevatedCardColors(
             containerColor = cardColor
         ),
-        /*elevation = CardDefaults.elevatedCardElevation(
-            defaultElevation = 2.dp,
-            pressedElevation = if (isLocked) 0.dp else 8.dp
-        )*/
     ) {
         Box {
             Row(
@@ -122,7 +117,7 @@ fun DifficultyCard(
                     ) {
                         Text(
                             text = difficulty.label,
-                            fontSize = 18.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = accentColor
                         )

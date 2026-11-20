@@ -1913,9 +1913,8 @@ data class SettingsScreenState(
     val soundAndVibration: Boolean = true
 )
 
-data class FreePlayChangeResult(
-    val blockedBySavedGame: Boolean = false,
-    val disabledHideUsedNumbers: Boolean = false
+data class ToggleChangeResult(
+  val blockedBySavedGame: Boolean = false
 )
 
 class SettingsViewModel(context: Context) : ViewModel() {

@@ -9,35 +9,53 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.quickmindgames.sudoku.data.state.StreakState
 import com.quickmindgames.sudoku.data.state.StreakStateManager
 import kotlinx.coroutines.flow.MutableStateFlow
+import com.quickmindgames.sudoku.utils.CurrentDateProvider
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 data class StreakScreenState(
     val streakCount: Int = 0,
     val activeDate: String? = null,
     val activeGameStarted: Boolean = false,
-    val lastCompletedDate: String? = null
+    val lastCompletedDate: String? = null,
+    val hasActiveToday: Boolean = false,
+    val completedToday: Boolean = false
 )
 
 class StreakViewModel(context: Context) : ViewModel() {
     private val streakStateManager =
         StreakStateManager.getInstance(context.applicationContext)
+    private val currentDateProvider = CurrentDateProvider()
 
     private val _uiState = MutableStateFlow(StreakScreenState())
     val uiState = _uiState.asStateFlow()
 
     init {
         viewModelScope.launch {
-            streakStateManager.getStreakState().collect { savedState ->
+            combine(
+                streakStateManager.getStreakState(),
+                currentDateProvider.today
+            ) { savedState, currentDate ->
                 val state = savedState ?: StreakState(0, null, null, null)
-                _uiState.value = StreakScreenState(
+                val today = currentDate.toString()
+                val activeGameStarted = state.activeGame?.hasStarted() == true
+                StreakScreenState(
                     streakCount = state.streakCount,
                     activeDate = state.activeDate,
-                    activeGameStarted = state.activeGame?.hasStarted() == true,
-                    lastCompletedDate = state.lastCompletedDate
+                    activeGameStarted = activeGameStarted,
+                    lastCompletedDate = state.lastCompletedDate,
+                    hasActiveToday = state.activeDate == today && activeGameStarted,
+                    completedToday = state.lastCompletedDate == today
                 )
-            }
+            }.collect { _uiState.value = it }
         }
+        viewModelScope.launch { currentDateProvider.tickAtMidnight() }
+    }
+
+    /** Re-reads the current date, e.g. when the screen resumes after midnight. */
+    fun refreshDate() {
+        currentDateProvider.refresh()
     }
 
     companion object {

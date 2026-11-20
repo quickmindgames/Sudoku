@@ -62,7 +62,7 @@ flowchart LR
 | Logging/observability | Analytics goes through `AnalyticsUtils`; Crashlytics is initialized by the app. Both Analytics and Crashlytics collection are disabled in debug builds. |
 | Configuration | `RemoteConfigManager` supplies clue-count defaults; debug builds use a fixed value. |
 | Error handling | Repository and state APIs define local results; behavior varies by call site. Remote Config fetch exceptions are caught without surfacing a result. |
-| Validation | Sudoku move/game rules are implemented in domain/util and `utils/SudokuRules.kt`; settings normalize mutually exclusive options. |
+| Validation | Sudoku move/game rules are implemented in domain/util and `utils/SudokuRules.kt`; gameplay settings are locked while a saved game exists. |
 
 ## Constraints
 

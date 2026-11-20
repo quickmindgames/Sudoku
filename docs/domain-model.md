@@ -56,7 +56,7 @@ classDiagram
 | `GameStatisticEntity` | Completed regular-game result | Difficulty, outcome, mistakes, score, time, completion timestamp | Room table `game_statistics` | Inserted at completion | Separate from streak result records |
 | `StreakGameEntity` | Completed streak-game result | Streak day, outcome, score, time, completion timestamp | Room table `streak_games` | Inserted at completion | Separate from regular result records |
 | Wallet preferences | Persisted points-related reward balances | Hint, 2X Booster, Streak Shield and progress keys | Held by `AppPreferences`; used by Home/Rewards/game flows | Earned, consumed, migrated or reconciled | Credit paths are designed for idempotency; consumption must not go below zero |
-| Gameplay settings | Persisted user options | Free Play, Hide Used Numbers, highlighting, sound/vibration | Held by `AppPreferences` | Updated from Settings | Free Play and Hide Used Numbers are mutually exclusive |
+| Gameplay settings | Persisted user options | Free Play, Hide Used Numbers, highlighting, sound/vibration | Held by `AppPreferences` | Updated from Settings | Free Play and Hide Used Numbers are independent; neither can change while a saved game exists |
 
 ## Supported business rules
 

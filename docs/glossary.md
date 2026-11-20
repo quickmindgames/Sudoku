@@ -11,7 +11,7 @@
 | Streak Shield | Reward used to protect a missed streak day | `AppPreferences`, `StreakState` | Protection does not increase the streak count |
 | Streak game | Daily challenge tracked separately from regular play | `StreakState`, `StreakGameEntity` | Has its own DataStore state and Room statistics |
 | Free Play | Regular-game setting that removes mistakes and points | `AppPreferences`, settings/game flows | Ignored in streak mode; cannot change while a saved game exists |
-| Hide Used Numbers | Setting that hides a digit after all nine copies are placed | `AppPreferences`, game UI | Mutually exclusive with Free Play |
+| Hide Used Numbers | Setting that hides a digit after all nine copies are placed | `AppPreferences`, game UI | Independent of Free Play; locked while a saved game exists |
 | Flaw-free win | Regular-game win with no mistakes | `GameStatisticEntity.isFlawFree` | Derived when result is recorded |
 
 ## Technical terms

@@ -12,11 +12,13 @@ import com.quickmindgames.sudoku.component.PrizeWheelPrizes
 import com.quickmindgames.sudoku.component.weightedPrizeIndex
 import com.quickmindgames.sudoku.data.preferences.AppPreferences
 import com.quickmindgames.sudoku.data.score.TotalScoreManager
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.random.Random
 
 data class RewardsScreenState(
@@ -37,6 +39,7 @@ data class RewardSpin(
     val prizeIndex: Int,
     val spinId: String
 )
+
 
 data class RewardWalletBalances(
     val totalPoints: Int,
@@ -108,8 +111,47 @@ class RewardsViewModel(context: Context) : ViewModel() {
                 it.copy(showWelcomeRewardsSummary = !summaryShown)
             }
         }
+        recoverPendingSpin()
     }
 
+    /**
+     * Credits a spin that started its cooldown but was never credited, because
+     * the user left the Rewards screen (or the app was killed) while the wheel
+     * was still animating.
+     *
+     * This must be called every time the Rewards screen is (re)entered, not only
+     * when the ViewModel is created: switching bottom-nav tabs retains the
+     * ViewModel, so [init] alone would never recover a spin dropped by a tab
+     * switch. It no-ops while a spin is in progress (the active spin is credited
+     * normally when the wheel stops), and crediting is idempotent per spin id, so
+     * a prize is never paid twice even if this races with the stop-path credit.
+     */
+    fun recoverPendingSpin() {
+        viewModelScope.launch {
+            if (_uiState.value.isSpinning) return@launch
+            val pending = appPreferences.pendingWheelSpin.first() ?: return@launch
+            val prizeType = runCatching { PrizeType.valueOf(pending.prizeType) }.getOrNull()
+            if (prizeType == null) {
+                appPreferences.clearPendingSpin(pending.spinId)
+                return@launch
+            }
+            creditPrize(prizeType, pending.amount, pending.spinId)
+            appPreferences.clearPendingSpin(pending.spinId)
+        }
+    }
+
+    /**
+     * Selects a prize and starts the cooldown, recording the prize as *pending*
+     * (not yet credited) in the same atomic write as the cooldown. The caller
+     * then plays the wheel animation and credits the prize via [creditSpin] when
+     * the wheel stops — preserving the original "reveal on stop" behaviour.
+     *
+     * Because the pending prize and the cooldown are persisted together, leaving
+     * the screen or killing the app mid-spin can no longer start the cooldown
+     * without a payout: the pending prize is recovered on the next Rewards visit
+     * (see [recoverPendingSpin]). The persistence runs in `withContext(NonCancellable)`
+     * so it survives cancellation of the caller's coroutine.
+     */
     suspend fun beginSpin(coolDownTotalMillis: Long): RewardSpin? {
         if (_uiState.value.isSpinning) return null
         val lastSpin = _uiState.value.lastSpinMillis
@@ -123,25 +165,49 @@ class RewardsViewModel(context: Context) : ViewModel() {
         val prizeIndex = weightedPrizeIndex(PrizeWheelPrizes, Random)
         val prize = PrizeWheelPrizes[prizeIndex]
         val spinId = now.toString()
+        val spin = RewardSpin(prize, prizeIndex, spinId)
         _uiState.update { it.copy(isSpinning = true, lastSpinMillis = now) }
-        try {
-            appPreferences.setLastSpin(now)
+        return try {
+            withContext(NonCancellable) {
+                appPreferences.setPendingSpin(now, prize.type.name, prize.amount, spinId)
+            }
+            spin
         } catch (exception: Exception) {
             _uiState.update { it.copy(isSpinning = false) }
             throw exception
         }
-        return RewardSpin(prize, prizeIndex, spinId)
     }
 
-    suspend fun creditPrize(spin: RewardSpin): PrizeCreditResult =
-        when (spin.prize.type) {
-            PrizeType.POINTS -> {
-                totalScoreManager.addScore(spin.prize.amount)
+    /**
+     * Credits the prize once the wheel has stopped (the happy path), then clears
+     * the pending marker. Runs under [NonCancellable] so a credit in progress
+     * completes even if the caller is cancelled at that instant; crediting is
+     * idempotent per spin id regardless.
+     */
+    suspend fun creditSpin(spin: RewardSpin): PrizeCreditResult =
+        withContext(NonCancellable) {
+            val result = creditPrize(spin.prize.type, spin.prize.amount, spin.spinId)
+            appPreferences.clearPendingSpin(spin.spinId)
+            result
+        }
+
+    private suspend fun creditPrize(
+        prizeType: PrizeType,
+        amount: Int,
+        spinId: String
+    ): PrizeCreditResult =
+        when (prizeType) {
+            PrizeType.POINTS -> if (
+                appPreferences.recordWheelPointsSpinOnce(spinId)
+            ) {
+                totalScoreManager.addScore(amount)
                 PrizeCreditResult.POINTS
+            } else {
+                PrizeCreditResult.ALREADY_CREDITED
             }
 
             PrizeType.HINTS -> if (
-                appPreferences.addWheelHintOnce(spin.spinId, spin.prize.amount)
+                appPreferences.addWheelHintOnce(spinId, amount)
             ) {
                 PrizeCreditResult.HINTS_CREDITED
             } else {
@@ -149,7 +215,7 @@ class RewardsViewModel(context: Context) : ViewModel() {
             }
 
             PrizeType.BOOSTER -> if (
-                appPreferences.addWheelDoublePointsBoosterOnce(spin.spinId, spin.prize.amount)
+                appPreferences.addWheelDoublePointsBoosterOnce(spinId, amount)
             ) {
                 PrizeCreditResult.BOOSTER_CREDITED
             } else {
@@ -157,7 +223,7 @@ class RewardsViewModel(context: Context) : ViewModel() {
             }
 
             PrizeType.STREAK_SHIELD -> if (
-                appPreferences.addWheelStreakShieldOnce(spin.spinId, spin.prize.amount)
+                appPreferences.addWheelStreakShieldOnce(spinId, amount)
             ) {
                 PrizeCreditResult.STREAK_SHIELD_CREDITED
             } else {

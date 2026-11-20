@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -53,9 +54,9 @@ import com.quickmindgames.sudoku.BuildConfig
 import com.quickmindgames.sudoku.R
 import com.quickmindgames.sudoku.component.CustomActionDialog
 import com.quickmindgames.sudoku.component.DialogAction
+import com.quickmindgames.sudoku.component.PrizeType
 import com.quickmindgames.sudoku.component.PrizeWheel
 import com.quickmindgames.sudoku.component.PrizeWheelPrizes
-import com.quickmindgames.sudoku.component.PrizeType
 import com.quickmindgames.sudoku.component.WalletInfoButton
 import com.quickmindgames.sudoku.component.WalletRewardSummaryRow
 import com.quickmindgames.sudoku.data.preferences.AppPreferences
@@ -152,6 +153,10 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
     }
 
     LaunchedEffect(Unit) {
+        // Credit any prize left pending by a spin the user walked away from
+        // (e.g. switched tab mid-spin). Runs on every entry, since switching
+        // tabs retains the ViewModel without re-running its init.
+        rewardsViewModel.recoverPendingSpin()
         AnalyticsUtils.logScreenView(
             context,
             AnalyticsConstants.REWARDS,
@@ -176,7 +181,7 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
         ) {
             Text(
                 text = "Rewards",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
@@ -465,7 +470,12 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                         onSpin = {
                             if (!canSpin || isSpinning) return@PrizeWheel
                             coroutineScope.launch {
-                                val spin = rewardsViewModel.beginSpin(coolDownTotalMillis) ?: return@launch
+                                // beginSpin records the prize as pending and starts the
+                                // cooldown atomically; the prize is credited below, when
+                                // the wheel stops. If the user leaves mid-spin, the pending
+                                // prize is recovered on the next Rewards visit.
+                                val spin =
+                                    rewardsViewModel.beginSpin(coolDownTotalMillis) ?: return@launch
                                 try {
                                     val segmentAngle = 360f / PrizeWheelPrizes.size
                                     val targetRotation =
@@ -482,7 +492,7 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                                             easing = FastOutSlowInEasing
                                         )
                                     )
-                                    val creditResult = rewardsViewModel.creditPrize(spin)
+                                    val creditResult = rewardsViewModel.creditSpin(spin)
                                     if (creditResult != PrizeCreditResult.ALREADY_CREDITED) {
                                         val prizeType = when (spin.prize.type) {
                                             PrizeType.POINTS -> AnalyticsConstants.PRIZE_POINTS
@@ -562,7 +572,7 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
                 val hintGrantDetails = buildList {
                     if (AppPreferences.HINT_WALLET_WELCOME_BONUS > 0) {
                         add(
-                            context.getString(
+                            stringResource(
                                 R.string.rewards_welcome_bonus_hints,
                                 AppPreferences.HINT_WALLET_WELCOME_BONUS
                             )

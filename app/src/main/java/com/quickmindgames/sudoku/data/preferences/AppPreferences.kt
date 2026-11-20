@@ -16,6 +16,18 @@ import kotlinx.coroutines.flow.map
 
 private val Context.appDataStore: DataStore<Preferences> by preferencesDataStore(name = "app_preferences")
 
+/**
+ * A prize-wheel spin whose cooldown has started but whose prize has not yet been
+ * credited (the wheel is still animating, or the user left mid-spin). It is
+ * recovered and credited on the next Rewards visit so a spin can never consume
+ * the cooldown without paying out.
+ */
+data class PendingWheelSpin(
+    val prizeType: String,
+    val amount: Int,
+    val spinId: String
+)
+
 class AppPreferences internal constructor(
     private val dataStore: DataStore<Preferences>
 ) {
@@ -63,6 +75,10 @@ class AppPreferences internal constructor(
     private val POINT_MILESTONE_KEY = intPreferencesKey("point_hint_milestone")
     private val STREAK_MILESTONE_KEY = intPreferencesKey("streak_hint_milestone")
     private val OBSERVED_STREAK_DAYS_KEY = intPreferencesKey("observed_streak_days")
+    private val LAST_POINTS_SPIN_ID_KEY = stringPreferencesKey("last_points_spin_id")
+    private val PENDING_SPIN_PRIZE_TYPE_KEY = stringPreferencesKey("pending_spin_prize_type")
+    private val PENDING_SPIN_AMOUNT_KEY = intPreferencesKey("pending_spin_amount")
+    private val PENDING_SPIN_ID_KEY = stringPreferencesKey("pending_spin_id")
     private val LAST_HINT_SPIN_ID_KEY = stringPreferencesKey("last_hint_spin_id")
     private val LAST_BOOSTER_SPIN_ID_KEY = stringPreferencesKey("last_booster_spin_id")
     private val LAST_STREAK_SHIELD_SPIN_ID_KEY =
@@ -96,6 +112,17 @@ class AppPreferences internal constructor(
         preferences[LAST_SPIN_KEY]
     }
 
+    val pendingWheelSpin: Flow<PendingWheelSpin?> = dataStore.data.map { preferences ->
+        val prizeType = preferences[PENDING_SPIN_PRIZE_TYPE_KEY]
+        val amount = preferences[PENDING_SPIN_AMOUNT_KEY]
+        val spinId = preferences[PENDING_SPIN_ID_KEY]
+        if (prizeType != null && amount != null && spinId != null) {
+            PendingWheelSpin(prizeType, amount, spinId)
+        } else {
+            null
+        }
+    }
+
     val hideUsedNumbers: Flow<Boolean> = dataStore.data.map { preferences ->
         preferences[HIDE_USED_NUMBERS_KEY] ?: false
     }
@@ -116,16 +143,10 @@ class AppPreferences internal constructor(
         preferences[SOUND_AND_VIBRATION_KEY] ?: true
     }
 
-    suspend fun setHideUsedNumbers(enabled: Boolean): Boolean {
-        var disabledFreePlay = false
+    suspend fun setHideUsedNumbers(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[HIDE_USED_NUMBERS_KEY] = enabled
-            if (enabled && preferences[FREE_PLAY_KEY] == true) {
-                preferences[FREE_PLAY_KEY] = false
-                disabledFreePlay = true
-            }
         }
-        return disabledFreePlay
     }
 
     suspend fun setHighlightRegion(enabled: Boolean) {
@@ -140,23 +161,9 @@ class AppPreferences internal constructor(
         }
     }
 
-    suspend fun setFreePlay(enabled: Boolean): Boolean {
-        var disabledHideUsedNumbers = false
+    suspend fun setFreePlay(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[FREE_PLAY_KEY] = enabled
-            if (enabled && preferences[HIDE_USED_NUMBERS_KEY] == true) {
-                preferences[HIDE_USED_NUMBERS_KEY] = false
-                disabledHideUsedNumbers = true
-            }
-        }
-        return disabledHideUsedNumbers
-    }
-
-    suspend fun normalizeGameplayOptions() {
-        dataStore.edit { preferences ->
-            if (preferences[FREE_PLAY_KEY] == true && preferences[HIDE_USED_NUMBERS_KEY] == true) {
-                preferences[HIDE_USED_NUMBERS_KEY] = false
-            }
         }
     }
 
@@ -169,6 +176,38 @@ class AppPreferences internal constructor(
     suspend fun setLastSpin(timestampMillis: Long) {
         dataStore.edit { preferences ->
             preferences[LAST_SPIN_KEY] = timestampMillis
+        }
+    }
+
+    /**
+     * Starts the spin cooldown and records the (not yet credited) prize in a
+     * single atomic write, so the cooldown and the pending prize can never get
+     * out of sync. The prize is credited later, when the wheel stops, or
+     * recovered via [pendingWheelSpin] if the user leaves mid-spin.
+     */
+    suspend fun setPendingSpin(
+        timestampMillis: Long,
+        prizeType: String,
+        amount: Int,
+        spinId: String
+    ) {
+        require(spinId.isNotBlank()) { "Spin ID cannot be blank." }
+        dataStore.edit { preferences ->
+            preferences[LAST_SPIN_KEY] = timestampMillis
+            preferences[PENDING_SPIN_PRIZE_TYPE_KEY] = prizeType
+            preferences[PENDING_SPIN_AMOUNT_KEY] = amount
+            preferences[PENDING_SPIN_ID_KEY] = spinId
+        }
+    }
+
+    /** Clears the pending spin marker, but only if it still refers to [spinId]. */
+    suspend fun clearPendingSpin(spinId: String) {
+        dataStore.edit { preferences ->
+            if (preferences[PENDING_SPIN_ID_KEY] == spinId) {
+                preferences.remove(PENDING_SPIN_PRIZE_TYPE_KEY)
+                preferences.remove(PENDING_SPIN_AMOUNT_KEY)
+                preferences.remove(PENDING_SPIN_ID_KEY)
+            }
         }
     }
 
@@ -297,6 +336,24 @@ class AppPreferences internal constructor(
                 amount
             )
         }
+    }
+
+    /**
+     * Records that the points prize for [spinId] has been handled and returns
+     * `true` only the first time it is seen. Points live in a separate score
+     * store, so the caller credits them when this returns `true`; the guard
+     * keeps a replayed spin id from crediting points twice.
+     */
+    suspend fun recordWheelPointsSpinOnce(spinId: String): Boolean {
+        require(spinId.isNotBlank()) { "Spin ID cannot be blank." }
+        var recorded = false
+        dataStore.edit { preferences ->
+            if (preferences[LAST_POINTS_SPIN_ID_KEY] != spinId) {
+                preferences[LAST_POINTS_SPIN_ID_KEY] = spinId
+                recorded = true
+            }
+        }
+        return recorded
     }
 
     suspend fun addWheelHintOnce(spinId: String, amount: Int): Boolean {
