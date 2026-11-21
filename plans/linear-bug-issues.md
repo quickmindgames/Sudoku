@@ -4,7 +4,7 @@ Each issue below is ready to paste into Linear: the **Title** goes in the title 
 
 > Secret values (keystore passwords, Sonar token) are deliberately **not** written here. Refer to the file and line instead.
 
-> **Status (2026-11-20):** #1–#8 are resolved in the working tree (see the ✅ markers below; #6 still needs a device check). The other 12 are still open.
+> **Status (2026-11-21):** #1–#9 are resolved in the working tree (see the ✅ markers below; #6 still needs a device check and #9 a DebugView check). The other 11 are still open.
 
 ---
 
@@ -272,6 +272,8 @@ Compute the final award in one place (`finalScore()`) and use it for stats, wall
 
 **Priority:** Medium · **Labels:** `bug`, `analytics`
 
+**Status:** ✅ Resolved in code (2026-11-21); DebugView check pending. The call was removed from the composable body and moved to `SudokuGameViewModel.enterNumber`, which logs `learning_completed` once, at the moment the learning puzzle is solved. `enterNumber` returns early once `gameWon` is set, so it can't fire twice. This is stricter than a `LaunchedEffect(Unit)`, which would log again after a configuration change. Files: `SudokuGameViewModel.kt`, `SudokuScreen.kt`.
+
 ### Description
 
 **Summary**
@@ -284,7 +286,7 @@ Compute the final award in one place (`finalScore()`) and use it for stats, wall
 Wrap it in `LaunchedEffect(Unit) { ... }`, as the non-learning branch already does, or log it from the ViewModel when the win happens.
 
 **Acceptance criteria**
-- [ ] Exactly one `learning_completed` event per completed learning puzzle (checked in DebugView).
+- [ ] Exactly one `learning_completed` event per completed learning puzzle (checked in DebugView). *(Implemented; needs a DebugView check.)*
 
 ---
 

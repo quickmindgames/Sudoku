@@ -485,6 +485,8 @@ class SudokuGameViewModel(
             gameWon.value = true
             pauseTimer()
             winPersisted = false
+            // Logged here, once per solved puzzle, not from the dialog's composition.
+            if (isLearningMode) AnalyticsUtils.logLearningCompleted(appContext)
         }
         return SudokuMoveResult(
             isCorrect = isCorrect,

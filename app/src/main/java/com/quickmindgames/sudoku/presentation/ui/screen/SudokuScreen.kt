@@ -774,7 +774,7 @@ fun SudokuScreen(
 
     if (gameWon) {
         if (isLearningMode) {
-            AnalyticsUtils.logLearningCompleted(context)
+            // learning_completed is logged once by the ViewModel when the puzzle is solved.
             CustomActionDialog(
                 icon = painterResource(R.drawable.ic_party),
                 title = "Excellent Work!",
