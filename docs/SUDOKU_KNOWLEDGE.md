@@ -23,7 +23,11 @@ for setup and [Domain model](domain-model.md) for state and entity details.
   migration and milestone crediting are persisted so rewards are not granted
   twice.
 - A selected 2X Points Booster is part of the saved game; a completed boosted
-  game consumes one booster and doubles points credited.
+  game consumes one booster and doubles points credited. Points are doubled only
+  if a booster is actually consumed. `SudokuGameViewModel.persistWin` is the one
+  place a win is recorded: it computes the award once (`finalScore`) and uses it
+  for stats, lifetime points and the win dialog. The debug score multiplier
+  applies only to the lifetime-points credit (`creditedPoints`).
 - Free Play removes mistakes and points in regular games and is ignored in streak
   mode. Free Play and Hide Used Numbers are independent settings (toggling one has
   no effect on the other). Neither gameplay option can be changed while a saved

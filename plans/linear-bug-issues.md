@@ -4,7 +4,7 @@ Each issue below is ready to paste into Linear: the **Title** goes in the title 
 
 > Secret values (keystore passwords, Sonar token) are deliberately **not** written here. Refer to the file and line instead.
 
-> **Status (2026-11-20):** #1–#7 are resolved in the working tree (see the ✅ markers below; #6 still needs a device check). The other 13 are still open.
+> **Status (2026-11-20):** #1–#8 are resolved in the working tree (see the ✅ markers below; #6 still needs a device check). The other 12 are still open.
 
 ---
 
@@ -248,6 +248,8 @@ In `RemoteConfigManager`, clamp each value to a safe range (for example 17..80),
 
 **Priority:** Medium · **Labels:** `bug`, `scoring`
 
+**Status:** ✅ Resolved (2026-11-20). Win stats are no longer recorded at the moment of winning; `SudokuGameViewModel.persistWin(freePlay)` is now the single win path. It consumes the booster first, doubles only if one was actually consumed (otherwise it clears the booster flag so the dialog drops "x 2"), computes the award once via `finalScore()`, and uses that same value for the stats row, lifetime points and the return value logged to analytics. It snapshots score, mistakes, time and difficulty before suspending, and runs `NonCancellable` so leaving the screen can't consume a booster without crediting points. The debug multiplier no longer mutates `score`; it applies only to the lifetime-points credit (`creditedPoints()`), so stats and dialog stay real in debug builds. Kept the documented rule that a booster is consumed on a win (not reserved at game start). Covered by `SudokuGameViewModelTest` (doubling, overflow, debug credit). Files: `SudokuGameViewModel.kt`, `SudokuScreen.kt`, `SudokuGameViewModelTest.kt`, `docs/SUDOKU_KNOWLEDGE.md`.
+
 ### Description
 
 **Summary**
@@ -262,7 +264,7 @@ In `RemoteConfigManager`, clamp each value to a safe range (for example 17..80),
 Compute the final award in one place (`finalScore()`) and use it for stats, wallet and UI. Reserve or consume the booster when the game starts and save that in `GameState`. Apply the debug multiplier only to the awarded amount, behind an explicit debug toggle.
 
 **Acceptance criteria**
-- [ ] Stats row, lifetime points delta and dialog value are equal for every win path (normal, hint-finished, booster, free play).
+- [x] Stats row, lifetime points delta and dialog value are equal for every win path (normal, hint-finished, booster, free play). *(In debug builds the lifetime-points credit is multiplied by `DebugOptions.SCORE_MULTIPLIER` on purpose.)*
 
 ---
 

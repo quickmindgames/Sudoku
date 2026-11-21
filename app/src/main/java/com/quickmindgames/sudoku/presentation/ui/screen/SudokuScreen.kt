@@ -810,13 +810,13 @@ fun SudokuScreen(
         } else {
             // Persist score & streak state
             LaunchedEffect(Unit) {
-                gameViewModel.persistWin(pointsToAward, freePlayEnabled)
+                val awardedPoints = gameViewModel.persistWin(freePlayEnabled)
                 AnalyticsUtils.logGameResult(
                     context,
                     win = true,
                     time = formatTime(timeSeconds),
                     mistakes = mistakes,
-                    score = pointsToAward,
+                    score = awardedPoints,
                     difficulty = currentDifficulty.name,
                     isStreak = mode == "streak",
                     hintCount = hintsUsed

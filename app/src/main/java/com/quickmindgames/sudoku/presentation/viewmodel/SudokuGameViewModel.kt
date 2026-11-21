@@ -27,6 +27,7 @@ import com.quickmindgames.sudoku.utils.DebugOptions
 import com.quickmindgames.sudoku.utils.isWin
 import com.quickmindgames.sudoku.utils.recomputeWrongCells
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +36,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
 data class SudokuTimerState(
@@ -343,12 +345,9 @@ class SudokuGameViewModel(
         }
     }
 
+    /** Points the win dialog shows; equals what [persistWin] records and credits. */
     fun pointsToAward(freePlay: Boolean): Int =
-        if (hasDoublePointsBooster.value && !freePlay) {
-            (score.intValue.toLong() * 2L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-        } else {
-            score.intValue
-        }
+        finalScore(score.intValue, boosted = hasDoublePointsBooster.value && !freePlay)
 
     fun dismissGameOver() {
         gameOver.value = false
@@ -486,7 +485,6 @@ class SudokuGameViewModel(
             gameWon.value = true
             pauseTimer()
             winPersisted = false
-            if (!isLearningMode) recordCompletion(isWon = true)
         }
         return SudokuMoveResult(
             isCorrect = isCorrect,
@@ -520,18 +518,40 @@ class SudokuGameViewModel(
         if (isWin(userGrid, solutionGrid.value)) {
             gameWon.value = true
             pauseTimer()
-            recordCompletion(isWon = true, useHintScore = true)
+            winPersisted = false
             return HintResult.GAME_WON
         }
         return HintResult.APPLIED
     }
 
-    suspend fun persistWin(pointsToAward: Int, freePlay: Boolean) {
-        if (winPersisted || mode == "learn") return
+    /**
+     * Records a win exactly once and returns the awarded points. The award is computed
+     * here only, after the booster is actually consumed, and the same value goes to
+     * statistics, lifetime points and the dialog. Runs non-cancellable so leaving the
+     * screen can't consume a booster without crediting the points.
+     */
+    suspend fun persistWin(freePlay: Boolean): Int = withContext(NonCancellable) {
+        if (winPersisted || mode == "learn") return@withContext pointsToAward(freePlay)
         winPersisted = true
+        // Snapshot before suspending: "Next Game" may reset the live state meanwhile.
+        val baseScore = score.intValue
+        val wonMistakes = mistakes.intValue
+        val wonSeconds = _timerState.value.elapsedSeconds
+        val wonDifficulty = currentDifficulty.value
+        val boosted = !freePlay && hasDoublePointsBooster.value &&
+            appPreferences.consumeDoublePointsBooster()
+        // No booster left in the wallet: don't double, and stop showing "x 2".
+        if (!boosted && gameWon.value) hasDoublePointsBooster.value = false
+        val award = finalScore(baseScore, boosted)
+        recordCompletion(
+            isWon = true,
+            resultScore = award,
+            mistakesCount = wonMistakes,
+            elapsed = wonSeconds,
+            difficulty = wonDifficulty
+        )
         if (!freePlay) {
-            if (hasDoublePointsBooster.value) appPreferences.consumeDoublePointsBooster()
-            totalScoreManager.addScore(pointsToAward)
+            totalScoreManager.addScore(creditedPoints(award, BuildConfig.DEBUG))
         }
         if (mode == "streak") {
             val today = LocalDate.now().toString()
@@ -556,6 +576,7 @@ class SudokuGameViewModel(
         } else {
             gameStateManager.clearGameState()
         }
+        award
     }
 
     fun startTimer(elapsedSeconds: Int = 0, shouldCount: Boolean = true) {
@@ -597,16 +618,20 @@ class SudokuGameViewModel(
         }
     }
 
-    private fun recordCompletion(isWon: Boolean, useHintScore: Boolean = false) {
-        if (BuildConfig.DEBUG) score.intValue *= DebugOptions.SCORE_MULTIPLIER
-        val elapsed = _timerState.value.elapsedSeconds
+    private fun recordCompletion(
+        isWon: Boolean,
+        resultScore: Int = score.intValue,
+        mistakesCount: Int = mistakes.intValue,
+        elapsed: Int = _timerState.value.elapsedSeconds,
+        difficulty: Difficulty = currentDifficulty.value
+    ) {
         if (mode == "streak") {
             GameCompletionRecorder.recordStreakGameCompletion(
                 context = appContext,
                 scope = viewModelScope,
                 streakDay = streakDay,
                 isWon = isWon,
-                score = score.intValue,
+                score = resultScore,
                 timeSeconds = elapsed
             )
             GameCompletionRecorder.recordGameCompletion(
@@ -614,8 +639,8 @@ class SudokuGameViewModel(
                 scope = viewModelScope,
                 difficulty = "streak",
                 isWon = isWon,
-                mistakes = mistakes.intValue,
-                score = score.intValue,
+                mistakes = mistakesCount,
+                score = resultScore,
                 timeSeconds = elapsed,
                 mode = "regular"
             )
@@ -633,15 +658,12 @@ class SudokuGameViewModel(
             // difficulty unlocks or win-rate/time statistics. The live preference
             // is reliable here: gameplay options are locked while a saved game
             // exists, so Free Play can't change mid-game.
-            val resultScore = if (isWon && !useHintScore && hasDoublePointsBooster.value) {
-                (score.intValue.toLong() * 2L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-            } else score.intValue
             GameCompletionRecorder.recordGameCompletion(
                 context = appContext,
                 scope = viewModelScope,
-                difficulty = currentDifficulty.value.name,
+                difficulty = difficulty.name,
                 isWon = isWon,
-                mistakes = mistakes.intValue,
+                mistakes = mistakesCount,
                 score = resultScore,
                 timeSeconds = elapsed,
                 mode = "regular"
@@ -726,6 +748,26 @@ class SudokuGameViewModel(
     }
 
     companion object {
+        /** The single place a win's points are computed: doubled when the booster applies. */
+        internal fun finalScore(baseScore: Int, boosted: Boolean): Int =
+            if (boosted) {
+                (baseScore.toLong() * 2L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            } else {
+                baseScore
+            }
+
+        /**
+         * Lifetime points actually credited. Debug builds multiply only this credit (to earn
+         * points quickly while testing); the live score, stats and dialog stay unchanged.
+         */
+        internal fun creditedPoints(award: Int, debug: Boolean): Int =
+            if (debug) {
+                (award.toLong() * DebugOptions.SCORE_MULTIPLIER)
+                    .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            } else {
+                award
+            }
+
         fun factory(
             context: Context,
             appPreferences: AppPreferences,
