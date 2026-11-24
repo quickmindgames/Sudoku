@@ -25,6 +25,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
@@ -336,17 +337,26 @@ fun PrizeWheel(
             contentAlignment = Alignment.Center
         ) {
             if (cooldownLabel != null) {
+                // The cooldown overlay uses the theme's surface colour (dark in dark mode), so
+                // the text must follow it: brand brown on a light overlay, warm light tone on a
+                // dark one. Based on the overlay itself, so it also follows the in-app theme switch.
+                val cooldownTextColor =
+                    if (MaterialTheme.colorScheme.surfaceContainerLow.luminance() > 0.5f) {
+                        Color(0xFF5D3100)
+                    } else {
+                        Color(0xFFFFDDB3)
+                    }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "Next Spin in",
-                        color = Color(0xFF5D3100),
+                        color = cooldownTextColor,
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.size(6.dp))
                     Text(
                         text = cooldownLabel,
-                        color = Color(0xFF5D3100),
+                        color = cooldownTextColor,
                         style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center,
                         maxLines = 1

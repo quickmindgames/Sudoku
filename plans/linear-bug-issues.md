@@ -4,7 +4,7 @@ Each issue below is ready to paste into Linear: the **Title** goes in the title 
 
 > Secret values (keystore passwords, Sonar token) are deliberately **not** written here. Refer to the file and line instead.
 
-> **Status (2026-11-24):** #1–#9 and #11–#18 are resolved in the working tree (see the ✅ markers below; #6 still needs a device check and #9 a DebugView check). The other 3 are still open.
+> **Status (2026-11-24):** #1–#9 and #11–#20 are resolved in the working tree (see the ✅ markers below; #6 still needs a device check and #9 a DebugView check). Only #10 is still open.
 
 ---
 
@@ -521,6 +521,16 @@ Move the unlock state into `HomeViewModel` as a `StateFlow<UnlockState?>` from `
 
 **Priority:** Low · **Labels:** `notifications`, `ux`
 
+**Status:** ✅ Resolved in code (2026-11-24); icon still to be checked on a device. ⚠️ Open risk below.
+- **Permission on first launch:** removed from `MainActivity`. Reminders are opt-in: a post-win prompt after a streak win, or the new Streak Reminders switch in Settings. The prompt is offered at the first streak win and, after each decline, again every 5 streak games won until reminders are on (`domain/util/StreakReminderPrompt`, `StreakReminderPromptTest`). Turning reminders off in Settings stops it for good. When Android won't show the permission dialog any more (denied twice) or app notifications are blocked, "Turn on" saves the choice and opens the app's notification settings instead of doing nothing.
+- **Channel importance:** `IMPORTANCE_DEFAULT` and `PRIORITY_DEFAULT` (no heads-up). Existing channels created as HIGH are lowered unless the user changed the channel themselves.
+- **Icon:** new monochrome `drawable/ic_stat_notification.xml` (the flame), tinted with `notification_accent`.
+- Also removed `@RequiresApi(TIRAMISU)` from `SettingsScreen` (lint NewApi error) and a leftover Android 8 version check.
+
+Emulator (API 36): no prompt at launch; after a streak win "Done" shows the prompt; after "Maybe later" the next streak win doesn't show it; the Settings switch shows the system permission dialog, and after "Allow" the switch is on and the WorkManager job is scheduled. Not checked: the posted notification itself (icon/importance), because the periodic worker can't be forced to run early.
+
+⚠️ **Open risk (not fixed, by decision):** `streak_reminders_enabled` defaults to `false`, and `MainActivity` cancels the reminder job when it's off. So existing users who already get reminders stop getting them after the update until they opt in again.
+
 ### Description
 
 **Summary**
@@ -532,13 +542,19 @@ Move the unlock state into `HomeViewModel` as a `StateFlow<UnlockState?>` from `
 Ask for the permission after the first completed streak, or from a pre-prompt explaining reminders. Use `IMPORTANCE_DEFAULT`. Add a monochrome `ic_stat_notification` vector.
 
 **Acceptance criteria**
-- [ ] No permission prompt on first launch. The notification shows the correct icon on Android 13–16.
+- [ ] No permission prompt on first launch. The notification shows the correct icon on Android 13–16. *(First part verified on the emulator; icon not yet seen on a device.)*
 
 ---
 
 ## 20. Notes are capped at 4 candidates per cell
 
 **Priority:** Low · **Labels:** `gameplay`, `ux`
+
+**Status:** ✅ Resolved (2026-11-24). Removed the `notes.size < 4` cap in `SudokuGameViewModel.enterNumber`. Replaced the hard-coded 2×2 layout in `SudokuGridLevel` (which also showed only the first 4 notes) with a new `component/NotesMiniGrid`: a 3×3 mini-grid where each digit keeps its fixed slot (1 top-left … 9 bottom-right). Note text is sized at 70% of a slot, computed from the cell size and independent of the system font scale, with font padding trimmed, so it can't overflow. Save/restore already supported any number of notes.
+
+Tests: instrumented `SudokuGameViewModelNotesTest` (all 9 notes, re-tapping removes one, 9 notes survive save/restore); all 20 instrumented tests pass. Emulator at 360 dp width (720×1616 @ 320 dpi): a cell with all 9 notes, a diagonal (1 5 9), edges (2 4 6 8) and corners (3 7) all render inside their cells at font scale 1.0, 1.3 and 2.0.
+
+Found while checking, **not part of this fix**: at the maximum font scale (2.0), other parts of the game screen clip. The big cell digits (26 sp), the number pad digits and the Mistakes icons are cut, and "Notes" wraps. At 1.0 and 1.3 everything fits.
 
 ### Description
 
@@ -552,4 +568,4 @@ In notes mode, `enterNumber` silently ignores a 5th note (`notes.size < 4`). Sta
 Allow up to 9 notes. Update the cell's note layout to a 3×3 mini-grid if it currently assumes 4 slots. If the cap is intentional, show feedback when it is reached.
 
 **Acceptance criteria**
-- [ ] A cell can hold all 9 candidates and renders them legibly on a small (360 dp) screen.
+- [x] A cell can hold all 9 candidates and renders them legibly on a small (360 dp) screen.

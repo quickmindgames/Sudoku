@@ -35,6 +35,10 @@ for setup and [Domain model](domain-model.md) for state and entity details.
   Free Play games are not recorded in `game_statistics`, so they never count
   toward difficulty unlocks or win-rate, average-time and best-time statistics.
 - Hide Used Numbers hides a digit after all nine instances are placed.
+- Notes (pencil marks): a cell holds up to all 9 candidates, drawn by
+  `component/NotesMiniGrid` as a 3×3 mini-grid with each digit in its fixed
+  slot (1 top-left … 9 bottom-right). Note text is sized from the cell size
+  and ignores the system font scale, so it can't overflow the cell.
 - Difficulty unlocks: Breeze is always open; Pulse, Rage and Elite each need 5
   wins at the previous level (`domain/util/DifficultyUnlocks`). `HomeViewModel`
   loads the win counts once (`StatisticsRepository.getDifficultyUnlocks()`, a

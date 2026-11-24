@@ -451,7 +451,7 @@ class SudokuGameViewModel(
             if (cell.value == 0 || isWrong) {
                 val notes = cell.notes.toMutableSet()
                 if (number in notes) notes.remove(number)
-                else if (notes.size < 4) notes.add(number)
+                else notes.add(number) // all 9 candidates allowed (shown as a 3×3 mini-grid)
                 saveUndoSnapshot()
                 userGrid[row][column] = cell.copy(
                     value = 0,
