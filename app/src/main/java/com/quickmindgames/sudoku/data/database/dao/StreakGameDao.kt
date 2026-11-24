@@ -57,7 +57,8 @@ interface StreakGameDao {
     /**
      * Get average completion time across all streak games
      */
-    @Query("SELECT AVG(time_seconds) FROM streak_games")
+    // Wins only: a lost game's time says nothing about solving speed.
+    @Query("SELECT AVG(time_seconds) FROM streak_games WHERE is_won = 1")
     fun getAverageStreakTime(): Flow<Double?>
 
     /**
@@ -82,8 +83,14 @@ interface StreakGameDao {
      * Get consecutive wins from most recent games
      * Returns total streak wins (user needs to track sequence in ViewModel)
      */
+    // Wins completed after the most recent loss (all wins if there has never been a loss),
+    // i.e. walking rows by date_completed DESC until the first loss.
     @Query("""
-        SELECT COUNT(*) FROM streak_games WHERE is_won = 1
+        SELECT COUNT(*) FROM streak_games
+        WHERE is_won = 1
+          AND date_completed > COALESCE(
+              (SELECT MAX(date_completed) FROM streak_games WHERE is_won = 0), -1
+          )
     """)
     fun getCurrentConsecutiveWins(): Flow<Int>
 

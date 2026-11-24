@@ -2,13 +2,8 @@ package com.quickmindgames.sudoku.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
@@ -89,114 +84,12 @@ fun SudokuGridLevel(
                 ) {
                     val showNotes = (cell.notes.isNotEmpty() && (cell.value == 0 || isWrong))
                     if (showNotes) {
-                        val notesList = cell.notes.toList().take(4)
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            Row(
-                                modifier = Modifier.weight(1f),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight(),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    notesList.getOrNull(0)?.let { n ->
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = n.toString(),
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Medium,
-                                                letterSpacing = 0.sp,
-                                                lineHeight = 12.sp,
-                                                color = colors.onSurface,
-                                                modifier = Modifier.padding(0.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    notesList.getOrNull(1)?.let { n ->
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = n.toString(),
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Medium,
-                                                letterSpacing = 0.sp,
-                                                lineHeight = 12.sp,
-                                                color = colors.onSurface,
-                                                modifier = Modifier.padding(0.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                            Row(
-                                modifier = Modifier.weight(1f),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    notesList.getOrNull(2)?.let { n ->
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = n.toString(),
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Medium,
-                                                letterSpacing = 0.sp,
-                                                lineHeight = 12.sp,
-                                                color = colors.onSurface,
-                                                modifier = Modifier.padding(0.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    notesList.getOrNull(3)?.let { n ->
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = n.toString(),
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Medium,
-                                                letterSpacing = 0.sp,
-                                                lineHeight = 12.sp,
-                                                color = colors.onSurface,
-                                                modifier = Modifier.padding(0.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        // All 9 candidates, each in its fixed 3×3 slot, sized to the cell.
+                        NotesMiniGrid(
+                            notes = cell.notes,
+                            cellSize = cellSizeDp,
+                            color = colors.onSurface
+                        )
                     } else {
                         Text(
                             text = if (value == 0) "" else value.toString(),

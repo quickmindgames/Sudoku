@@ -11,6 +11,7 @@ import com.quickmindgames.sudoku.data.preferences.ThemePreferences
 import com.quickmindgames.sudoku.data.state.GameStateManager
 import com.quickmindgames.sudoku.utils.AnalyticsConstants
 import com.quickmindgames.sudoku.utils.AnalyticsUtils
+import com.quickmindgames.sudoku.utils.StreakReminderScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -24,7 +25,8 @@ data class SettingsScreenState(
     val highlightRegion: Boolean = false,
     val highlightSameNumbers: Boolean = false,
     val freePlay: Boolean = false,
-    val soundAndVibration: Boolean = true
+    val soundAndVibration: Boolean = true,
+    val streakRemindersEnabled: Boolean = false
 )
 
 data class ToggleChangeResult(
@@ -71,6 +73,11 @@ class SettingsViewModel(context: Context) : ViewModel() {
         viewModelScope.launch {
             appPreferences.soundAndVibration.collect { enabled ->
                 _uiState.update { it.copy(soundAndVibration = enabled) }
+            }
+        }
+        viewModelScope.launch {
+            appPreferences.streakRemindersEnabled.collect { enabled ->
+                _uiState.update { it.copy(streakRemindersEnabled = enabled) }
             }
         }
     }
@@ -128,6 +135,22 @@ class SettingsViewModel(context: Context) : ViewModel() {
         AnalyticsUtils.logSettingsOptionChanged(
             appContext,
             AnalyticsConstants.SOUND_VIBRATIONS,
+            enabled
+        )
+    }
+
+    suspend fun setStreakRemindersEnabled(enabled: Boolean) {
+        appPreferences.setStreakRemindersEnabled(enabled)
+        if (enabled) {
+            StreakReminderScheduler.schedule(appContext)
+        } else {
+            StreakReminderScheduler.cancel(appContext)
+            // An explicit "off" in Settings is a clear choice: stop the post-win prompt.
+            appPreferences.stopStreakReminderPrompt()
+        }
+        AnalyticsUtils.logSettingsOptionChanged(
+            appContext,
+            AnalyticsConstants.STREAK_REMINDERS,
             enabled
         )
     }

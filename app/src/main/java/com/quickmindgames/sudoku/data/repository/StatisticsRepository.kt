@@ -5,6 +5,8 @@ import com.quickmindgames.sudoku.data.database.SudokuDatabase
 import com.quickmindgames.sudoku.data.database.entity.GameStatisticEntity
 import com.quickmindgames.sudoku.data.database.entity.StreakGameEntity
 import com.quickmindgames.sudoku.domain.model.AllStatistics
+import com.quickmindgames.sudoku.domain.model.Difficulty
+import com.quickmindgames.sudoku.domain.util.DifficultyUnlocks
 import com.quickmindgames.sudoku.domain.model.DifficultyStatistics
 import com.quickmindgames.sudoku.domain.model.GameStatistics
 import com.quickmindgames.sudoku.domain.model.StreakStatistics
@@ -25,6 +27,17 @@ class StatisticsRepository(context: Context) {
 
     private val gameStatisticDao by lazy { db.gameStatisticDao() }
     private val streakGameDao by lazy { db.streakGameDao() }
+
+    /**
+     * Wins that decide difficulty unlocks. Live: emits again after every recorded game.
+     */
+    fun getDifficultyUnlocks(): Flow<DifficultyUnlocks> = combine(
+        gameStatisticDao.getWinsCountByDifficulty(Difficulty.Breeze.name),
+        gameStatisticDao.getWinsCountByDifficulty(Difficulty.Pulse.name),
+        gameStatisticDao.getWinsCountByDifficulty(Difficulty.Rage.name)
+    ) { breezeWins, pulseWins, rageWins ->
+        DifficultyUnlocks(breezeWins, pulseWins, rageWins)
+    }
 
     /**
      * Record a completed regular game

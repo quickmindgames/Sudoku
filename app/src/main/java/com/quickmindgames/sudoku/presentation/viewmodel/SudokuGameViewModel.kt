@@ -26,7 +26,9 @@ import com.quickmindgames.sudoku.utils.AnalyticsUtils
 import com.quickmindgames.sudoku.utils.DebugOptions
 import com.quickmindgames.sudoku.utils.isWin
 import com.quickmindgames.sudoku.utils.recomputeWrongCells
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +37,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
 data class SudokuTimerState(
@@ -63,7 +66,11 @@ enum class HintResult {
     EMPTY_WALLET,
     CELL_NOT_SELECTED,
     CELL_ALREADY_CORRECT,
-    GAME_WON
+    GAME_WON,
+    /** The per-game limit ([SudokuGameViewModel.MAX_HINTS_PER_GAME]) is used up. */
+    LIMIT_REACHED,
+    /** Another hint is still being processed (fast double tap). */
+    IN_PROGRESS
 }
 
 class SudokuGameViewModel(
@@ -79,12 +86,14 @@ class SudokuGameViewModel(
     private val streakStateManager = StreakStateManager.getInstance(appContext)
     private val totalScoreManager = TotalScoreManager.getInstance(appContext)
 
-    private val generatedPuzzle =
-        SudokuGenerator.instance.generate(difficulty ?: Difficulty.Breeze)
-    val puzzleData = mutableStateOf(generatedPuzzle)
+    // No puzzle is generated here: the constructor runs on the main thread. A puzzle is
+    // generated off the main thread in initialize()/createNextGame() only when one is
+    // needed (see loadNewPuzzle); until then the board is empty and isLoading is true.
+    val puzzleData = mutableStateOf(emptyGrid() to emptyGrid())
     val originalGrid: MutableState<List<List<Int>>> =
-        mutableStateOf(generatedPuzzle.first.map { it.toList() })
-    val solutionGrid = mutableStateOf(generatedPuzzle.second)
+        mutableStateOf(List(9) { List(9) { 0 } })
+    val solutionGrid = mutableStateOf(emptyGrid())
+    val isLoading = mutableStateOf(true)
     val userGrid = mutableStateListOf<SnapshotStateList<CellData>>()
     val gameOver = mutableStateOf(false)
     val wrongCells = mutableStateOf(setOf<Pair<Int, Int>>())
@@ -113,6 +122,7 @@ class SudokuGameViewModel(
     private var initialized = false
     private var initializationStarted = false
     private var winPersisted = false
+    private var nextGameInProgress = false
 
     private val gameplayPreferences = combine(
         appPreferences.hideUsedNumbers,
@@ -151,7 +161,7 @@ class SudokuGameViewModel(
         try {
             val shouldExit = when (mode) {
                 "learn" -> {
-                    currentDifficulty.value = Difficulty.Breeze
+                    loadNewPuzzle(Difficulty.Breeze)
                     resetGameState(startTimer = true)
                     AnalyticsUtils.logLearningStarted(appContext)
                     false
@@ -159,6 +169,7 @@ class SudokuGameViewModel(
 
                 "new" -> {
                     val savedDifficulty = gameStateManager.getSavedGameState().first()?.difficulty
+                    loadNewPuzzle(currentDifficulty.value)
                     resetGameState(startTimer = true)
                     gameStateManager.clearGameState()
                     AnalyticsUtils.logNewGameStarted(
@@ -181,36 +192,69 @@ class SudokuGameViewModel(
             return shouldExit
         } finally {
             initializationStarted = false
+            isLoading.value = false
         }
+    }
+
+    /** Generates a puzzle on [Dispatchers.Default] and installs it as the current board. */
+    private suspend fun loadNewPuzzle(difficulty: Difficulty) {
+        val (puzzle, solution) = withContext(Dispatchers.Default) {
+            SudokuGenerator.instance.generate(difficulty)
+        }
+        puzzleData.value = puzzle to solution
+        originalGrid.value = puzzle.map { it.toList() }
+        solutionGrid.value = solution
+        currentDifficulty.value = difficulty
     }
 
     private suspend fun restoreRegularGame() {
         val savedState = gameStateManager.getSavedGameState().first()
         if (savedState == null) {
-            startTimer()
+            // Nothing to resume (e.g. the save was cleared): start a fresh game instead.
+            loadNewPuzzle(currentDifficulty.value)
+            resetGameState(startTimer = true)
             return
         }
-        savedState.let { state ->
-            AnalyticsUtils.logResumeGame(appContext, state.difficulty.name)
-            currentDifficulty.value = state.difficulty
-            originalGrid.value = state.originalGrid
-            solutionGrid.value = state.solutionGrid.map { it.toIntArray() }.toTypedArray()
-            puzzleData.value = Pair(
-                state.originalGrid.map { it.toIntArray() }.toTypedArray(),
-                solutionGrid.value
-            )
-            restoreUserGrid(state.userGrid)
-            wrongCells.value = state.wrongCells
-            mistakes.intValue = state.mistakes
-            score.intValue = state.score
-            startTimer(state.timeSeconds)
-            selectedCell.value = state.selectedCell
-            isNotesMode.value = state.isNotesMode
-            hintsUsed.intValue = state.hintsUsed
-            hasDoublePointsBooster.value = state.hasDoublePointsBooster
-            gameOver.value = false
-            gameWon.value = false
+        AnalyticsUtils.logResumeGame(appContext, savedState.difficulty.name)
+        restoreFrom(savedState)
+    }
+
+    /**
+     * Restores a saved game. Shared by the regular and streak resume paths so neither can
+     * drop a field. Undo history is intentionally not persisted: it starts empty on resume.
+     */
+    internal fun restoreFrom(state: GameState) {
+        isLoading.value = false
+        currentDifficulty.value = state.difficulty
+        originalGrid.value = state.originalGrid
+        solutionGrid.value = state.solutionGrid.map { it.toIntArray() }.toTypedArray()
+        puzzleData.value = Pair(
+            state.originalGrid.map { it.toIntArray() }.toTypedArray(),
+            solutionGrid.value
+        )
+        restoreUserGrid(state.userGrid)
+        wrongCells.value = state.wrongCells
+        mistakes.intValue = state.mistakes
+        score.intValue = state.score
+        startTimer(state.timeSeconds)
+        selectedCell.value = state.selectedCell
+        isNotesMode.value = state.isNotesMode
+        hintsUsed.intValue = state.hintsUsed
+        hasDoublePointsBooster.value = state.hasDoublePointsBooster
+        val scored = state.scoredCells
+            ?: inferScoredCells(state.originalGrid, state.solutionGrid, state.userGrid)
+        for (row in 0..8) for (column in 0..8) {
+            scoredCells[row][column] = (row * 9 + column) in scored
         }
+        undoHistory.clear()
+        canUndo.value = false
+        correctStreak.intValue = 0
+        lastCorrectTime.intValue = 0
+        shakeCells.value = emptySet()
+        learningHint.value = null
+        gameOver.value = false
+        gameWon.value = false
+        winPersisted = false
     }
 
     private suspend fun initializeStreakGame(): Boolean {
@@ -219,27 +263,12 @@ class SudokuGameViewModel(
             ?: StreakState(0, null, null, null)
         val activeGame = savedStreak.activeGame
         if (activeGame != null && savedStreak.activeDate == today) {
-            currentDifficulty.value = activeGame.difficulty
-            originalGrid.value = activeGame.originalGrid
-            solutionGrid.value = activeGame.solutionGrid.map { it.toIntArray() }.toTypedArray()
-            restoreUserGrid(activeGame.userGrid)
-            wrongCells.value = activeGame.wrongCells
-            mistakes.intValue = activeGame.mistakes
-            score.intValue = activeGame.score
-            startTimer(activeGame.timeSeconds)
-            selectedCell.value = activeGame.selectedCell
-            hintsUsed.intValue = activeGame.hintsUsed
-            gameOver.value = false
-            gameWon.value = false
+            restoreFrom(activeGame)
         } else if (savedStreak.lastCompletedDate == today && !BuildConfig.DEBUG) {
             return true
         } else {
             AnalyticsUtils.logStreakGameStarted(appContext)
-            val (puzzle, solution) = SudokuGenerator.instance.generate(Difficulty.Breeze)
-            puzzleData.value = Pair(puzzle, solution)
-            originalGrid.value = puzzle.map { it.toList() }
-            solutionGrid.value = solution
-            currentDifficulty.value = Difficulty.Breeze
+            loadNewPuzzle(Difficulty.Breeze)
             resetGameState(startTimer = true)
             saveCurrentGame()
             streakStateManager.saveStreakState(
@@ -282,7 +311,12 @@ class SudokuGameViewModel(
         selectedCell = selectedCell.value,
         isNotesMode = isNotesMode.value,
         hintsUsed = hintsUsed.intValue,
-        hasDoublePointsBooster = hasDoublePointsBooster.value
+        hasDoublePointsBooster = hasDoublePointsBooster.value,
+        scoredCells = buildSet {
+            for (row in 0..8) for (column in 0..8) {
+                if (scoredCells[row][column]) add(row * 9 + column)
+            }
+        }
     )
 
     fun resetGameState(startTimer: Boolean) {
@@ -305,11 +339,17 @@ class SudokuGameViewModel(
         winPersisted = false
     }
 
-    fun createNextGame() {
-        val (puzzle, solution) = SudokuGenerator.instance.generate(currentDifficulty.value)
-        puzzleData.value = Pair(puzzle, solution)
-        originalGrid.value = puzzle.map { it.toList() }
-        solutionGrid.value = solution
+    suspend fun createNextGame() {
+        if (nextGameInProgress) return // a double tap must not start two generations
+        nextGameInProgress = true
+        isLoading.value = true
+        gameWon.value = false // close the win dialog; the spinner shows while generating
+        try {
+            loadNewPuzzle(currentDifficulty.value)
+        } finally {
+            isLoading.value = false
+            nextGameInProgress = false
+        }
         hasDoublePointsBooster.value = false
         resetGameState(startTimer = true)
     }
@@ -335,6 +375,9 @@ class SudokuGameViewModel(
     }
 
     suspend fun processHint(isLearningMode: Boolean, freePlay: Boolean): HintResult {
+        // Only one hint at a time: a second tap arriving while the first is suspended in the
+        // wallet write would otherwise pass the limit check with a stale hintsUsed.
+        if (isHintProcessing.value) return HintResult.IN_PROGRESS
         isHintProcessing.value = true
         return try {
             useHint(isLearningMode, freePlay)
@@ -343,12 +386,9 @@ class SudokuGameViewModel(
         }
     }
 
+    /** Points the win dialog shows; equals what [persistWin] records and credits. */
     fun pointsToAward(freePlay: Boolean): Int =
-        if (hasDoublePointsBooster.value && !freePlay) {
-            (score.intValue.toLong() * 2L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-        } else {
-            score.intValue
-        }
+        finalScore(score.intValue, boosted = hasDoublePointsBooster.value && !freePlay)
 
     fun dismissGameOver() {
         gameOver.value = false
@@ -368,6 +408,7 @@ class SudokuGameViewModel(
     }
 
     fun eraseSelectedCell() {
+        if (isLoading.value) return
         selectedCell.value?.let { (row, column) ->
             if (originalGrid.value[row][column] == 0) {
                 saveUndoSnapshot()
@@ -384,6 +425,7 @@ class SudokuGameViewModel(
     }
 
     fun undoMove() {
+        if (isLoading.value) return
         val previous = undoHistory.removeLastOrNull() ?: return
         for (row in 0..8) for (column in 0..8) {
             userGrid[row][column] = previous[row][column]
@@ -394,6 +436,8 @@ class SudokuGameViewModel(
     }
 
     fun enterNumber(number: Int, isLearningMode: Boolean, freePlay: Boolean): SudokuMoveResult? {
+        // While loading there is no solution grid yet; it must never be indexed.
+        if (isLoading.value) return null
         val cellPosition = selectedCell.value ?: return null
         val (row, column) = cellPosition
         if (originalGrid.value[row][column] != 0 || gameOver.value ||
@@ -407,7 +451,7 @@ class SudokuGameViewModel(
             if (cell.value == 0 || isWrong) {
                 val notes = cell.notes.toMutableSet()
                 if (number in notes) notes.remove(number)
-                else if (notes.size < 4) notes.add(number)
+                else notes.add(number) // all 9 candidates allowed (shown as a 3×3 mini-grid)
                 saveUndoSnapshot()
                 userGrid[row][column] = cell.copy(
                     value = 0,
@@ -486,7 +530,8 @@ class SudokuGameViewModel(
             gameWon.value = true
             pauseTimer()
             winPersisted = false
-            if (!isLearningMode) recordCompletion(isWon = true)
+            // Logged here, once per solved puzzle, not from the dialog's composition.
+            if (isLearningMode) AnalyticsUtils.logLearningCompleted(appContext)
         }
         return SudokuMoveResult(
             isCorrect = isCorrect,
@@ -500,9 +545,11 @@ class SudokuGameViewModel(
         // Free Play credits no points, so it must never debit a hint from the
         // wallet. The button is hidden in Free Play; this is a defensive no-op.
         if (freePlay) return HintResult.CELL_NOT_SELECTED
-        if (isLearningMode || gameOver.value || gameWon.value || !_timerState.value.isRunning) {
+        if (isLoading.value || isLearningMode || gameOver.value || gameWon.value || !_timerState.value.isRunning) {
             return HintResult.CELL_ALREADY_CORRECT
         }
+        // Checked before the wallet is touched, so a refused hint never costs one.
+        if (hintsUsed.intValue >= MAX_HINTS_PER_GAME) return HintResult.LIMIT_REACHED
         val position = selectedCell.value ?: return HintResult.CELL_NOT_SELECTED
         val (row, column) = position
         val cell = userGrid[row][column]
@@ -514,24 +561,48 @@ class SudokuGameViewModel(
         val value = solutionGrid.value[row][column]
         userGrid[row][column] = cell.copy(value = value, notes = emptySet())
         updateNotesAfterValueChange(userGrid, row, column, value)
+        // A hinted cell never earns points, including after erase + re-enter.
+        scoredCells[row][column] = true
         hintsUsed.intValue++
         AnalyticsUtils.logHintUsed(appContext, currentDifficulty.value.name)
 
         if (isWin(userGrid, solutionGrid.value)) {
             gameWon.value = true
             pauseTimer()
-            recordCompletion(isWon = true, useHintScore = true)
+            winPersisted = false
             return HintResult.GAME_WON
         }
         return HintResult.APPLIED
     }
 
-    suspend fun persistWin(pointsToAward: Int, freePlay: Boolean) {
-        if (winPersisted || mode == "learn") return
+    /**
+     * Records a win exactly once and returns the awarded points. The award is computed
+     * here only, after the booster is actually consumed, and the same value goes to
+     * statistics, lifetime points and the dialog. Runs non-cancellable so leaving the
+     * screen can't consume a booster without crediting the points.
+     */
+    suspend fun persistWin(freePlay: Boolean): Int = withContext(NonCancellable) {
+        if (winPersisted || mode == "learn") return@withContext pointsToAward(freePlay)
         winPersisted = true
+        // Snapshot before suspending: "Next Game" may reset the live state meanwhile.
+        val baseScore = score.intValue
+        val wonMistakes = mistakes.intValue
+        val wonSeconds = _timerState.value.elapsedSeconds
+        val wonDifficulty = currentDifficulty.value
+        val boosted = !freePlay && hasDoublePointsBooster.value &&
+            appPreferences.consumeDoublePointsBooster()
+        // No booster left in the wallet: don't double, and stop showing "x 2".
+        if (!boosted && gameWon.value) hasDoublePointsBooster.value = false
+        val award = finalScore(baseScore, boosted)
+        recordCompletion(
+            isWon = true,
+            resultScore = award,
+            mistakesCount = wonMistakes,
+            elapsed = wonSeconds,
+            difficulty = wonDifficulty
+        )
         if (!freePlay) {
-            if (hasDoublePointsBooster.value) appPreferences.consumeDoublePointsBooster()
-            totalScoreManager.addScore(pointsToAward)
+            totalScoreManager.addScore(creditedPoints(award, BuildConfig.DEBUG))
         }
         if (mode == "streak") {
             val today = LocalDate.now().toString()
@@ -556,6 +627,7 @@ class SudokuGameViewModel(
         } else {
             gameStateManager.clearGameState()
         }
+        award
     }
 
     fun startTimer(elapsedSeconds: Int = 0, shouldCount: Boolean = true) {
@@ -580,6 +652,7 @@ class SudokuGameViewModel(
     }
 
     fun toggleTimer(shouldCount: Boolean = true) {
+        if (isLoading.value) return // no clock while there is no puzzle yet
         if (_timerState.value.isRunning) pauseTimer() else resumeTimer(shouldCount)
     }
 
@@ -597,16 +670,20 @@ class SudokuGameViewModel(
         }
     }
 
-    private fun recordCompletion(isWon: Boolean, useHintScore: Boolean = false) {
-        if (BuildConfig.DEBUG) score.intValue *= DebugOptions.SCORE_MULTIPLIER
-        val elapsed = _timerState.value.elapsedSeconds
+    private fun recordCompletion(
+        isWon: Boolean,
+        resultScore: Int = score.intValue,
+        mistakesCount: Int = mistakes.intValue,
+        elapsed: Int = _timerState.value.elapsedSeconds,
+        difficulty: Difficulty = currentDifficulty.value
+    ) {
         if (mode == "streak") {
             GameCompletionRecorder.recordStreakGameCompletion(
                 context = appContext,
                 scope = viewModelScope,
                 streakDay = streakDay,
                 isWon = isWon,
-                score = score.intValue,
+                score = resultScore,
                 timeSeconds = elapsed
             )
             GameCompletionRecorder.recordGameCompletion(
@@ -614,8 +691,8 @@ class SudokuGameViewModel(
                 scope = viewModelScope,
                 difficulty = "streak",
                 isWon = isWon,
-                mistakes = mistakes.intValue,
-                score = score.intValue,
+                mistakes = mistakesCount,
+                score = resultScore,
                 timeSeconds = elapsed,
                 mode = "regular"
             )
@@ -633,15 +710,12 @@ class SudokuGameViewModel(
             // difficulty unlocks or win-rate/time statistics. The live preference
             // is reliable here: gameplay options are locked while a saved game
             // exists, so Free Play can't change mid-game.
-            val resultScore = if (isWon && !useHintScore && hasDoublePointsBooster.value) {
-                (score.intValue.toLong() * 2L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-            } else score.intValue
             GameCompletionRecorder.recordGameCompletion(
                 context = appContext,
                 scope = viewModelScope,
-                difficulty = currentDifficulty.value.name,
+                difficulty = difficulty.name,
                 isWon = isWon,
-                mistakes = mistakes.intValue,
+                mistakes = mistakesCount,
                 score = resultScore,
                 timeSeconds = elapsed,
                 mode = "regular"
@@ -726,6 +800,48 @@ class SudokuGameViewModel(
     }
 
     companion object {
+        private fun emptyGrid(): Array<IntArray> = Array(9) { IntArray(9) }
+
+        /** Hints allowed per game. Enforced in [useHint]; the UI only mirrors it. */
+        const val MAX_HINTS_PER_GAME = 3
+
+        /**
+         * For saves made before `scoredCells` was persisted: every non-given cell that already
+         * holds its correct value has earned (or, for a hint, forfeited) its points.
+         */
+        internal fun inferScoredCells(
+            originalGrid: List<List<Int>>,
+            solutionGrid: List<List<Int>>,
+            userGrid: List<List<CellData>>
+        ): Set<Int> = buildSet {
+            for (row in 0..8) for (column in 0..8) {
+                val value = userGrid[row][column].value
+                if (originalGrid[row][column] == 0 && value != 0 &&
+                    value == solutionGrid[row][column]
+                ) add(row * 9 + column)
+            }
+        }
+
+        /** The single place a win's points are computed: doubled when the booster applies. */
+        internal fun finalScore(baseScore: Int, boosted: Boolean): Int =
+            if (boosted) {
+                (baseScore.toLong() * 2L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            } else {
+                baseScore
+            }
+
+        /**
+         * Lifetime points actually credited. Debug builds multiply only this credit (to earn
+         * points quickly while testing); the live score, stats and dialog stay unchanged.
+         */
+        internal fun creditedPoints(award: Int, debug: Boolean): Int =
+            if (debug) {
+                (award.toLong() * DebugOptions.SCORE_MULTIPLIER)
+                    .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            } else {
+                award
+            }
+
         fun factory(
             context: Context,
             appPreferences: AppPreferences,

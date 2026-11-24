@@ -54,5 +54,13 @@ install/run command is `Not determinable from provided context.`
   not automatically active Actions workflows.
 - Release minification and resource shrinking are enabled. Validate release
   behavior when changing code affected by R8 or resource shrinking.
+- To measure the real download size, build the bundle, then use
+  [bundletool](https://github.com/google/bundletool/releases) (signing with the
+  local debug keystore is fine for measuring and emulator installs):
+  `java -jar bundletool.jar build-apks --bundle=app/build/outputs/bundle/release/app-release.aab --output=app.apks --ks=%USERPROFILE%\.android\debug.keystore --ks-pass=pass:android --ks-key-alias=androiddebugkey --key-pass=pass:android`,
+  then `java -jar bundletool.jar get-size total --apks=app.apks --dimensions=ABI,SCREEN_DENSITY`.
+  `install-apks --apks=app.apks` installs it on a connected emulator. The AAB
+  file size is not the download size (it includes every ABI/density and the
+  R8 mapping).
 - Firebase configuration failures depend on local configuration and are
   `Not determinable from provided context.`

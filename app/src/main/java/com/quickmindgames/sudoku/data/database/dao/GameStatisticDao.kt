@@ -57,7 +57,8 @@ interface GameStatisticDao {
     /**
      * Get average completion time for all games of a specific difficulty
      */
-    @Query("SELECT AVG(time_seconds) FROM game_statistics WHERE difficulty = :difficulty")
+    // Wins only: a lost game's time says nothing about solving speed.
+    @Query("SELECT AVG(time_seconds) FROM game_statistics WHERE difficulty = :difficulty AND is_won = 1")
     fun getAverageTimeByDifficulty(difficulty: String): Flow<Double?>
 
     /**
@@ -105,7 +106,8 @@ interface GameStatisticDao {
     /**
      * Get average completion time across all games
      */
-    @Query("SELECT AVG(time_seconds) FROM game_statistics")
+    // Wins only: a lost game's time says nothing about solving speed.
+    @Query("SELECT AVG(time_seconds) FROM game_statistics WHERE is_won = 1")
     fun getAverageTimeOverall(): Flow<Double?>
 
     /**

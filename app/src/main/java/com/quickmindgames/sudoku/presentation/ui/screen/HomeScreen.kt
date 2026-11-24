@@ -61,7 +61,7 @@ import com.quickmindgames.sudoku.component.DifficultyCard
 import com.quickmindgames.sudoku.component.StreakSummaryCard
 import com.quickmindgames.sudoku.component.primaryGradientBrush
 import com.quickmindgames.sudoku.domain.model.Difficulty
-import com.quickmindgames.sudoku.presentation.ui.isDifficultyUnlocked
+import com.quickmindgames.sudoku.domain.util.DifficultyUnlocks
 import com.quickmindgames.sudoku.presentation.util.shimmerLogo
 import com.quickmindgames.sudoku.presentation.viewmodel.HomeStreakDialog
 import com.quickmindgames.sudoku.presentation.viewmodel.HomeViewModel
@@ -291,11 +291,18 @@ fun HomeScreen(
                 Spacer(Modifier.height(16.dp))
 
                 // Difficulty cards
+                // Unlock state comes from HomeViewModel (loaded once, kept live). Until it has
+                // loaded, cards other than Breeze show a neutral state instead of "locked".
+                val unlocks = homeState.difficultyUnlocks
                 Difficulty.entries.forEach { difficulty ->
-                    val (isUnlocked, lockedMessage) = isDifficultyUnlocked(difficulty, context)
+                    val unlockKnown = unlocks != null || difficulty == Difficulty.Breeze
+                    val isUnlocked = difficulty == Difficulty.Breeze ||
+                        unlocks?.isUnlocked(difficulty) == true
+                    val lockedMessage = DifficultyUnlocks.lockedMessage(difficulty)
                     DifficultyCard(
                         difficulty = difficulty,
-                        isLocked = !isUnlocked,
+                        isLoading = !unlockKnown,
+                        isLocked = unlockKnown && !isUnlocked,
                         onClick = {
                             showSheet = false
                             onDifficultySelected(difficulty, useDoublePointsBooster)

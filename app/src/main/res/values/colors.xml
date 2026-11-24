@@ -7,4 +7,6 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <!-- Tint for the streak reminder's small icon/header (same orange as the flame). -->
+    <color name="notification_accent">#FFFFA500</color>
 </resources>

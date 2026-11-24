@@ -16,7 +16,7 @@ accessors and Compose `remember`; no DI framework is used.
 
 | Component | Location | Responsibility | Key dependencies |
 |---|---|---|---|
-| Android entry and app shell | `SudokuApp.kt`, `presentation/ui/MainActivity.kt` | Firebase initialization, permissions, theme, startup work, Compose host | AndroidX Activity, Firebase, WorkManager |
+| Android entry and app shell | `SudokuApp.kt`, `presentation/ui/MainActivity.kt` | Firebase initialization, theme, startup work, Compose host | AndroidX Activity, Firebase, WorkManager |
 | Navigation and screens | `presentation/navigation/`, `presentation/ui/screen/` | Compose navigation, screen UI and callbacks | Navigation Compose, lifecycle ViewModels |
 | Reusable UI | `component/`, `presentation/ui/theme/` | Shared Compose widgets and Material theme | Compose Material 3 |
 | Presentation state | `presentation/viewmodel/` | Screen-scoped game, settings, rewards, streak, and statistics state | Coroutines/Flow, repositories, managers |
@@ -35,7 +35,8 @@ flowchart LR
     Activity[MainActivity] --> Nav[Compose NavHost]
     Nav --> UI
     Activity --> Firebase[Firebase Analytics and Remote Config]
-    Activity --> Worker[WorkManager streak reminder]
+    Settings[Settings and post-win prompt] --> ReminderPrefs[Streak reminder opt-in]
+    ReminderPrefs --> Worker[WorkManager streak reminder]
     Worker --> DS
 ```
 

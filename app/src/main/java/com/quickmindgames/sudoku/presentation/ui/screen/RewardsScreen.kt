@@ -90,7 +90,6 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
     val coroutineScope = rememberCoroutineScope()
     val rotation = remember { Animatable(0f) }
     val pointsCounter = remember { Animatable(0f) }
-    var currentTimeMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var hasLoadedPoints by remember { mutableStateOf(false) }
     var animateNextPointsUpdate by remember { mutableStateOf(false) }
     var selectedWalletInfo by remember { mutableStateOf<WalletInfo?>(null) }
@@ -101,18 +100,22 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
     val initialPointHints = rewardsState.initialPointHints
     val initialStreakHints = rewardsState.initialStreakHints
     val soundAndVibrationEnabled = rewardsState.soundAndVibrationEnabled
-    val lastSpinMillis = rewardsState.lastSpinMillis
+    val lastSpin = rewardsState.lastSpin
+    val spinLoaded = rewardsState.spinLoaded
     val isSpinning = rewardsState.isSpinning
     val showWelcomeRewardsSummary = rewardsState.showWelcomeRewardsSummary
     val coolDownTotalMillis =
         if (BuildConfig.DEBUG) DebugOptions.WHEEL_SPIN_COOLDOWN_MILLIS else AppPreferences.WHEEL_SPIN_COOLDOWN_MILLIS
-    val cooldownRemainingMillis =
-        lastSpinMillis?.let { (it + coolDownTotalMillis - currentTimeMillis).coerceAtLeast(0L) }
+    // Computed by the ViewModel from the boot clock, not from wall-clock arithmetic here.
+    var cooldownRemainingMillis by remember(lastSpin, spinLoaded) {
+        mutableLongStateOf(
+            if (spinLoaded) rewardsViewModel.cooldownRemainingMillis(coolDownTotalMillis) else 0L
+        )
+    }
     var showDialog by remember { mutableStateOf(true) }
-    val canSpin = lastSpinMillis != Long.MIN_VALUE &&
-            (cooldownRemainingMillis == null || cooldownRemainingMillis == 0L)
+    val canSpin = spinLoaded && cooldownRemainingMillis == 0L
     val cooldownLabel = cooldownRemainingMillis
-        ?.takeIf { !canSpin && !isSpinning }
+        .takeIf { spinLoaded && it > 0L && !isSpinning }
         ?.let { remainingMillis ->
             val totalSeconds = (remainingMillis + 999L) / 1_000L
             "%02d:%02d:%02d".format(
@@ -122,14 +125,13 @@ fun RewardsScreen(modifier: Modifier = Modifier) {
             )
         }
 
-    LaunchedEffect(lastSpinMillis) {
-        while (lastSpinMillis != Long.MIN_VALUE) {
-            currentTimeMillis = System.currentTimeMillis()
-            val previousSpin = lastSpinMillis ?: break
-            val remainingMillis = previousSpin + coolDownTotalMillis - currentTimeMillis
+    LaunchedEffect(lastSpin, spinLoaded) {
+        if (!spinLoaded) return@LaunchedEffect
+        while (true) {
+            val remainingMillis = rewardsViewModel.cooldownRemainingMillis(coolDownTotalMillis)
+            cooldownRemainingMillis = remainingMillis
             if (remainingMillis <= 0L) break
             delay(remainingMillis.coerceAtMost(1_000L))
-            currentTimeMillis = System.currentTimeMillis()
         }
     }
 
