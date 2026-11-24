@@ -28,10 +28,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,7 +49,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.quickmindgames.sudoku.data.preferences.AppPreferences
 import com.quickmindgames.sudoku.data.preferences.ThemePreferences
-import com.quickmindgames.sudoku.data.repository.StatisticsRepository
 import com.quickmindgames.sudoku.data.score.TotalScoreManager
 import com.quickmindgames.sudoku.data.state.StreakStateManager
 import com.quickmindgames.sudoku.domain.model.Difficulty
@@ -357,64 +354,4 @@ fun MainSudokuApp() {
 fun currentRoute(navController: NavHostController): String? {
     val backStackEntry by navController.currentBackStackEntryAsState()
     return backStackEntry?.destination?.route
-}
-
-/**
- * Check if a difficulty level is unlocked
- * Breeze: Always unlocked
- * Pulse: Requires 5 Breeze games
- * Rage: Requires 5 Pulse games
- * Elite: Requires 5 Rage games
- */
-@Composable
-fun isDifficultyUnlocked(
-    difficulty: Difficulty,
-    context: Context
-): Pair<Boolean, String> {
-    var breezeWins by remember { mutableIntStateOf(0) }
-    var pulseWins by remember { mutableIntStateOf(0) }
-    var rageWins by remember { mutableIntStateOf(0) }
-
-    val repository = remember { StatisticsRepository(context) }
-    val coroutineScope = rememberCoroutineScope()
-
-    LaunchedEffect(Unit) {
-        coroutineScope.launch {
-            try {
-                val allStats = repository.getAllStatistics().first()
-                breezeWins = allStats.breeze.wins
-                pulseWins = allStats.pulse.wins
-                rageWins = allStats.rage.wins
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-
-    return when (difficulty) {
-        Difficulty.Breeze -> Pair(true, "")
-        Difficulty.Pulse -> {
-            if (breezeWins >= 5) {
-                Pair(true, "")
-            } else {
-                Pair(false, "Win 5 Breeze games to unlock Pulse")
-            }
-        }
-
-        Difficulty.Rage -> {
-            if (pulseWins >= 5) {
-                Pair(true, "")
-            } else {
-                Pair(false, "Win 5 Pulse games to unlock Rage")
-            }
-        }
-
-        Difficulty.Elite -> {
-            if (rageWins >= 5) {
-                Pair(true, "")
-            } else {
-                Pair(false, "Win 5 Rage games to unlock Elite")
-            }
-        }
-    }
 }

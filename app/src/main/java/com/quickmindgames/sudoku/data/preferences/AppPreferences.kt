@@ -11,6 +11,8 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.quickmindgames.sudoku.data.rewards.HintMigrationGrant
 import com.quickmindgames.sudoku.data.rewards.HintRewardRules
+import com.quickmindgames.sudoku.domain.util.ClockReading
+import com.quickmindgames.sudoku.domain.util.SpinRecord
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -58,6 +60,10 @@ class AppPreferences internal constructor(
     private val FREE_PLAY_KEY = booleanPreferencesKey("free_play")
     private val SOUND_AND_VIBRATION_KEY = booleanPreferencesKey("sound_and_vibration")
     private val LAST_SPIN_KEY = longPreferencesKey("last_spin")
+    // Boot clock and boot count of the last spin, so the cooldown doesn't trust the wall
+    // clock (see SpinCooldown). Absent for spins saved by older versions.
+    private val LAST_SPIN_ELAPSED_KEY = longPreferencesKey("last_spin_elapsed")
+    private val LAST_SPIN_BOOT_COUNT_KEY = intPreferencesKey("last_spin_boot_count")
     private val HINT_WALLET_KEY = intPreferencesKey("hint_wallet")
     private val DOUBLE_POINTS_BOOSTER_WALLET_KEY =
         intPreferencesKey("double_points_booster_wallet")
@@ -108,8 +114,14 @@ class AppPreferences internal constructor(
         preferences[WELCOME_REWARDS_SUMMARY_SHOWN_KEY] ?: false
     }
 
-    val lastSpin: Flow<Long?> = dataStore.data.map { preferences ->
-        preferences[LAST_SPIN_KEY]
+    val lastSpin: Flow<SpinRecord?> = dataStore.data.map { preferences ->
+        preferences[LAST_SPIN_KEY]?.let { wallMillis ->
+            SpinRecord(
+                wallMillis = wallMillis,
+                elapsedMillis = preferences[LAST_SPIN_ELAPSED_KEY],
+                bootCount = preferences[LAST_SPIN_BOOT_COUNT_KEY]
+            )
+        }
     }
 
     val pendingWheelSpin: Flow<PendingWheelSpin?> = dataStore.data.map { preferences ->
@@ -173,12 +185,6 @@ class AppPreferences internal constructor(
         }
     }
 
-    suspend fun setLastSpin(timestampMillis: Long) {
-        dataStore.edit { preferences ->
-            preferences[LAST_SPIN_KEY] = timestampMillis
-        }
-    }
-
     /**
      * Starts the spin cooldown and records the (not yet credited) prize in a
      * single atomic write, so the cooldown and the pending prize can never get
@@ -186,14 +192,22 @@ class AppPreferences internal constructor(
      * recovered via [pendingWheelSpin] if the user leaves mid-spin.
      */
     suspend fun setPendingSpin(
-        timestampMillis: Long,
+        spinTime: ClockReading,
         prizeType: String,
         amount: Int,
         spinId: String
     ) {
         require(spinId.isNotBlank()) { "Spin ID cannot be blank." }
         dataStore.edit { preferences ->
-            preferences[LAST_SPIN_KEY] = timestampMillis
+            preferences[LAST_SPIN_KEY] = spinTime.wallMillis
+            preferences[LAST_SPIN_ELAPSED_KEY] = spinTime.elapsedMillis
+            val bootCount = spinTime.bootCount
+            if (bootCount != null) {
+                preferences[LAST_SPIN_BOOT_COUNT_KEY] = bootCount
+            } else {
+                // Unknown boot: SpinCooldown then falls back to the (clamped) wall clock.
+                preferences.remove(LAST_SPIN_BOOT_COUNT_KEY)
+            }
             preferences[PENDING_SPIN_PRIZE_TYPE_KEY] = prizeType
             preferences[PENDING_SPIN_AMOUNT_KEY] = amount
             preferences[PENDING_SPIN_ID_KEY] = spinId

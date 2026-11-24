@@ -34,6 +34,7 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -84,7 +85,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
-private const val MAX_HINTS_PER_GAME = 3
 
 /**
  *
@@ -149,6 +149,7 @@ fun SudokuScreen(
     val mistakes by gameViewModel.mistakes
     val timeSeconds = timerState.elapsedSeconds
     val isRunning = timerState.isRunning
+    val isLoading by gameViewModel.isLoading
     val score by gameViewModel.score
     val hasDoublePointsBooster by gameViewModel.hasDoublePointsBooster
     val currentDifficulty by gameViewModel.currentDifficulty
@@ -159,7 +160,8 @@ fun SudokuScreen(
     val hintWallet = preferences.hintWallet
 
     val isLearningMode = mode == "learn"
-    val remainingGameHints = (MAX_HINTS_PER_GAME - hintsUsed).coerceAtLeast(0)
+    val remainingGameHints =
+        (SudokuGameViewModel.MAX_HINTS_PER_GAME - hintsUsed).coerceAtLeast(0)
     val availableHints = minOf(hintWallet, remainingGameHints)
     val canUseHint = !isLearningMode && !freePlayEnabled && availableHints > 0
     val pointsToAward = gameViewModel.pointsToAward(freePlayEnabled)
@@ -437,8 +439,22 @@ fun SudokuScreen(
                 }
             )
 
+            // Loading overlay: the puzzle is being generated off the main thread.
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(color = colors.surfaceContainerLow.copy(alpha = 0.98f))
+                        // Swallow taps so the empty board underneath can't be used.
+                        .clickable(enabled = true, onClick = {}),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = colors.primary)
+                }
+            }
+
             // Pause overlay
-            if (!isRunning && !gameOver && !gameWon) {
+            if (!isLoading && !isRunning && !gameOver && !gameWon) {
                 Box(
                     modifier = Modifier
                         .matchParentSize()
@@ -636,7 +652,14 @@ fun SudokuScreen(
                                 HintResult.GAME_WON ->
                                     gameFeedback.playPuzzleCompleted(soundAndVibrationEnabled)
 
-                                HintResult.APPLIED -> Unit
+                                HintResult.LIMIT_REACHED ->
+                                    Toast.makeText(
+                                        context,
+                                        "You've used all ${SudokuGameViewModel.MAX_HINTS_PER_GAME} hints for this game.",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+
+                                HintResult.APPLIED, HintResult.IN_PROGRESS -> Unit
                             }
                         }
                     },
@@ -832,7 +855,7 @@ fun SudokuScreen(
             val nextAction = DialogAction(
                 text = "Next Game",
                 onClick = {
-                    gameViewModel.createNextGame()
+                    coroutineScope.launch { gameViewModel.createNextGame() }
                 }
             )
             CustomActionDialog(

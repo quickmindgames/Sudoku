@@ -57,5 +57,6 @@ splash-screen = { group = "androidx.core", name = "core-splashscreen", version.r
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+room = { id = "androidx.room", version.ref = "room" }
 googleservices = { id = "com.google.gms.google-services", version.ref = "googleservices" }
 firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebase" }

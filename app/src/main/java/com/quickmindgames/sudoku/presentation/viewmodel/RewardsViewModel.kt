@@ -12,6 +12,9 @@ import com.quickmindgames.sudoku.component.PrizeWheelPrizes
 import com.quickmindgames.sudoku.component.weightedPrizeIndex
 import com.quickmindgames.sudoku.data.preferences.AppPreferences
 import com.quickmindgames.sudoku.data.score.TotalScoreManager
+import com.quickmindgames.sudoku.domain.util.SpinCooldown
+import com.quickmindgames.sudoku.domain.util.SpinRecord
+import com.quickmindgames.sudoku.utils.DeviceClock
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,7 +32,9 @@ data class RewardsScreenState(
     val initialPointHints: Int = 0,
     val initialStreakHints: Int = 0,
     val soundAndVibrationEnabled: Boolean = true,
-    val lastSpinMillis: Long? = Long.MIN_VALUE,
+    /** The last spin; `null` if the wheel was never spun. Only meaningful once [spinLoaded]. */
+    val lastSpin: SpinRecord? = null,
+    val spinLoaded: Boolean = false,
     val showWelcomeRewardsSummary: Boolean = false,
     val isSpinning: Boolean = false
 )
@@ -101,8 +106,8 @@ class RewardsViewModel(context: Context) : ViewModel() {
             }
         }
         viewModelScope.launch {
-            appPreferences.lastSpin.collect { timestamp ->
-                _uiState.update { it.copy(lastSpinMillis = timestamp) }
+            appPreferences.lastSpin.collect { record ->
+                _uiState.update { it.copy(lastSpin = record, spinLoaded = true) }
             }
         }
         viewModelScope.launch {
@@ -152,21 +157,31 @@ class RewardsViewModel(context: Context) : ViewModel() {
      * (see [recoverPendingSpin]). The persistence runs in `withContext(NonCancellable)`
      * so it survives cancellation of the caller's coroutine.
      */
+    /**
+     * Time left before the next spin, measured with the boot clock where possible so that
+     * changing the device date/time can't skip or extend the cooldown (see [SpinCooldown]).
+     */
+    fun cooldownRemainingMillis(coolDownTotalMillis: Long): Long =
+        SpinCooldown.remainingMillis(
+            _uiState.value.lastSpin,
+            DeviceClock.now(appContext),
+            coolDownTotalMillis
+        )
+
     suspend fun beginSpin(coolDownTotalMillis: Long): RewardSpin? {
-        if (_uiState.value.isSpinning) return null
-        val lastSpin = _uiState.value.lastSpinMillis
-        val now = System.currentTimeMillis()
-        if (
-            lastSpin == Long.MIN_VALUE ||
-            lastSpin != null &&
-            now < lastSpin + coolDownTotalMillis
-        ) return null
+        val state = _uiState.value
+        if (state.isSpinning || !state.spinLoaded) return null
+        val now = DeviceClock.now(appContext)
+        if (SpinCooldown.remainingMillis(state.lastSpin, now, coolDownTotalMillis) > 0L) {
+            return null
+        }
 
         val prizeIndex = weightedPrizeIndex(PrizeWheelPrizes, Random)
         val prize = PrizeWheelPrizes[prizeIndex]
-        val spinId = now.toString()
+        val spinId = now.wallMillis.toString()
         val spin = RewardSpin(prize, prizeIndex, spinId)
-        _uiState.update { it.copy(isSpinning = true, lastSpinMillis = now) }
+        val record = SpinRecord(now.wallMillis, now.elapsedMillis, now.bootCount)
+        _uiState.update { it.copy(isSpinning = true, lastSpin = record) }
         return try {
             withContext(NonCancellable) {
                 appPreferences.setPendingSpin(now, prize.type.name, prize.amount, spinId)

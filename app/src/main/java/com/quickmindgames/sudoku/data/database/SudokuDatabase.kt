@@ -10,12 +10,16 @@ import com.quickmindgames.sudoku.data.database.entity.GameStatisticEntity
 import com.quickmindgames.sudoku.data.database.entity.StreakGameEntity
 
 /**
- * Room database for Sudoku game statistics
+ * Room database for Sudoku game statistics.
+ *
+ * Schema changes: bump [version], add an AutoMigration or Migration, commit the new
+ * `app/schemas/.../<version>.json`, and add a test in `SudokuDatabaseMigrationTest`.
+ * Never add fallbackToDestructiveMigration(): it would wipe users' statistics.
  */
 @Database(
     entities = [GameStatisticEntity::class, StreakGameEntity::class],
     version = 1,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class SudokuDatabase : RoomDatabase() {
 

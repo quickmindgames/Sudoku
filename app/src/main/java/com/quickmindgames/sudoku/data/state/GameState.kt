@@ -17,7 +17,12 @@ data class GameState(
     val selectedCell: Pair<Int, Int>?,
     val isNotesMode: Boolean = false,
     val hintsUsed: Int = 0,
-    val hasDoublePointsBooster: Boolean = false
+    val hasDoublePointsBooster: Boolean = false,
+    /**
+     * Cells (index `row * 9 + column`) that already earned points, so they can't score twice.
+     * `null` means the save predates this field; the game infers it from the grid instead.
+     */
+    val scoredCells: Set<Int>? = null
 ) {
     /**
      * Check if the game has been started (timer has ticked at least once)
@@ -73,6 +78,9 @@ data class GameState(
             append("NOTES_MODE:$isNotesMode\n") // NEW: persist notes mode
             append("HINTS_USED:").append(hintsUsed.coerceAtLeast(0)).append('\n')
             append("DOUBLE_POINTS_BOOSTER:$hasDoublePointsBooster\n")
+            scoredCells?.let { cells ->
+                append("SCORED:").append(cells.sorted().joinToString(",")).append('\n')
+            }
         }
     }
 
@@ -162,6 +170,14 @@ data class GameState(
                     ?.substringAfter("DOUBLE_POINTS_BOOSTER:")
                     ?.toBooleanStrictOrNull()
                     ?: false
+                // SCORED is optional: older saves don't have it (null = infer from the grid).
+                val scoredCells = lines.drop(index)
+                    .firstOrNull { it.startsWith("SCORED:") }
+                    ?.substringAfter("SCORED:")
+                    ?.split(",")
+                    ?.mapNotNull { it.trim().toIntOrNull() }
+                    ?.filter { it in 0..80 }
+                    ?.toSet()
                 GameState(
                     difficulty = difficulty,
                     originalGrid = originalGrid,
@@ -174,7 +190,8 @@ data class GameState(
                     selectedCell = selectedCell,
                     isNotesMode = isNotesMode,
                     hintsUsed = hintsUsed,
-                    hasDoublePointsBooster = hasDoublePointsBooster
+                    hasDoublePointsBooster = hasDoublePointsBooster,
+                    scoredCells = scoredCells
                 )
             } catch (e: Exception) {
                 null

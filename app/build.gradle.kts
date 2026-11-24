@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
     alias(libs.plugins.googleservices)
     alias(libs.plugins.firebase.crashlytics)
 }
@@ -83,6 +84,13 @@ android {
         compose = true
         buildConfig = true
     }
+}
+
+// Room writes each database version's schema to app/schemas/<db class>/<version>.json.
+// Commit these files: migration tests (MigrationTestHelper) read them, and they are the
+// record of what existing users' databases look like.
+room {
+    schemaDirectory("$projectDir/schemas")
 }
 
 kotlin {

@@ -4,7 +4,7 @@ Each issue below is ready to paste into Linear: the **Title** goes in the title 
 
 > Secret values (keystore passwords, Sonar token) are deliberately **not** written here. Refer to the file and line instead.
 
-> **Status (2026-11-21):** #1–#9 are resolved in the working tree (see the ✅ markers below; #6 still needs a device check and #9 a DebugView check). The other 11 are still open.
+> **Status (2026-11-24):** #1–#9 and #11–#18 are resolved in the working tree (see the ✅ markers below; #6 still needs a device check and #9 a DebugView check). The other 3 are still open.
 
 ---
 
@@ -48,7 +48,7 @@ Each issue below is ready to paste into Linear: the **Title** goes in the title 
 **Acceptance criteria**
 - [x] Unit test: generated puzzles per difficulty all have exactly 1 solution (50 runs each in `SudokuGeneratorTest`).
 - [x] Each puzzle's clue count falls within the configured range, or the closest reachable value is logged.
-- [ ] Generation p95 is under 300 ms on a mid-range device, and the main thread is never blocked. *(Speed test passes; off-main-thread work tracked by #16.)*
+- [ ] Generation p95 is under 300 ms on a mid-range device, and the main thread is never blocked. *(Speed test passes; off-main-thread generation done in #16. Not yet measured on a real mid-range device.)*
 
 ---
 
@@ -320,6 +320,16 @@ The auto-save `LaunchedEffect` is keyed on `userGrid.hashCode()` and other value
 
 **Priority:** Medium · **Labels:** `build`, `performance`, `app-size`
 
+**Status:** ✅ Resolved (2026-11-24). Removed the blanket `-keep` rules for Compose, Room and WorkManager and the catch-all `-dontwarn androidx.**` from `proguard-rules.pro`; the libraries' own consumer rules are enough (R8 reported no missing classes). Added `-keepattributes SourceFile,LineNumberTable` and `-renamesourcefileattribute SourceFile` so Crashlytics traces keep line numbers. Deleted the unused 1.9 MB `drawable/ic_home_launcher.png`. Kept `material-icons-extended`: R8 now strips the unused icons.
+
+| Measure (bundletool, arm64 xxhdpi) | Before | After |
+|---|---|---|
+| Download size | 9.37 MB | 3.36 MB |
+| AAB file | 23.8 MB | 7.45 MB |
+| Dex (uncompressed) | 22.2 MB | 4.1 MB |
+
+Release smoke test on an emulator (API 36), with no crashes: upgraded over the previous release with a game in progress (the game resumed); finished it with a hint (dialog, stats and wallet all showed 30 points; hints 5 → 4); spun the prize wheel; started a streak game; opened the lesson and practice mode; started a new game with the 2X booster; rotated the screen mid-game; toggled dark mode; opened Statistics. The streak reminder job could not be force-run (WorkManager defers periodic work before its schedule), but the mapping shows `StreakReminderWorker` and its `(Context, WorkerParameters)` constructor are kept. Optional follow-up: convert `sudoku_icon.png` (515 KB) and the `ic_splash` PNGs to WebP (about 0.4 MB more). Files: `proguard-rules.pro`, `ic_home_launcher.png` (deleted), `docs/onboarding.md`, `docs/pitfalls.md`.
+
 ### Description
 
 **Summary**
@@ -331,13 +341,15 @@ The auto-save `LaunchedEffect` is keyed on `userGrid.hashCode()` and other value
 - Compare the size with `bundletool get-size total` before and after.
 
 **Acceptance criteria**
-- [ ] Release download size is reduced significantly (target under 8 MB) with no runtime crashes in a smoke test of every screen.
+- [x] Release download size is reduced significantly (target under 8 MB) with no runtime crashes in a smoke test of every screen. *(3.36 MB; emulator smoke test passed.)*
 
 ---
 
 ## 12. The 3-hints-per-game limit is enforced only in the UI
 
 **Priority:** Low · **Labels:** `bug`, `hints`
+
+**Status:** ✅ Resolved (2026-11-24). `MAX_HINTS_PER_GAME` moved from `SudokuScreen.kt` to the `SudokuGameViewModel` companion (the UI reads it from there). `useHint()` returns the new `HintResult.LIMIT_REACHED` before touching the wallet, and the screen shows a toast for it. Fast double taps are blocked too: `processHint()` returns the new `HintResult.IN_PROGRESS` while another hint is still being written, so a second tap can't pass the limit check with a stale count. Covered by the instrumented `SudokuGameViewModelHintTest`, run on an emulator with a throwaway DataStore: the 4th hint returns `LIMIT_REACHED` with the wallet unchanged, and two concurrent taps apply one hint. Files: `SudokuGameViewModel.kt`, `SudokuScreen.kt`, `SudokuGameViewModelHintTest.kt`, `docs/glossary.md`.
 
 ### Description
 
@@ -348,13 +360,21 @@ The auto-save `LaunchedEffect` is keyed on `userGrid.hashCode()` and other value
 Move the constant into the ViewModel or domain layer and return a new `HintResult.LIMIT_REACHED` from `useHint()` before consuming from the wallet.
 
 **Acceptance criteria**
-- [ ] Unit test: the 4th `useHint()` call returns `LIMIT_REACHED` and the wallet balance is unchanged.
+- [x] Unit test: the 4th `useHint()` call returns `LIMIT_REACHED` and the wallet balance is unchanged. *(Instrumented test, because the ViewModel needs an Android `Context`.)*
 
 ---
 
 ## 13. Resumed games lose `scoredCells` and undo history; streak resume loses notes mode and booster flag
 
 **Priority:** Low · **Labels:** `bug`, `persistence`
+
+**Status:** ✅ Resolved (2026-11-24). `GameState` now saves `scoredCells` as an optional trailing `SCORED:` line (cell indexes). Old saves without it still load: `scoredCells` comes back `null` and the ViewModel infers it from the grid (every correct, non-given cell counts as scored). Regular and streak resume now share `SudokuGameViewModel.restoreFrom()`, so the streak path also restores notes mode, `puzzleData`, the booster flag and scored cells. Notes mode was already saved inside the streak save, so existing streak games get it back straight away. Undo history is **not** persisted (decision 2026-11-24): it starts empty after a resume.
+
+Related bug fixed: `useHint()` never marked the cell as scored, so **hint → Undo → type the digit** earned points. Hinted cells are now marked scored.
+
+Note: today's UI only enables Erase for wrong cells or cells with notes, and undo history is empty after a resume, so the resume double-scoring path couldn't be reached from the UI. The `scoredCells` fix closes it in the ViewModel anyway.
+
+Tests: `GameStateTest` (JVM: round trip, an old-format save without the newer lines, an unknown future line, bad `SCORED` values), `inferScoredCells` in `SudokuGameViewModelTest`, and the instrumented `SudokuGameViewModelResumeTest` (no rescoring after an old or new save, no points for a hinted cell, notes mode restored). Emulator upgrade test: saves written by the pre-change build loaded in the new build; the streak game resumed with Notes on, the score was kept, and hint → Undo → re-enter earned nothing. Files: `GameState.kt`, `SudokuGameViewModel.kt`, `GameStateTest.kt`, `SudokuGameViewModelTest.kt`, `SudokuGameViewModelResumeTest.kt`, `docs/domain-model.md`, `docs/SUDOKU_KNOWLEDGE.md`.
 
 ### Description
 
@@ -369,13 +389,23 @@ Move the constant into the ViewModel or domain layer and return a new `HintResul
 Add `scoredCells` to `GameState` (as an 81-bit string or a list of indexes) and optionally a capped undo history. Share a single `restoreFrom(state)` function between the regular and streak paths.
 
 **Acceptance criteria**
-- [ ] Exit and resume keeps the score correct (no double scoring) and keeps notes mode in both regular and streak games.
+- [x] Exit and resume keeps the score correct (no double scoring) and keeps notes mode in both regular and streak games.
 
 ---
 
 ## 14. Statistics are wrong: "consecutive wins", average time and overall totals
 
 **Priority:** Low · **Labels:** `bug`, `statistics`
+
+**Status:** ✅ Resolved (2026-11-24): points 1 and 2 are fixed; point 3 is **by design**.
+1. `StreakGameDao.getCurrentConsecutiveWins()` now counts only the wins completed after the most recent loss (all wins if there was never a loss), which matches walking the rows by `date_completed DESC` until the first loss.
+2. The three average-time queries (`getAverageTimeByDifficulty`, `getAverageTimeOverall`, `getAverageStreakTime`) now include won games only (`AND is_won = 1`), the same as best time. They return `null` (shown as "—") when there are no wins.
+
+Both are query-only changes: no schema change, no migration, and existing rows are untouched. Users simply see corrected numbers.
+
+3. **By design (decision 2026-11-24):** Overall is meant to cover every recorded game, regular and streak. Each finished streak game is written to `game_statistics` once (difficulty `"streak"`), which is what Overall reads, so there is no double counting. It is also written to `streak_games`, which feeds only the Streak stats (highest day, consecutive wins). Breeze + Pulse + Rage + Elite + streak = Overall; difficulty unlocks count only their own difficulty. Free Play and practice games are not recorded. No code or schema change; the rule is documented in `docs/SUDOKU_KNOWLEDGE.md` and `docs/domain-model.md`.
+
+Covered by the instrumented `StatisticsDaoTest` (in-memory Room with seeded rows): W W L W W W → 3 consecutive; latest game lost → 0; no losses → all wins; no games → 0; average time ignores losses (per difficulty, overall and streak); only losses → `null`. Files: `StreakGameDao.kt`, `GameStatisticDao.kt`, `StatisticsDaoTest.kt`.
 
 ### Description
 
@@ -390,13 +420,19 @@ Add `scoredCells` to `GameState` (as an 81-bit string or a list of indexes) and 
 3. Decide on one source of truth for streak results and filter it consistently.
 
 **Acceptance criteria**
-- [ ] DAO tests with seeded data verify each stat.
+- [x] DAO tests with seeded data verify each stat. *(For consecutive wins and average time; point 3 is by design.)*
 
 ---
 
 ## 15. Prize wheel cooldown relies on the device wall clock
 
 **Priority:** Low · **Labels:** `bug`, `rewards`, `exploit`
+
+**Status:** ✅ Resolved (2026-11-24). A spin now saves the wall time plus `SystemClock.elapsedRealtime()` and the boot count (`Settings.Global.BOOT_COUNT`), in the same atomic write as the pending prize (two new optional DataStore keys; no migration). The new pure rule `domain/util/SpinCooldown` computes the time left. Within the same boot it uses the boot clock, so changing the device time can't skip or extend the cooldown. After a reboot, or for spins saved by older versions, it falls back to the wall clock clamped to `0..cooldown`, so a clock moved backwards never locks the wheel for more than one cooldown. `RewardsViewModel` uses it both for the countdown and in `beginSpin`, and the screen no longer does its own wall-clock arithmetic. Removed the unused `AppPreferences.setLastSpin`.
+
+Known limit (accepted): rebooting the phone and then moving the clock forward still skips the cooldown. Closing that needs a server time source, which the app doesn't have.
+
+Covered by `SpinCooldownTest` (JVM, 9 cases: same boot normal / clock forward / clock back, after reboot, boot clock going backwards, unknown boot count, old spin record). Emulator check (debug, 24 s cooldown): after a spin, moving the clock +1 day kept the wheel locked with the countdown unchanged; moving it −1 year unlocked the wheel on schedule instead of locking it for a year. Files: `SpinCooldown.kt`, `DeviceClock.kt`, `AppPreferences.kt`, `RewardsViewModel.kt`, `RewardsScreen.kt`, `SpinCooldownTest.kt`, `docs/SUDOKU_KNOWLEDGE.md`.
 
 ### Description
 
@@ -410,14 +446,18 @@ The cooldown compares `System.currentTimeMillis()` with the stored `lastSpin`. M
 Also store `SystemClock.elapsedRealtime()` and the boot count. If `lastSpin > now` (the clock went backwards), reset the cooldown to its maximum remaining value instead of a far-future time. For real anti-cheat, validate spins against a server time source.
 
 **Acceptance criteria**
-- [ ] Moving the clock backward after a spin never leaves a cooldown longer than 4 hours.
-- [ ] Moving the clock forward within the same boot does not unlock a spin.
+- [x] Moving the clock backward after a spin never leaves a cooldown longer than 4 hours.
+- [x] Moving the clock forward within the same boot does not unlock a spin.
 
 ---
 
 ## 16. Puzzle generated on the main thread in the ViewModel constructor, including when not needed
 
 **Priority:** Low · **Labels:** `performance`, `tech-debt`
+
+**Status:** ✅ Resolved (2026-11-24). The constructor no longer generates a puzzle: the board starts empty with `isLoading = true`. A new `loadNewPuzzle()` generates on `Dispatchers.Default` and is called only where a new puzzle is needed: new game, practice, a new streak game, resume when there's no save, and "Next Game" (`createNextGame()` is now `suspend`). Resuming a regular or streak game, or opening a streak already finished today, generates nothing. While loading, a spinner covers the board, and `enterNumber`, `useHint`, erase, undo and the pause toggle are ignored. A separate flag stops a double tap on "Next Game" from generating twice. This also closes the last open criterion of #1 (main thread never blocked).
+
+Tests: new instrumented `SudokuGameViewModelLoadingTest` (a ViewModel built on the main thread has an empty board and is loading; input while loading is ignored; `createNextGame()` called from the main thread produces a valid puzzle). `SudokuGameViewModelHintTest` and `SudokuGameViewModelResumeTest` now load their puzzle with `restoreFrom`. All 15 instrumented tests and 40 JVM tests pass. Emulator smoke test with no crashes: resume, a new Breeze game solved to the win, "Next Game", a streak game, and practice mode. Files: `SudokuGameViewModel.kt`, `SudokuScreen.kt`, `SudokuGameViewModelLoadingTest.kt`, `SudokuGameViewModelHintTest.kt`, `SudokuGameViewModelResumeTest.kt`, `docs/SUDOKU_KNOWLEDGE.md`.
 
 ### Description
 
@@ -431,13 +471,17 @@ Also store `SystemClock.elapsedRealtime()` and the boot count. If `lastSpin > no
 Generate lazily inside `initialize()` only for the `new`, `learn` and new-streak paths, using `withContext(Dispatchers.Default)`. Show a loading state until the puzzle is ready.
 
 **Acceptance criteria**
-- [ ] No generation happens on resume. Generation never runs on the main thread (checked with StrictMode or a trace).
+- [x] No generation happens on resume. Generation never runs on the main thread. *(Checked by code path and tests, not with StrictMode or a trace.)*
 
 ---
 
 ## 17. Room database has no migration path (`version = 1`, `exportSchema = false`)
 
 **Priority:** Low · **Labels:** `tech-debt`, `database`
+
+**Status:** ✅ Resolved (2026-11-24). Checked first: the schema has **not** changed since the first commit. Both entities (`GameStatisticEntity`, `StreakGameEntity`) and `SudokuDatabase` are identical to `Release/release_0.1.6`, as are the Room, KSP and Kotlin versions; only DAO queries changed (#14), which need no migration. Done: added the Room Gradle plugin with `schemaDirectory("$projectDir/schemas")`, set `exportSchema = true`, kept `version = 1` (no migration), and generated `app/schemas/.../SudokuDatabase/1.json`. Its identity hash `7a4b5eaf6f3df6929e3e3aebd9c243e2` matches the one stored in an emulator database created by an older build, so it describes what users already have.
+
+New instrumented `SudokuDatabaseMigrationTest`: (1) pins the shipped identity hash, so changing an entity without a version bump fails the test (confirmed by temporarily adding a column: both tests failed, then reverted); (2) builds a version-1 database with user rows from `1.json` and opens it with the current Room code. `room-testing`'s `MigrationTestHelper` isn't used: it needs kotlinx-serialization ≥ 1.8.1 and the app ships 1.7.3 (noted in `docs/pitfalls.md`). All 17 instrumented tests pass; the real app on the emulator still opens its existing database. Files: `SudokuDatabase.kt`, `app/build.gradle.kts`, `gradle/libs.versions.toml`, `app/schemas/.../1.json`, `SudokuDatabaseMigrationTest.kt`, `docs/pitfalls.md`.
 
 ### Description
 
@@ -448,13 +492,17 @@ Generate lazily inside `initialize()` only for the `new`, `learn` and new-streak
 Enable `exportSchema = true` with `room { schemaDirectory("$projectDir/schemas") }`, commit the schema JSON, and use `AutoMigration` or explicit migrations with `MigrationTestHelper` tests.
 
 **Acceptance criteria**
-- [ ] Schema JSON is committed. Future schema bumps come with a migration test.
+- [x] Schema JSON is committed. Future schema bumps come with a migration test. *(`1.json` generated; it needs to be committed with this change.)*
 
 ---
 
 ## 18. Locked difficulties flash as locked before stats load
 
 **Priority:** Low · **Labels:** `bug`, `ui`
+
+**Status:** ✅ Resolved (2026-11-24). Removed the composable `isDifficultyUnlocked()` from `MainActivity.kt`, which started every count at 0 and loaded stats again each time the sheet was built. The rule now lives in the pure `domain/util/DifficultyUnlocks` (same thresholds and messages as before). `HomeViewModel` collects `StatisticsRepository.getDifficultyUnlocks()` (three win-count queries, a live flow) into `HomeScreenState.difficultyUnlocks: DifficultyUnlocks?`. The data is ready long before the sheet opens and updates after each win without a restart. While it is still `null` (first moments of a cold start), Pulse/Rage/Elite show a new neutral `DifficultyCard(isLoading = true)` state (dimmed, no lock or arrow, taps ignored) instead of "locked"; Breeze is always shown open.
+
+Covered by `DifficultyUnlocksTest` (JVM: new player, exactly 5 wins per level, each level depends only on the previous one, unchanged messages). Emulator: after reaching 5 Breeze wins, Pulse showed as open straight away without restarting, and on a cold start the sheet opened with the correct state (Breeze/Pulse open, Rage/Elite locked). A single-frame flash can't be proven absent with screen dumps; it's prevented by design, because the sheet reads state the ViewModel has already loaded. Files: `DifficultyUnlocks.kt`, `StatisticsRepository.kt`, `HomeViewModel.kt`, `HomeScreen.kt`, `DifficultyCard.kt`, `MainActivity.kt`, `DifficultyUnlocksTest.kt`, `docs/SUDOKU_KNOWLEDGE.md`.
 
 ### Description
 
@@ -465,7 +513,7 @@ Enable `exportSchema = true` with `room { schemaDirectory("$projectDir/schemas")
 Move the unlock state into `HomeViewModel` as a `StateFlow<UnlockState?>` from `getAllDifficultiesStatistics()`, and show a neutral or loading state while it is `null`.
 
 **Acceptance criteria**
-- [ ] No locked-to-unlocked flash on the Home or difficulty picker for a user with all levels unlocked.
+- [x] No locked-to-unlocked flash on the Home or difficulty picker for a user with all levels unlocked.
 
 ---
 

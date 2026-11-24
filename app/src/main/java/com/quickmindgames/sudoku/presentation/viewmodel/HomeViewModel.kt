@@ -1,20 +1,24 @@
 package com.quickmindgames.sudoku.presentation.viewmodel
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.quickmindgames.sudoku.data.preferences.AppPreferences
+import com.quickmindgames.sudoku.data.repository.StatisticsRepository
 import com.quickmindgames.sudoku.data.score.TotalScoreManager
 import com.quickmindgames.sudoku.data.state.GameStateManager
 import com.quickmindgames.sudoku.data.state.StreakState
 import com.quickmindgames.sudoku.data.state.StreakStateManager
 import com.quickmindgames.sudoku.domain.model.Difficulty
+import com.quickmindgames.sudoku.domain.util.DifficultyUnlocks
 import com.quickmindgames.sudoku.utils.CurrentDateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -32,7 +36,9 @@ data class HomeScreenState(
     val completedToday: Boolean = false,
     val hasActiveToday: Boolean = false,
     val streakDialog: HomeStreakDialog? = null,
-    val totalScore: Int = 0
+    val totalScore: Int = 0,
+    /** `null` until the win counts have loaded: show a neutral state, not "locked". */
+    val difficultyUnlocks: DifficultyUnlocks? = null
 )
 
 enum class HomeStreakDialog {
@@ -54,11 +60,21 @@ class HomeViewModel(context: Context) : ViewModel() {
     private val totalScoreManager = TotalScoreManager.getInstance(appContext)
     private val appPreferences = AppPreferences.getInstance(appContext)
     private val currentDateProvider = CurrentDateProvider()
+    private val statisticsRepository = StatisticsRepository(appContext)
 
     private val _uiState = MutableStateFlow(HomeScreenState())
     val uiState = _uiState.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            // Loaded once per Home ViewModel and kept up to date, so the difficulty sheet
+            // already has the real unlock state when it opens (no locked → unlocked flash).
+            statisticsRepository.getDifficultyUnlocks()
+                .catch { error -> Log.e(TAG, "Couldn't load difficulty unlocks", error) }
+                .collect { unlocks ->
+                    _uiState.update { it.copy(difficultyUnlocks = unlocks) }
+                }
+        }
         viewModelScope.launch {
             gameStateManager.getSavedGameState().collect { savedGame ->
                 _uiState.update {
@@ -232,6 +248,8 @@ class HomeViewModel(context: Context) : ViewModel() {
     }
 
     companion object {
+        private const val TAG = "HomeViewModel"
+
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 HomeViewModel(context)

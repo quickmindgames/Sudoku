@@ -40,7 +40,9 @@ fun DifficultyCard(
     difficulty: Difficulty,
     onClick: () -> Unit,
     isLocked: Boolean = false,
-    onLockedClick: () -> Unit = {}
+    onLockedClick: () -> Unit = {},
+    /** Unlock state not known yet: neutral look (no lock, no arrow) and taps are ignored. */
+    isLoading: Boolean = false
 ) {
     val (emoji, level, description) = when (difficulty) {
         Difficulty.Breeze -> Triple("🌤️", "EASY", "Perfect for beginners & casual play")
@@ -66,9 +68,9 @@ fun DifficultyCard(
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .alpha(if (isLocked) 0.5f else 1f)
+            .alpha(if (isLocked || isLoading) 0.5f else 1f)
             .clickable(
-                enabled = true,
+                enabled = !isLoading,
                 onClick = {
                     if (isLocked) {
                         onLockedClick()
@@ -146,8 +148,10 @@ fun DifficultyCard(
 
                 Spacer(Modifier.width(6.dp))
 
-                // Arrow indicator or lock icon
-                if (isLocked) {
+                // Arrow indicator or lock icon (neither while the unlock state is loading)
+                if (isLoading) {
+                    Spacer(Modifier.size(24.dp))
+                } else if (isLocked) {
                     Text(text = "🔒", fontSize = 24.sp)
                 } else {
                     Icon(
@@ -160,7 +164,7 @@ fun DifficultyCard(
             }
 
             // Lock overlay for locked state
-            if (isLocked) {
+            if (isLocked && !isLoading) {
                 Box(
                     modifier = Modifier
                         .matchParentSize()
