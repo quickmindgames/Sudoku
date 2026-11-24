@@ -1,6 +1,13 @@
 package com.quickmindgames.sudoku.presentation.ui.screen
 
+import android.Manifest
+import android.content.Intent
+import android.os.Build
+import android.provider.Settings
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +30,7 @@ import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.LooksOne
+import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.CardDefaults
@@ -35,14 +43,19 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -50,11 +63,22 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.core.app.ActivityCompat
+import com.google.common.math.LinearTransformation.vertical
 import com.quickmindgames.sudoku.BuildConfig
 import com.quickmindgames.sudoku.R
+import com.quickmindgames.sudoku.component.CustomActionDialog
+import com.quickmindgames.sudoku.component.DialogAction
+import com.quickmindgames.sudoku.data.preferences.AppPreferences
 import com.quickmindgames.sudoku.presentation.viewmodel.SettingsViewModel
 import com.quickmindgames.sudoku.utils.AnalyticsConstants
 import com.quickmindgames.sudoku.utils.AnalyticsUtils
+import com.quickmindgames.sudoku.utils.StreakReminderScheduler
+import com.quickmindgames.sudoku.utils.findActivity
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -73,6 +97,89 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
     )
     val settingsState by settingsViewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
+    var notificationAccessAvailable by remember {
+        mutableStateOf(StreakReminderScheduler.hasNotificationAccess(context))
+    }
+    var showNotificationSettingsDialog by remember { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                notificationAccessAvailable =
+                    StreakReminderScheduler.hasNotificationAccess(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    val notificationPermissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            notificationAccessAvailable =
+                StreakReminderScheduler.hasNotificationAccess(context)
+            if (granted) {
+                coroutineScope.launch {
+                    settingsViewModel.setStreakRemindersEnabled(true)
+                }
+            } else {
+                val activity = context.findActivity()
+                coroutineScope.launch {
+                    val requestAttempts = AppPreferences.getInstance(context)
+                        .notificationPermissionRequestAttempts.first()
+                    val shouldShowRationale = activity?.let {
+                        ActivityCompat.shouldShowRequestPermissionRationale(
+                            it,
+                            Manifest.permission.POST_NOTIFICATIONS
+                        )
+                    } ?: false
+                    if (requestAttempts >= 2 && !shouldShowRationale) {
+                        showNotificationSettingsDialog = true
+                    }
+                }
+            }
+        }
+
+    fun requestNotificationPermission() {
+        coroutineScope.launch {
+            AppPreferences.getInstance(context).recordNotificationPermissionRequest()
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    fun enableStreakReminders() {
+        coroutineScope.launch {
+            if (
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                !StreakReminderScheduler.hasNotificationPermission(context)
+            ) {
+                val appPreferences = AppPreferences.getInstance(context)
+                val requestAttempts =
+                    appPreferences.notificationPermissionRequestAttempts.first()
+                val activity = context.findActivity()
+                val shouldShowRationale = activity?.let {
+                    ActivityCompat.shouldShowRequestPermissionRationale(
+                        it,
+                        Manifest.permission.POST_NOTIFICATIONS
+                    )
+                } ?: false
+                if (requestAttempts >= 2 && !shouldShowRationale) {
+                    showNotificationSettingsDialog = true
+                } else {
+                    requestNotificationPermission()
+                }
+                return@launch
+            }
+
+            notificationAccessAvailable =
+                StreakReminderScheduler.hasNotificationAccess(context)
+            if (notificationAccessAvailable) {
+                settingsViewModel.setStreakRemindersEnabled(true)
+            } else {
+                showNotificationSettingsDialog = true
+            }
+        }
+    }
     //endregion
 
     LaunchedEffect(Unit) {
@@ -196,11 +303,104 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
 
             Spacer(Modifier.height(16.dp))
 
-            //region GamePlay Assistance
+            //region Notifications
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                    .padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "NOTIFICATIONS",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                )
+                Spacer(Modifier.width(12.dp))
+                HorizontalDivider(
+                    modifier = Modifier.weight(1f),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
+            }
+
+            //region Streak Reminders
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = RoundedCornerShape(12.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painterResource(id = R.drawable.ic_flame_raw),
+                        contentDescription = "Flame icon", Modifier.size(26.dp),
+                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(MaterialTheme.colorScheme.onPrimaryContainer),
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.streak_reminders_setting_title),
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp,
+                            lineHeight = 20.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(
+                            if (
+                                settingsState.streakRemindersEnabled &&
+                                !notificationAccessAvailable
+                            ) {
+                                R.string.streak_reminders_unavailable
+                            } else {
+                                R.string.streak_reminders_setting_description
+                            }
+                        ),
+                        style = MaterialTheme.typography.labelSmall.copy(lineHeight = 20.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+                Switch(
+                    checked = settingsState.streakRemindersEnabled,
+                    onCheckedChange = { enabled ->
+                        if (!enabled) {
+                            coroutineScope.launch {
+                                settingsViewModel.setStreakRemindersEnabled(false)
+                            }
+                        } else {
+                            enableStreakReminders()
+                        }
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = MaterialTheme.colorScheme.primary,
+                        checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                )
+            }
+            //endregion
+            //endregion
+
+            Spacer(Modifier.height(16.dp))
+
+            //region GamePlay Assistance
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -290,7 +490,6 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
             }
             //endregion
 
-            // These visual options are saved independently and apply to the Sudoku board.
             HorizontalDivider(
                 modifier = Modifier.padding(horizontal = 8.dp),
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
@@ -585,4 +784,28 @@ fun SettingsScreen(modifier: Modifier = Modifier, onStatisticsClick: () -> Unit)
 
     }
     //endregion
+
+    if (showNotificationSettingsDialog) {
+        CustomActionDialog(
+            icon = rememberVectorPainter(Icons.Rounded.Notifications),
+            title = stringResource(R.string.notification_permission_settings_title),
+            description = stringResource(R.string.notification_permission_settings_message),
+            onDismissRequest = { showNotificationSettingsDialog = false },
+            positiveButton = DialogAction(
+                text = stringResource(R.string.notification_permission_open_settings),
+                onClick = {
+                    showNotificationSettingsDialog = false
+                    context.startActivity(
+                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                            putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                        }
+                    )
+                }
+            ),
+            negativeButton = DialogAction(
+                text = stringResource(R.string.notification_permission_not_now),
+                onClick = { showNotificationSettingsDialog = false }
+            )
+        )
+    }
 }

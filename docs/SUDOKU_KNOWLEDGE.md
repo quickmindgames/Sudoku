@@ -65,8 +65,17 @@ for setup and [Domain model](domain-model.md) for state and entity details.
 - Home and Streak status compare against `CurrentDateProvider.today`, which
   refreshes on screen resume and at local midnight. Never cache
   `LocalDate.now()` in a ViewModel or `remember`.
-- The reminder is scheduled for 10 p.m. local time and skips a day already
-  completed. Android 13+ requires notification permission to display it.
+- Streak reminders are opt-in from the post-win prompt or Settings, scheduled
+  for 10 p.m. local time, and skip a day already completed. The prompt is
+  offered at the first streak win and, after each "Maybe later" (or a denied
+  permission), again every 5 streak games won until reminders are on
+  (`domain/util/StreakReminderPrompt`, key `streak_reminder_prompt_next_streak_wins`).
+  Turning reminders off in Settings stops the prompt for good. "Turn on"
+  requests the Android 13+ permission; if Android won't show that dialog any
+  more (denied twice) or app notifications are blocked, it saves the choice
+  and opens the app's notification settings. The notification uses channel
+  importance DEFAULT (no heads-up) and the monochrome `ic_stat_notification`
+  small icon. System notification availability is also required.
 - UI copy uses “Points”; score-oriented code, persistence, and analytics names
   are retained and are not a data migration.
 
@@ -84,9 +93,10 @@ for setup and [Domain model](domain-model.md) for state and entity details.
 - Room holds separate regular and streak result tables. Check DAO query
   semantics before changing statistics. `getCurrentConsecutiveWins()` counts
   all streak wins, despite its name.
-- `MainActivity.kt` coordinates the Compose route host, permission request,
-  theme observation, and startup work; keep route arguments and screen callbacks
-  aligned.
+- `MainActivity.kt` coordinates the Compose route host, theme observation, and
+  startup work; keep route arguments and screen callbacks aligned. Streak
+  notification permission is requested from the user-initiated prompt or
+  Settings toggle, not at app launch.
 
 ## Engineering references
 

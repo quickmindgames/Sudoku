@@ -13,6 +13,7 @@ import com.quickmindgames.sudoku.data.rewards.HintMigrationGrant
 import com.quickmindgames.sudoku.data.rewards.HintRewardRules
 import com.quickmindgames.sudoku.domain.util.ClockReading
 import com.quickmindgames.sudoku.domain.util.SpinRecord
+import com.quickmindgames.sudoku.domain.util.StreakReminderPrompt
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -59,6 +60,13 @@ class AppPreferences internal constructor(
     private val HIGHLIGHT_SAME_NUMBERS_KEY = booleanPreferencesKey("highlight_same_numbers")
     private val FREE_PLAY_KEY = booleanPreferencesKey("free_play")
     private val SOUND_AND_VIBRATION_KEY = booleanPreferencesKey("sound_and_vibration")
+    private val STREAK_REMINDERS_ENABLED_KEY = booleanPreferencesKey("streak_reminders_enabled")
+    // Total streak wins at which the post-win reminder prompt may show again (0 = not
+    // declined yet; Int.MAX_VALUE = never). See StreakReminderPrompt.
+    private val STREAK_REMINDER_PROMPT_NEXT_STREAK_KEY =
+        intPreferencesKey("streak_reminder_prompt_next_streak_wins")
+    private val NOTIFICATION_PERMISSION_REQUEST_ATTEMPTS_KEY =
+        intPreferencesKey("notification_permission_request_attempts")
     private val LAST_SPIN_KEY = longPreferencesKey("last_spin")
     // Boot clock and boot count of the last spin, so the cooldown doesn't trust the wall
     // clock (see SpinCooldown). Absent for spins saved by older versions.
@@ -155,6 +163,10 @@ class AppPreferences internal constructor(
         preferences[SOUND_AND_VIBRATION_KEY] ?: true
     }
 
+    val streakRemindersEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[STREAK_REMINDERS_ENABLED_KEY] ?: false
+    }
+
     suspend fun setHideUsedNumbers(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[HIDE_USED_NUMBERS_KEY] = enabled
@@ -183,6 +195,46 @@ class AppPreferences internal constructor(
         dataStore.edit { preferences ->
             preferences[SOUND_AND_VIBRATION_KEY] = enabled
         }
+    }
+
+    suspend fun setStreakRemindersEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[STREAK_REMINDERS_ENABLED_KEY] = enabled
+        }
+    }
+
+    /** See [StreakReminderPrompt]: the prompt may show once total streak wins reach this. */
+    val streakReminderPromptNextStreakWins: Flow<Int> = dataStore.data.map { preferences ->
+        preferences[STREAK_REMINDER_PROMPT_NEXT_STREAK_KEY] ?: 0
+    }
+
+    /** Never show the post-win prompt again (reminders were turned off in Settings). */
+    suspend fun stopStreakReminderPrompt() {
+        dataStore.edit { preferences ->
+            preferences[STREAK_REMINDER_PROMPT_NEXT_STREAK_KEY] = StreakReminderPrompt.NEVER
+        }
+    }
+
+    /** The player declined the prompt at [streakWins]: ask again 5 streak wins later. */
+    suspend fun postponeStreakReminderPrompt(streakWins: Int) {
+        dataStore.edit { preferences ->
+            preferences[STREAK_REMINDER_PROMPT_NEXT_STREAK_KEY] =
+                StreakReminderPrompt.nextPromptAfterDecline(streakWins)
+        }
+    }
+
+    val notificationPermissionRequestAttempts: Flow<Int> = dataStore.data.map { preferences ->
+        preferences[NOTIFICATION_PERMISSION_REQUEST_ATTEMPTS_KEY] ?: 0
+    }
+
+    suspend fun recordNotificationPermissionRequest(): Int {
+        var requestAttempts = 0
+        dataStore.edit { preferences ->
+            requestAttempts =
+                (preferences[NOTIFICATION_PERMISSION_REQUEST_ATTEMPTS_KEY] ?: 0) + 1
+            preferences[NOTIFICATION_PERMISSION_REQUEST_ATTEMPTS_KEY] = requestAttempts
+        }
+        return requestAttempts
     }
 
     /**

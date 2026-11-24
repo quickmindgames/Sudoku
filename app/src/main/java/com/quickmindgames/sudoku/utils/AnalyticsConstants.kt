@@ -79,6 +79,7 @@ object AnalyticsConstants {
     const val HIGHLIGHT_REGION = "highlight_region"
     const val FREE_PLAY = "free_play"
     const val SOUND_VIBRATIONS = "sound_vibration"
+    const val STREAK_REMINDERS = "streak_reminders"
     const val YES = "Yes"
     const val NO = "No"
     const val OVERALL_STATS = "overall_stats"

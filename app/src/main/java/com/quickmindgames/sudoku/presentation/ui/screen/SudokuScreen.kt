@@ -1,6 +1,10 @@
 package com.quickmindgames.sudoku.presentation.ui.screen
 
+import android.Manifest
+import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -29,6 +33,7 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.EditNote
+import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.ButtonDefaults
@@ -47,8 +52,11 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -79,9 +87,15 @@ import com.quickmindgames.sudoku.presentation.viewmodel.HintResult
 import com.quickmindgames.sudoku.presentation.viewmodel.SudokuGameViewModel
 import com.quickmindgames.sudoku.utils.AnalyticsConstants
 import com.quickmindgames.sudoku.utils.AnalyticsUtils
+import com.quickmindgames.sudoku.utils.StreakReminderScheduler
+import com.quickmindgames.sudoku.utils.isNotificationPermissionPermanentlyDenied
+import com.quickmindgames.sudoku.utils.openAppNotificationSettings
+import com.quickmindgames.sudoku.data.repository.StatisticsRepository
+import com.quickmindgames.sudoku.domain.util.StreakReminderPrompt
 import com.quickmindgames.sudoku.utils.formatTime
 import com.quickmindgames.sudoku.utils.ordinalSuffix
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -105,6 +119,7 @@ fun SudokuScreen(
     val appPreferences = remember { AppPreferences.getInstance(context) }
     val gameFeedback = remember(context) { GameFeedback(context) }
     val coroutineScope = rememberCoroutineScope()
+    var showStreakReminderPrompt by remember(mode) { mutableStateOf(false) }
     val gameViewModel: SudokuGameViewModel = viewModel(
         key = "$mode-${difficulty?.name}-$streakDay-$useDoublePointsBooster",
         factory = remember(appPreferences, mode, difficulty, streakDay, useDoublePointsBooster) {
@@ -167,6 +182,38 @@ fun SudokuScreen(
     val pointsToAward = gameViewModel.pointsToAward(freePlayEnabled)
     val learningHint by gameViewModel.learningHint
     val colors = MaterialTheme.colorScheme
+
+    /** Total streak games won (never resets, unlike the current streak). */
+    suspend fun streakWins(): Int =
+        StatisticsRepository(context.applicationContext).getStreakStatistics().first().totalWins
+
+    /**
+     * Ends the post-win reminder prompt. [enableReminders] = the player chose "Turn on";
+     * with [openSystemSettings] the choice is saved and the app's notification settings
+     * open (needed when Android won't show the permission dialog any more, or app
+     * notifications are blocked). Otherwise the prompt is postponed by 5 streak days.
+     */
+    fun finishStreakReminderPrompt(enableReminders: Boolean, openSystemSettings: Boolean = false) {
+        coroutineScope.launch {
+            val turnOn = enableReminders &&
+                (openSystemSettings || StreakReminderScheduler.hasNotificationAccess(context))
+            if (turnOn) {
+                // The worker only posts once notification access is actually granted.
+                appPreferences.setStreakRemindersEnabled(true)
+                StreakReminderScheduler.schedule(context)
+            } else {
+                appPreferences.postponeStreakReminderPrompt(streakWins())
+            }
+            showStreakReminderPrompt = false
+            if (turnOn && openSystemSettings) context.openAppNotificationSettings()
+            onExit()
+        }
+    }
+
+    val notificationPermissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            finishStreakReminderPrompt(enableReminders = granted)
+        }
 
     LaunchedEffect(shakeCells) {
         delay(300.milliseconds)
@@ -849,7 +896,25 @@ fun SudokuScreen(
                 text = "Done",
                 onClick = {
                     gameViewModel.dismissGameWon()
-                    onExit()
+                    if (mode == "streak") {
+                        coroutineScope.launch {
+                            // Offered at the first streak win, then 5 streak wins after each
+                            // decline, until reminders are on (StreakReminderPrompt).
+                            val shouldPrompt = StreakReminderPrompt.shouldPrompt(
+                                remindersEnabled = appPreferences.streakRemindersEnabled.first(),
+                                streakWins = streakWins(),
+                                nextPromptAtWins =
+                                    appPreferences.streakReminderPromptNextStreakWins.first()
+                            )
+                            if (shouldPrompt) {
+                                showStreakReminderPrompt = true
+                            } else {
+                                onExit()
+                            }
+                        }
+                    } else {
+                        onExit()
+                    }
                 }
             )
             val nextAction = DialogAction(
@@ -982,6 +1047,7 @@ fun SudokuScreen(
                                     )
                                 }
                             }
+
                         }
                     }
                 },
@@ -995,5 +1061,55 @@ fun SudokuScreen(
                 }
             )
         }
+    }
+
+    if (showStreakReminderPrompt) {
+        CustomActionDialog(
+            icon = rememberVectorPainter(Icons.Rounded.Notifications),
+            title = stringResource(R.string.streak_reminder_prompt_title),
+            description = stringResource(R.string.streak_reminder_prompt_message),
+            onDismissRequest = {
+                finishStreakReminderPrompt(enableReminders = false)
+            },
+            positiveButton = DialogAction(
+                text = stringResource(R.string.streak_reminder_enable),
+                onClick = {
+                    coroutineScope.launch {
+                        when {
+                            // Android won't show the permission dialog any more: only the
+                            // system settings page can grant it.
+                            context.isNotificationPermissionPermanentlyDenied() ->
+                                finishStreakReminderPrompt(
+                                    enableReminders = true,
+                                    openSystemSettings = true
+                                )
+
+                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                !StreakReminderScheduler.hasNotificationPermission(context) -> {
+                                appPreferences.recordNotificationPermissionRequest()
+                                notificationPermissionLauncher.launch(
+                                    Manifest.permission.POST_NOTIFICATIONS
+                                )
+                            }
+
+                            // Permission granted but notifications blocked for the app/channel.
+                            !StreakReminderScheduler.areAppNotificationsEnabled(context) ->
+                                finishStreakReminderPrompt(
+                                    enableReminders = true,
+                                    openSystemSettings = true
+                                )
+
+                            else -> finishStreakReminderPrompt(enableReminders = true)
+                        }
+                    }
+                }
+            ),
+            negativeButton = DialogAction(
+                text = stringResource(R.string.streak_reminder_later),
+                onClick = {
+                    finishStreakReminderPrompt(enableReminders = false)
+                }
+            )
+        )
     }
 }

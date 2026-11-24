@@ -1,15 +1,10 @@
 package com.quickmindgames.sudoku.presentation.ui
 
-import android.Manifest
-import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -37,7 +32,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
@@ -76,26 +70,20 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        // Schedule streak reminder notification
-        StreakReminderScheduler.schedule(this)
-
-        // Request POST_NOTIFICATIONS permission on Android 13+
-        val requestNotificationPermission =
-            registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-                // Optionally handle result
-            }
-        if (Build.VERSION.SDK_INT >= 33 &&
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-        }
 
         // Log analytics if opened from streak notification (no navigation)
         if (intent?.getBooleanExtra("from_streak_notification", false) == true) {
             AnalyticsUtils.logNotificationClicked(this)
+        }
+
+        lifecycleScope.launch {
+            val remindersEnabled = AppPreferences.getInstance(applicationContext)
+                .streakRemindersEnabled.first()
+            if (remindersEnabled) {
+                StreakReminderScheduler.schedule(this@MainActivity)
+            } else {
+                StreakReminderScheduler.cancel(this@MainActivity)
+            }
         }
 
         // Fetch remote config values on app start

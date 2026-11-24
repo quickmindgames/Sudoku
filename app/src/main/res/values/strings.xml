@@ -43,4 +43,15 @@
     <string name="lbl_got_it">Got it!</string>
     <string name="switch_to_light_mode">Switch to light mode</string>
     <string name="switch_to_dark_mode">Switch to dark mode</string>
+    <string name="streak_reminder_prompt_title">Never miss a streak!</string>
+    <string name="streak_reminder_prompt_message">Get a gentle daily reminder to play your Streak game and help keep your streak going.</string>
+    <string name="streak_reminder_enable">Turn on Reminders</string>
+    <string name="streak_reminder_later">Maybe later</string>
+    <string name="streak_reminders_setting_title">Streak Reminders</string>
+    <string name="streak_reminders_setting_description">Get a daily reminder if you haven\'t played today\'s Streak game.</string>
+    <string name="streak_reminders_unavailable">Allow Sudoku notifications in your device settings to receive reminders.</string>
+    <string name="notification_permission_settings_title">Enable notifications</string>
+    <string name="notification_permission_settings_message">Notifications have been denied. To enable Streak Reminders, allow notifications for Sudoku in your device settings.</string>
+    <string name="notification_permission_open_settings">Open Settings</string>
+    <string name="notification_permission_not_now">Not now</string>
 </resources>

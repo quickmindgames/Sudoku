@@ -56,7 +56,7 @@ classDiagram
 | `GameStatisticEntity` | Completed regular-game result | Difficulty, outcome, mistakes, score, time, completion timestamp | Room table `game_statistics` | Inserted at completion | Holds every recorded game, including streak games as difficulty `"streak"`, so Overall covers all games by design. Free Play and practice games are not recorded |
 | `StreakGameEntity` | Completed streak-game result | Streak day, outcome, score, time, completion timestamp | Room table `streak_games` | Inserted at completion | Feeds only the Streak stats; each streak game is also written to `game_statistics` on purpose (see `SUDOKU_KNOWLEDGE.md`) |
 | Wallet preferences | Persisted points-related reward balances | Hint, 2X Booster, Streak Shield and progress keys | Held by `AppPreferences`; used by Home/Rewards/game flows | Earned, consumed, migrated or reconciled | Credit paths are designed for idempotency; consumption must not go below zero |
-| Gameplay settings | Persisted user options | Free Play, Hide Used Numbers, highlighting, sound/vibration | Held by `AppPreferences` | Updated from Settings | Free Play and Hide Used Numbers are independent; neither can change while a saved game exists |
+| Gameplay and reminder settings | Persisted user options | Free Play, Hide Used Numbers, highlighting, sound/vibration, Streak Reminders opt-in | Held by `AppPreferences` | Updated from Settings or the post-win Streak prompt | Free Play and Hide Used Numbers are independent; neither can change while a saved game exists. Streak reminders require app opt-in and Android notification access |
 
 ## Supported business rules
 
@@ -71,9 +71,14 @@ classDiagram
   completed boosted game; credited points are doubled.
 - A Streak Shield protects one missed calendar day without incrementing the
   streak count. Regular and streak statistics remain separate.
+- Streak reminders are opt-in. The post-win prompt is offered at the first
+  streak win and, after each decline, again every 5 streak games won until
+  reminders are on; turning them off in Settings stops it for good. Settings
+  can request permission again after a denial; delivery requires app opt-in
+  and Android notification access.
 - Statistics derive total points and average completion time from completed
-  Room records; averages include both wins and losses and are unavailable when
-  no matching games have been recorded.
+  Room records; averages count won games only (like best time) and are
+  unavailable when no won games have been recorded.
 - Debug builds use 72 clues. Non-debug clue ranges use Firebase Remote Config
   with defaults: Breeze 46–51, Pulse 32–37, Rage 26–31, Elite 22–26.
 - The Sudoku generator constructs a complete solution and removes cells; it
